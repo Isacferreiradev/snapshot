@@ -1,0 +1,14 @@
+[
+  { "id": "void",       "name": "Void",       "key": "void",       "category": "frames",       "plan": "free", "description": "Monitor ultra-fino, sombra branca difusa",          "active": true },
+  { "id": "slate",      "name": "Slate",      "key": "slate",      "category": "frames",       "plan": "free", "description": "Smartphone premium sobre cinza escuro",            "active": true },
+  { "id": "duo",        "name": "Duo",        "key": "duo",        "category": "frames",       "plan": "free", "description": "Desktop + mobile lado a lado",                    "active": true },
+  { "id": "float",      "name": "Float",      "key": "float",      "category": "frames",       "plan": "free", "description": "Dispositivo flutuando com sombra profunda",        "active": true },
+  { "id": "chrome",     "name": "Chrome",     "key": "chrome",     "category": "professional", "plan": "free", "description": "Barra de endereço estilo browser minimalista",    "active": true },
+  { "id": "paper",      "name": "Paper",      "key": "paper",      "category": "professional", "plan": "free", "description": "Fundo branco com sombra suave estilo impressão",   "active": true },
+  { "id": "annotation", "name": "Annotation", "key": "annotation", "category": "professional", "plan": "free", "description": "Marcações e setas de apresentação",               "active": true },
+  { "id": "grid",       "name": "Grid",       "key": "grid",       "category": "professional", "plan": "free", "description": "Grade de fundo com linhas discretas",             "active": true },
+  { "id": "poster",     "name": "Poster",     "key": "poster",     "category": "editorial",    "plan": "free", "description": "Layout editorial com tipografia destacada",       "active": true },
+  { "id": "neon",       "name": "Neon",       "key": "neon",       "category": "editorial",    "plan": "free", "description": "Brilho neon em fundo escuro",                     "active": true },
+  { "id": "cinematic",  "name": "Cinematic",  "key": "cinematic",  "category": "editorial",    "plan": "free", "description": "Barras cinematográficas + grade de filme",         "active": true },
+  { "id": "story",      "name": "Story",      "key": "story",      "category": "editorial",    "plan": "free", "description": "Formato vertical estilo stories 9:16",            "active": true }
+]

@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SnapShot.pro — Screenshots Profissionais</title>
+  <meta name="description" content="Screenshots profissionais de qualquer site. Escolha as páginas, selecione um template e baixe o ZIP.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0a0a0a;
+      --card-bg: #141414;
+      --card-bg-hover: #1c1c1c;
+      --border-subtle: rgba(255,255,255,0.07);
+      --border-mid: rgba(255,255,255,0.12);
+      --border-active: rgba(255,255,255,0.28);
+      --text-primary: rgba(255,255,255,0.92);
+      --text-secondary: rgba(255,255,255,0.55);
+      --text-tertiary: rgba(255,255,255,0.32);
+      --accent: #ffffff;
+      --radius: 18px;
+      --radius-btn: 8px;
+      --radius-badge: 999px;
+      --shadow-card: 0 4px 24px rgba(0,0,0,0.5);
+      --transition: 150ms ease;
+      --font: 'Outfit', sans-serif;
+    }
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    html { font-size:16px; }
+    body {
+      font-family: var(--font); font-size:15px; line-height:1.65;
+      background: var(--bg-base); color: var(--text-primary);
+      min-height:100vh; -webkit-font-smoothing:antialiased; position:relative;
+    }
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px),
+        radial-gradient(ellipse at 50% 25%, rgba(255,255,255,0.015) 0%, transparent 55%);
+      background-size: 28px 28px, 100% 100%;
+    }
+
+    /* ── Layout ── */
+    .wrap  { max-width:680px; margin:0 auto; padding:0 24px; position:relative; z-index:1; }
+    .wrapW { max-width:1100px; margin:0 auto; padding:0 24px; position:relative; z-index:1; }
+
+    /* ── Section transitions ── */
+    .s { display:none; opacity:0; transition:opacity 0.2s ease; }
+    .s.in  { display:block; }
+    .s.vis { opacity:1; }
+
+    /* ── Header ── */
+    header {
+      height:56px; background:rgba(10,10,10,0.92);
+      backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+      border-bottom:1px solid var(--border-subtle);
+      display:flex; align-items:center; padding:0 24px;
+      position:sticky; top:0; z-index:200;
+    }
+    .hdr { display:flex; align-items:center; justify-content:space-between; width:100%; max-width:680px; margin:0 auto; padding:0 24px; }
+    .logo { font-size:17px; font-weight:700; color:rgba(255,255,255,0.9); text-decoration:none; cursor:pointer; letter-spacing:-0.01em; font-family:var(--font); }
+    .hdr-right { display:flex; align-items:center; gap:12px; }
+
+    /* ── Quota badge ── */
+    #sub-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      font-size:12px; font-weight:600;
+      padding:4px 10px; border-radius:var(--radius-badge);
+      background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1);
+      color:var(--text-secondary); cursor:pointer;
+      transition:all var(--transition); user-select:none;
+    }
+    #sub-badge:hover { background:rgba(255,255,255,0.1); }
+    #sub-badge.active { background:rgba(74,222,128,0.08); border-color:rgba(74,222,128,0.2); color:#4ade80; }
+
+    /* ── Buttons ── */
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:9px;
+      font-family:var(--font); font-size:14px; font-weight:600;
+      height:44px; border-radius:var(--radius-btn); padding:0 20px;
+      cursor:pointer; transition:all var(--transition); border:none; white-space:nowrap;
+    }
+    .btn-p { background:#fff; color:#0a0a0a; }
+    .btn-p:hover:not(:disabled) { background:#f0f0f0; transform:translateY(-1px); }
+    .btn-p:disabled { opacity:0.4; cursor:not-allowed; }
+    .btn-g { background:transparent; color:rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.2); font-size:13px; }
+    .btn-g:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.35); }
+    .btn-full { width:100%; }
+    .btn:active:not(:disabled) { transform:scale(0.98); }
+    .btn-amber { background:rgba(251,191,36,0.12); color:#fbbf24; border:1px solid rgba(251,191,36,0.25); font-size:13px; }
+    .btn-amber:hover { background:rgba(251,191,36,0.18); }
+
+    /* ── Input ── */
+    input[type="url"],input[type="text"],input[type="email"] {
+      width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+      border-radius:10px; padding:0 16px; height:48px;
+      font-family:var(--font); font-size:15px; color:rgba(255,255,255,0.85);
+      outline:none; transition:border-color var(--transition),box-shadow var(--transition);
+    }
+    input::placeholder { color:rgba(255,255,255,0.3); }
+    input:focus {
+      border-color:rgba(255,255,255,0.3); box-shadow:0 0 0 3px rgba(255,255,255,0.06);
+    }
+    .input-label { font-size:12px; font-weight:500; color:var(--text-tertiary); margin-bottom:6px; letter-spacing:0.02em; }
+    .err { font-size:13px; color:#f87171; margin-top:6px; display:none; }
+    .err.on { display:block; }
+
+    /* ── Spinner ── */
+    .sp { width:16px; height:16px; border:2px solid rgba(255,255,255,0.1); border-top-color:rgba(255,255,255,0.7); border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
+    .sp-w { border-color:rgba(255,255,255,0.15); border-top-color:rgba(255,255,255,0.85); }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ── Typography ── */
+    h1 { font-weight:800; font-size:52px; line-height:1.08; letter-spacing:-0.025em; color:var(--text-primary); font-family:var(--font); }
+    @media(max-width:600px) { h1 { font-size:36px; } }
+    h2 { font-size:22px; font-weight:700; letter-spacing:-0.015em; color:var(--text-primary); font-family:var(--font); }
+
+    /* ═══════════ S1: HERO ═══════════ */
+    #s1 { padding:72px 0 120px; }
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:12px; font-weight:500; color:var(--text-secondary);
+      background:var(--card-bg); border:1px solid var(--border-subtle);
+      border-radius:var(--radius-badge); padding:4px 12px; margin-bottom:24px;
+    }
+    .hero-badge-dot { width:6px; height:6px; background:#22c55e; border-radius:50%; animation:hbp 2s ease-in-out infinite; }
+    @keyframes hbp { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .hero-sub { font-size:16px; color:rgba(255,255,255,0.5); margin:16px 0 40px; max-width:520px; line-height:1.55; }
+    .hero-sub b { color:rgba(255,255,255,0.8); }
+
+    .est-banner {
+      display:none; align-items:center; gap:8px;
+      background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle);
+      border-radius:8px; padding:10px 14px; margin-bottom:12px;
+      font-size:13px; color:var(--text-secondary);
+    }
+    .est-banner.on { display:flex; }
+    .est-banner b { color:var(--text-primary); }
+
+    .url-group { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+    .url-row { display:flex; gap:10px; }
+    .url-row input { flex:1; }
+    #vs-badge {
+      display:none; align-items:center; justify-content:center;
+      width:36px; height:48px; font-size:11px; font-weight:700;
+      color:var(--text-tertiary); letter-spacing:0.04em; flex-shrink:0;
+    }
+
+    .hero-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:16px; }
+    .compare-dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); transition:background 0.2s; }
+
+    .stats-row { display:flex; gap:32px; margin-top:48px; padding-top:32px; border-top:1px solid var(--border-subtle); }
+    .stat-item { display:flex; flex-direction:column; gap:2px; }
+    .stat-num { font-size:28px; font-weight:800; letter-spacing:-0.02em; color:var(--text-primary); }
+    .stat-lbl { font-size:12px; color:var(--text-tertiary); }
+
+    /* ═══════════ S2: CRAWLING ═══════════ */
+    #s2 { padding:80px 0; }
+    .crawl-wrap { background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:var(--radius); padding:32px; box-shadow:var(--shadow-card); }
+    .crawl-header { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+    .crawl-domain-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:12px; color:var(--text-tertiary);
+      background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle);
+      border-radius:var(--radius-badge); padding:3px 10px;
+    }
+    .crawl-title { font-size:16px; font-weight:600; }
+    .crawl-phase-row { display:flex; align-items:center; gap:8px; margin-bottom:20px; }
+    .crawl-phase { font-size:13px; color:var(--text-secondary); transition:opacity 0.3s; }
+    .crawl-counter-row { display:flex; align-items:baseline; gap:6px; margin-bottom:16px; }
+    .crawl-n { font-size:40px; font-weight:800; letter-spacing:-0.02em; }
+    .crawl-n-label { font-size:13px; color:var(--text-tertiary); }
+    .crawl-log {
+      background:rgba(0,0,0,0.3); border:1px solid var(--border-subtle);
+      border-radius:10px; padding:12px 14px; max-height:160px; overflow-y:auto;
+      font-size:12px; font-family:monospace; color:var(--text-tertiary);
+      display:flex; flex-direction:column; gap:3px;
+    }
+    .crawl-log::-webkit-scrollbar { width:4px; }
+    .crawl-log::-webkit-scrollbar-track { background:transparent; }
+    .crawl-log::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+    .log-entry { opacity:0; transform:translateY(4px); transition:opacity 0.25s,transform 0.25s; display:flex; gap:8px; }
+    .log-entry.in { opacity:1; transform:translateY(0); }
+    .log-ts { color:rgba(255,255,255,0.2); flex-shrink:0; }
+    .crawl-list { margin-top:16px; display:flex; flex-direction:column; gap:6px; }
+    .crawl-list.collapsed .crawl-item:nth-child(n+6) { display:none; }
+    .crawl-expand-btn {
+      margin-top:10px; background:none; border:1px solid var(--border-subtle); color:var(--text-secondary);
+      padding:6px 16px; border-radius:var(--radius-btn); cursor:pointer; font-family:var(--font);
+      font-size:12px; font-weight:500; transition:all var(--transition); align-self:flex-start;
+    }
+    .crawl-expand-btn:hover { background:rgba(255,255,255,0.05); color:var(--text-primary); border-color:var(--border-mid); }
+    .crawl-item { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary); opacity:0; transform:translateX(-6px); transition:opacity 0.3s,transform 0.3s; }
+    .crawl-item.in { opacity:1; transform:translateX(0); }
+    .done-dot { width:6px; height:6px; border-radius:50%; background:#22c55e; flex-shrink:0; }
+
+    /* ═══════════ S3: PAGE SELECTION ═══════════ */
+    #s3 { padding:48px 0 100px; }
+    .section-head { margin-bottom:28px; }
+    .section-head h2 { margin-bottom:6px; }
+    .section-head p { font-size:14px; color:var(--text-secondary); }
+    .action-row { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+    .pages-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+    .page-card {
+      background:var(--card-bg); border:1px solid var(--border-subtle);
+      border-radius:14px; overflow:hidden; cursor:pointer;
+      transition:border-color var(--transition),background var(--transition); position:relative;
+    }
+    .page-card:hover { background:var(--card-bg-hover); border-color:var(--border-mid); }
+    .page-card.sel { border-color:rgba(255,255,255,0.5); }
+    .pc-thumb { width:100%; aspect-ratio:16/10; background:#111; overflow:hidden; position:relative; }
+    .pc-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .pc-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+    .pc-body { padding:10px 12px; }
+    .pc-title { font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
+    .pc-url { font-size:11px; color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:6px; }
+    .pt-badge { display:inline-block; font-size:10px; font-weight:500; padding:2px 8px; border-radius:var(--radius-badge); }
+    .pt-homepage { background:rgba(99,102,241,0.15); color:#a5b4fc; }
+    .pt-article  { background:rgba(234,179,8,0.12);  color:#fde68a; }
+    .pt-product  { background:rgba(16,185,129,0.12); color:#6ee7b7; }
+    .pt-about    { background:rgba(249,115,22,0.12); color:#fdba74; }
+    .pt-pricing  { background:rgba(236,72,153,0.12); color:#f9a8d4; }
+    .pt-service  { background:rgba(14,165,233,0.12); color:#7dd3fc; }
+    .pt-other    { background:rgba(255,255,255,0.06); color:var(--text-tertiary); }
+    .chk-badge {
+      position:absolute; top:7px; right:7px;
+      width:20px; height:20px; background:#fff; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; transition:opacity var(--transition);
+    }
+    .page-card.sel .chk-badge { opacity:1; }
+
+    /* ═══════════ S4: CONFIG ═══════════ */
+    #s4 { padding:48px 0 100px; }
+
+    /* Template tabs */
+    .tmpl-tabs {
+      display:flex; gap:2px; margin-bottom:16px;
+      background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle);
+      border-radius:10px; padding:3px;
+    }
+    .tmpl-tab {
+      flex:1; padding:7px 12px; border-radius:8px; border:none; cursor:pointer;
+      font-family:var(--font); font-size:13px; font-weight:500;
+      background:transparent; color:rgba(255,255,255,0.6);
+      transition:all 0.15s; text-align:center;
+    }
+    .tmpl-tab.active { background:#fff; color:#000; }
+    .tmpl-tab:not(.active):hover { color:rgba(255,255,255,0.85); }
+
+    .tmpl-pane { display:none; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+    .tmpl-pane.active { display:grid; }
+    @media(max-width:700px) { .tmpl-pane { grid-template-columns:repeat(2,1fr); } }
+
+    .tmpl-card {
+      background:var(--card-bg); border:1px solid var(--border-subtle);
+      border-radius:12px; overflow:hidden; cursor:pointer;
+      transition:border-color var(--transition),background var(--transition); position:relative;
+    }
+    .tmpl-card:hover { background:var(--card-bg-hover); border-color:var(--border-mid); }
+    .tmpl-card.sel { border-color:rgba(255,255,255,0.45); }
+    .tc-preview { width:100%; aspect-ratio:4/3; background:#111; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .tc-preview svg { width:100%; height:100%; }
+    .tc-foot { padding:8px 12px; }
+    .tc-name { font-size:12px; font-weight:600; color:var(--text-secondary); transition:color var(--transition); display:block; }
+    .tc-use  { font-size:10px; color:var(--text-tertiary); margin-top:1px; display:block; }
+    .tmpl-card:hover .tc-name,.tmpl-card.sel .tc-name { color:var(--text-primary); }
+    .tc-chk { position:absolute; top:6px; right:6px; width:18px; height:18px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity var(--transition); }
+    .tmpl-card.sel .tc-chk { opacity:1; }
+
+    .opts-wrap { border:1px solid var(--border-subtle); border-radius:var(--radius); overflow:hidden; margin-bottom:20px; }
+    .opts-summary { padding:16px 20px; background:var(--card-bg); cursor:pointer; font-size:14px; font-weight:600; color:var(--text-secondary); list-style:none; display:flex; align-items:center; justify-content:space-between; user-select:none; transition:all var(--transition); }
+    .opts-summary:hover { background:var(--card-bg-hover); color:var(--text-primary); }
+    .opts-summary::-webkit-details-marker { display:none; }
+    details[open] .opts-summary { color:var(--text-primary); }
+    .opts-summary::after { content:'›'; font-size:18px; transition:transform 0.2s; }
+    details[open] .opts-summary::after { transform:rotate(90deg); }
+    .opts-body { padding:24px 20px; border-top:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:22px; }
+    .cfg-label { font-size:11px; font-weight:500; color:var(--text-tertiary); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px; }
+    .checkbox-row { display:flex; align-items:center; gap:10px; cursor:pointer; }
+    .checkbox-row input[type="checkbox"] { width:14px; height:14px; accent-color:#fff; cursor:pointer; }
+    .checkbox-row span { font-size:13px; color:var(--text-secondary); }
+    .compare-info { background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:var(--radius); padding:16px 20px; font-size:14px; color:var(--text-secondary); margin-bottom:20px; }
+    .compare-info strong { color:var(--text-primary); }
+    .sticky-cta { position:fixed; bottom:0; left:0; right:0; z-index:100; background:linear-gradient(to top,var(--bg-base) 65%,transparent); padding:24px; }
+    .sticky-inner { max-width:480px; margin:0 auto; }
+
+    /* ═══════════ S5: CAPTURING ═══════════ */
+    #s5 { padding:80px 0; }
+    .cap-wrap { max-width:480px; margin:0 auto; text-align:center; background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:var(--radius); padding:32px; box-shadow:var(--shadow-card); }
+    .cap-wrap h2 { margin-bottom:10px; }
+    .cap-sub { font-size:14px; color:var(--text-secondary); margin-bottom:40px; }
+    .prog-bar { width:100%; height:3px; background:rgba(255,255,255,0.08); border-radius:var(--radius-badge); overflow:hidden; margin-bottom:28px; position:relative; }
+    .prog-fill { height:100%; background:#fff; border-radius:var(--radius-badge); transition:width 0.5s ease-out; position:relative; overflow:hidden; }
+    .prog-fill::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.5),transparent); animation:shimmer 1.5s ease-in-out infinite; }
+    @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
+    .prog-counter { font-weight:800; font-size:48px; line-height:1; letter-spacing:-0.02em; color:var(--text-primary); margin-bottom:4px; }
+    .prog-sep { font-size:20px; font-weight:400; color:var(--text-tertiary); }
+    .prog-label { font-size:13px; color:var(--text-tertiary); margin-bottom:16px; }
+    .prog-curr { font-size:13px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .gallery-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:8px; margin-top:20px; }
+    .gal-thumb { aspect-ratio:16/10; background:#111; border-radius:6px; overflow:hidden; border:1px solid var(--border-subtle); opacity:0; transform:scale(0.9); transition:opacity 0.3s,transform 0.3s; }
+    .gal-thumb.in { opacity:1; transform:scale(1); }
+    .gal-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+
+    /* ═══════════ S6: PREVIEW ═══════════ */
+    #s6 { padding:64px 0 100px; }
+    .wm-notice { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:#f87171; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.15); border-radius:var(--radius-badge); padding:3px 10px; margin-bottom:20px; }
+    .preview-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; margin-bottom:28px; }
+    .prev-card { background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow-card); cursor:pointer; transition:border-color var(--transition); }
+    .prev-card:hover { border-color:var(--border-mid); }
+    .prev-img { width:100%; aspect-ratio:16/10; background:#111; overflow:hidden; position:relative; }
+    .prev-img img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.3s; }
+    .prev-card:hover .prev-img img { transform:scale(1.02); }
+    .prev-img .wm-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+    .prev-img .wm-overlay span { font-size:18px; font-weight:800; color:rgba(255,255,255,0.35); letter-spacing:0.12em; transform:rotate(-18deg); }
+    .prev-body { padding:12px 14px; }
+    .prev-title { font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:3px; }
+    .prev-url { font-size:11px; color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pay-card { background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow-card); }
+    .pay-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:16px; }
+    .pay-label { font-size:13px; font-weight:600; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.06em; }
+    .pay-price { font-size:28px; font-weight:800; letter-spacing:-0.02em; color:var(--text-primary); }
+    .pay-list { list-style:none; display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+    .pay-list li { font-size:13px; color:var(--text-secondary); padding-left:18px; position:relative; }
+    .pay-list li::before { content:'✓'; position:absolute; left:0; color:rgba(255,255,255,0.4); }
+    .sched-row { margin-top:16px; }
+    .sched-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:var(--text-secondary); }
+    .sched-toggle input { accent-color:#fff; }
+    .sched-email { display:none; }
+    .sched-email.on { display:block; }
+    .pay-err { font-size:12px; color:#f87171; margin-top:8px; }
+
+    /* ═══════════ S7: SUCCESS ═══════════ */
+    #s7 { padding:80px 0; text-align:center; }
+    .check-ring { width:72px; height:72px; margin:0 auto 24px; }
+    .check-svg { width:100%; height:100%; }
+    .check-svg circle { fill:none; stroke:rgba(255,255,255,0.12); stroke-width:2; }
+    .check-svg path { fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:40; stroke-dashoffset:40; animation:checkdraw 0.5s ease 0.3s forwards; }
+    @keyframes checkdraw { to { stroke-dashoffset:0; } }
+    .succ-sub { font-size:15px; color:var(--text-secondary); margin:8px 0 24px; }
+    .succ-status { display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary); background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:var(--radius-badge); padding:8px 16px; margin-bottom:24px; }
+    .succ-status.done { color:#4ade80; border-color:rgba(74,222,128,0.2); background:rgba(74,222,128,0.06); }
+    .share-box { background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:12px; padding:16px 20px; margin:16px auto 24px; max-width:480px; text-align:left; }
+    .share-label { font-size:11px; font-weight:500; color:var(--text-tertiary); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:6px; }
+    .share-link { font-size:13px; color:var(--text-secondary); word-break:break-all; margin-bottom:10px; font-family:monospace; }
+    .share-copy { background:none; border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:var(--text-secondary); font-size:12px; padding:4px 12px; cursor:pointer; transition:all var(--transition); }
+    .share-copy:hover { background:rgba(255,255,255,0.06); color:var(--text-primary); }
+
+    /* ═══════════ LIGHTBOX ═══════════ */
+    #lightbox { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,0.92); backdrop-filter:blur(8px); align-items:center; justify-content:center; }
+    #lightbox.on { display:flex; }
+    .lb-inner { position:relative; max-width:90vw; max-height:90vh; }
+    .lb-close { position:absolute; top:-40px; right:0; background:none; border:none; color:var(--text-secondary); font-size:24px; cursor:pointer; padding:4px 10px; }
+    .lb-close:hover { color:var(--text-primary); }
+    .lb-tabs { display:flex; gap:4px; margin-bottom:12px; }
+    .lb-tab { background:rgba(255,255,255,0.08); border:none; color:var(--text-secondary); font-size:13px; font-weight:500; padding:6px 14px; border-radius:6px; cursor:pointer; transition:all var(--transition); font-family:var(--font); }
+    .lb-tab.active { background:rgba(255,255,255,0.16); color:var(--text-primary); }
+    .lb-img { max-width:80vw; max-height:75vh; object-fit:contain; border-radius:8px; display:block; }
+
+    /* ═══════════ PURCHASE MODAL ═══════════ */
+    #pkg-modal { display:none; position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.8); backdrop-filter:blur(6px); align-items:center; justify-content:center; }
+    #pkg-modal.on { display:flex; }
+    .pm-inner {
+      background:var(--card-bg); border:1px solid var(--border-mid);
+      border-radius:var(--radius); padding:32px; max-width:540px; width:100%;
+      margin:16px; box-shadow:0 20px 60px rgba(0,0,0,0.6); position:relative;
+    }
+    .pm-head { margin-bottom:8px; }
+    .pm-head h2 { font-size:20px; }
+    .pm-sub { font-size:14px; color:var(--text-secondary); margin-bottom:24px; }
+    .pm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+    @media(max-width:480px) { .pm-grid { grid-template-columns:1fr; } }
+    .pkg-card { background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle); border-radius:12px; padding:16px; cursor:pointer; transition:all var(--transition); text-align:center; position:relative; }
+    .pkg-card:hover { border-color:var(--border-mid); background:rgba(255,255,255,0.07); }
+    .pkg-card.sel { border-color:rgba(255,255,255,0.45); background:rgba(255,255,255,0.07); }
+    .pkg-badge { font-size:10px; font-weight:600; letter-spacing:0.05em; padding:2px 8px; border-radius:var(--radius-badge); background:rgba(255,255,255,0.1); color:var(--text-secondary); margin-bottom:10px; display:inline-block; }
+    .pkg-badge.best { background:rgba(100,220,130,0.15); color:#7eed9f; }
+    .pkg-cap { font-size:32px; font-weight:800; letter-spacing:-0.02em; color:var(--text-primary); }
+    .pkg-cap-label { font-size:11px; color:var(--text-tertiary); margin-bottom:8px; }
+    .pkg-price { font-size:16px; font-weight:700; color:var(--text-primary); }
+    .pkg-price-sub { font-size:11px; color:var(--text-tertiary); }
+    .pkg-chk { position:absolute; top:8px; right:8px; width:18px; height:18px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity var(--transition); }
+    .pkg-card.sel .pkg-chk { opacity:1; }
+    .pm-divider { display:flex; align-items:center; gap:12px; margin:20px 0 16px; font-size:12px; color:var(--text-tertiary); }
+    .pm-divider::before,.pm-divider::after { content:''; flex:1; height:1px; background:var(--border-subtle); }
+    .pm-code-section { margin-top:0; }
+    .pm-code-label { font-size:12px; font-weight:500; color:var(--text-tertiary); margin-bottom:8px; }
+    .pm-code-row { display:flex; gap:8px; margin-bottom:8px; }
+    .pm-code-row input { flex:1; }
+    .pm-close-btn { position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text-tertiary); font-size:18px; cursor:pointer; padding:4px 8px; }
+    .code-status { font-size:12px; }
+    .code-status.ok  { color:#4ade80; }
+    .code-status.bad { color:#f87171; }
+
+    /* Footer */
+    footer { border-top:1px solid var(--border-subtle); padding:28px 0; margin-top:40px; transition:opacity 0.2s ease; }
+    footer.hidden-footer { display:none; }
+    .ftr { display:flex; align-items:center; justify-content:space-between; }
+    .ftr-logo { font-size:14px; font-weight:700; color:var(--text-tertiary); text-decoration:none; }
+    .ftr-copy { font-size:13px; color:var(--text-tertiary); }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="hdr">
+    <a class="logo" onclick="resetAll(event)" href="/">SnapShot<span style="color:rgba(255,255,255,0.35)">.</span>pro</a>
+    <div class="hdr-right">
+      <div id="sub-badge" title="Status da assinatura" onclick="openPkgModal()">
+        <span id="sub-badge-text">Grátis</span>
+      </div>
+      <button class="btn btn-g" style="height:36px;font-size:12px;padding:0 14px;" onclick="openPkgModal()">Assinar</button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ S1: HERO ═══ -->
+<div class="wrap">
+  <div class="s" id="s1">
+    <div style="padding:72px 0 120px;">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        12 templates profissionais incluídos →
+      </div>
+      <h1>Screenshots que<br>impressionam.</h1>
+      <p class="hero-sub">Cole qualquer URL, escolha as páginas e baixe um ZIP com capturas profissionais — desktop <b>+</b> mobile em alta resolução.</p>
+
+      <div class="est-banner" id="est-banner">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4v3.5l2 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span>Tempo estimado: <b id="est-time">~30s</b> para explorar e <b>~2 min</b> para capturar.</span>
+      </div>
+
+      <div class="url-group">
+        <div>
+          <div class="input-label">Site a capturar</div>
+          <div class="url-row">
+            <input id="url1" type="url" placeholder="https://exemplo.com" autocomplete="off" spellcheck="false">
+            <span id="vs-badge" style="display:none;align-items:center;justify-content:center;width:36px;height:48px;font-size:11px;font-weight:700;color:var(--text-tertiary)">VS</span>
+          </div>
+        </div>
+        <div id="url2-group" style="display:none;">
+          <div class="input-label">Segunda URL (comparar)</div>
+          <input id="url2" type="url" placeholder="https://concorrente.com" autocomplete="off" spellcheck="false" style="display:none;">
+        </div>
+      </div>
+
+      <div class="err" id="url-err"></div>
+
+      <div class="hero-actions">
+        <button class="btn btn-p" id="explore-btn" onclick="handleExplore()" style="height:50px;font-size:15px;padding:0 28px;">
+          <span id="explore-btn-text">Capturar Screenshots</span>
+        </button>
+        <button class="btn btn-g" id="compare-toggle-btn" onclick="toggleCompare()" style="display:flex;align-items:center;gap:6px;">
+          <span class="compare-dot" id="compare-dot"></span>Modo Comparar
+        </button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-item">
+          <span class="stat-num" id="stats-num">…</span>
+          <span class="stat-lbl">capturas realizadas</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">12</span>
+          <span class="stat-lbl">templates disponíveis</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">∞</span>
+          <span class="stat-lbl">capturas gratuitas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ S2: CRAWLING ═══ -->
+<div class="wrap">
+  <div class="s" id="s2">
+    <div style="padding:80px 0;">
+      <div class="crawl-wrap">
+        <div class="crawl-header">
+          <div class="sp sp-w" style="width:14px;height:14px;border-width:1.8px;"></div>
+          <span class="crawl-title">Explorando site…</span>
+        </div>
+        <div class="crawl-domain-badge" id="crawl-domain-badge">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="3" stroke="currentColor" stroke-width="1.2"/></svg>
+          <span id="crawl-domain-text">—</span>
+        </div>
+        <div class="crawl-counter-row" style="margin-top:16px;">
+          <span class="crawl-n" id="pages-found-n">0</span>
+          <span class="crawl-n-label">páginas encontradas</span>
+        </div>
+        <div class="crawl-phase-row">
+          <span class="crawl-phase" id="crawl-phase">Iniciando…</span>
+        </div>
+        <div class="crawl-log" id="crawl-log"></div>
+        <div class="crawl-list collapsed" id="crawl-list"></div>
+        <button class="crawl-expand-btn" id="crawl-expand-btn" style="display:none" onclick="toggleCrawlList()">Expandir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ S3: PAGE SELECTION ═══ -->
+<div class="wrapW">
+  <div class="s" id="s3">
+    <div style="padding:48px 0 100px;">
+      <div class="section-head">
+        <h2>Selecione as páginas</h2>
+        <p id="s3-sub">Clique nas páginas que deseja capturar.</p>
+      </div>
+      <div class="action-row">
+        <button class="btn btn-g" onclick="selectAll()">Selecionar tudo</button>
+        <button class="btn btn-g" onclick="deselectAll()">Limpar seleção</button>
+      </div>
+      <div class="pages-grid" id="pages-grid"></div>
+      <div class="sticky-cta">
+        <div class="sticky-inner">
+          <button class="btn btn-p btn-full" id="s3-next-btn" onclick="goToConfig()" disabled>
+            <span id="s3-next-text">Selecione páginas para continuar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ S4: CONFIG ═══ -->
+<div class="wrapW">
+  <div class="s" id="s4">
+    <div style="padding:48px 0 100px;">
+      <div class="section-head">
+        <h2>Escolha o modelo</h2>
+        <p>Como suas imagens serão entregues.</p>
+      </div>
+
+      <div id="compare-info-box" class="compare-info" style="display:none;">
+        Comparando <strong id="ci-url1"></strong> vs <strong id="ci-url2"></strong>
+      </div>
+
+      <!-- Template tabs -->
+      <div class="tmpl-tabs">
+        <button class="tmpl-tab active" onclick="switchTemplateTab('frames',this)">Molduras</button>
+        <button class="tmpl-tab" onclick="switchTemplateTab('pro',this)">Profissional</button>
+        <button class="tmpl-tab" onclick="switchTemplateTab('creative',this)">Editorial</button>
+      </div>
+
+      <!-- Category 1: Device Frames -->
+      <div class="tmpl-pane active" id="tmpl-pane-frames">
+        <!-- VOID -->
+        <div class="tmpl-card sel" data-t="void" onclick="selectTemplate('void',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#000"/>
+              <rect x="28" y="18" width="144" height="86" rx="3" fill="#0d0d0d" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+              <rect x="32" y="22" width="136" height="78" rx="2" fill="#111"/>
+              <rect x="32" y="22" width="136" height="78" rx="2" fill="url(#vg)" opacity="0.4"/>
+              <rect x="90" y="104" width="20" height="16" rx="1.5" fill="#0a0a0a" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+              <rect x="70" y="120" width="60" height="3" rx="1.5" fill="#111" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+              <defs><radialGradient id="vg" cx="50%" cy="30%"><stop stop-color="rgba(255,255,255,0.06)"/><stop offset="1" stop-color="transparent"/></radialGradient></defs>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Void</span>
+            <span class="tc-use">Monitor minimalista</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <!-- SLATE -->
+        <div class="tmpl-card" data-t="slate" onclick="selectTemplate('slate',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#0e0e0e"/>
+              <rect x="74" y="12" width="52" height="92" rx="8" fill="#1a1a1a" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
+              <rect x="78" y="22" width="44" height="72" rx="2" fill="#111"/>
+              <rect x="78" y="22" width="44" height="72" rx="2" fill="url(#sg)" opacity="0.5"/>
+              <rect x="93" y="16" width="14" height="3" rx="1.5" fill="#333"/>
+              <circle cx="100" cy="112" r="4" fill="#2a2a2a" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+              <defs><linearGradient id="sg" x1="78" y1="22" x2="122" y2="94" gradientUnits="userSpaceOnUse"><stop stop-color="#1e1e2e"/><stop offset="1" stop-color="#0a0a0f"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Slate</span>
+            <span class="tc-use">Smartphone premium</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <!-- DUO -->
+        <div class="tmpl-card" data-t="duo" onclick="selectTemplate('duo',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#080808"/>
+              <rect x="10" y="22" width="118" height="76" rx="3" fill="#141414" stroke="rgba(255,255,255,0.15)" stroke-width="0.8"/>
+              <rect x="14" y="26" width="110" height="68" rx="2" fill="#0e0e0e"/>
+              <rect x="14" y="26" width="110" height="68" fill="url(#dg)" opacity="0.5" rx="2"/>
+              <rect x="138" y="30" width="52" height="82" rx="6" fill="#141414" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
+              <rect x="142" y="38" width="44" height="64" rx="1.5" fill="#0e0e0e"/>
+              <rect x="142" y="38" width="44" height="64" fill="url(#dg2)" opacity="0.5" rx="1.5"/>
+              <rect x="157" y="33" width="10" height="2" rx="1" fill="#2a2a2a"/>
+              <defs>
+                <linearGradient id="dg" x1="14" y1="26" x2="124" y2="94" gradientUnits="userSpaceOnUse"><stop stop-color="#1a1040"/><stop offset="1" stop-color="#060510"/></linearGradient>
+                <linearGradient id="dg2" x1="142" y1="38" x2="186" y2="102" gradientUnits="userSpaceOnUse"><stop stop-color="#1a1040"/><stop offset="1" stop-color="#060510"/></linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Duo</span>
+            <span class="tc-use">Desktop + Mobile</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <!-- FLOAT -->
+        <div class="tmpl-card" data-t="float" onclick="selectTemplate('float',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="url(--fbg)"/>
+              <rect width="200" height="150" fill="#0a0a0a"/>
+              <rect x="24" y="24" width="152" height="90" rx="4" fill="url(#fsh)" opacity="0.6"/>
+              <rect x="20" y="18" width="152" height="90" rx="4" fill="#111"/>
+              <rect x="20" y="18" width="152" height="90" rx="4" fill="url(#fg)" opacity="0.5"/>
+              <defs>
+                <radialGradient id="fg" cx="50%" cy="40%"><stop stop-color="rgba(255,255,255,0.04)"/><stop offset="1" stop-color="transparent"/></radialGradient>
+                <linearGradient id="fsh" x1="24" y1="114" x2="176" y2="114" gradientUnits="userSpaceOnUse"><stop stop-color="transparent"/><stop offset="0.5" stop-color="rgba(0,0,0,0.7)"/><stop offset="1" stop-color="transparent"/></linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Float</span>
+            <span class="tc-use">Sombra dramática</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </div>
+
+      <!-- Category 2: Professional -->
+      <div class="tmpl-pane" id="tmpl-pane-pro">
+        <!-- CHROME -->
+        <div class="tmpl-card" data-t="chrome" onclick="selectTemplate('chrome',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#0d0d0d"/>
+              <rect x="14" y="14" width="172" height="116" rx="5" fill="#1a1a1a" stroke="rgba(255,255,255,0.1)" stroke-width="0.8"/>
+              <rect x="14" y="14" width="172" height="26" rx="5" fill="#222"/>
+              <rect x="14" y="32" width="172" height="8" fill="#222"/>
+              <circle cx="28" cy="27" r="4.5" fill="#ff5f57"/>
+              <circle cx="42" cy="27" r="4.5" fill="#ffbd2e"/>
+              <circle cx="56" cy="27" r="4.5" fill="#28c840"/>
+              <rect x="70" y="23" width="100" height="8" rx="4" fill="#333"/>
+              <rect x="18" y="42" width="164" height="84" rx="2" fill="#111"/>
+              <rect x="18" y="42" width="164" height="84" rx="2" fill="url(#cg)" opacity="0.5"/>
+              <defs><linearGradient id="cg" x1="18" y1="42" x2="182" y2="126" gradientUnits="userSpaceOnUse"><stop stop-color="#0d1428"/><stop offset="1" stop-color="#06091a"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Chrome</span>
+            <span class="tc-use">Frame de browser</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <!-- PAPER -->
+        <div class="tmpl-card" data-t="paper" onclick="selectTemplate('paper',this)">
+          <div class="tc-preview" style="background:#e8e8e8;">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#f0f0f0"/>
+              <rect x="18" y="18" width="164" height="104" rx="4" fill="rgba(0,0,0,0.06)"/>
+              <rect x="16" y="16" width="164" height="104" rx="4" fill="rgba(0,0,0,0.04)"/>
+              <rect x="14" y="14" width="164" height="104" rx="4" fill="#fff"/>
+              <rect x="14" y="14" width="164" height="104" rx="4" fill="url(#pg)" opacity="0.4"/>
+              <defs><linearGradient id="pg" x1="14" y1="14" x2="178" y2="118" gradientUnits="userSpaceOnUse"><stop stop-color="#dde5ff"/><stop offset="1" stop-color="#eef2ff"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Paper</span>
+            <span class="tc-use">Fundo branco limpo</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <!-- ANNOTATION -->
+        <div class="tmpl-card" data-t="annotation" onclick="selectTemplate('annotation',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#08090e"/>
+              <rect x="14" y="12" width="172" height="104" rx="2" fill="#0e0e14"/>
+              <rect x="14" y="12" width="172" height="104" rx="2" fill="url(#ag)" opacity="0.5"/>
+              <line x1="14" y1="116" x2="186" y2="116" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+              <rect x="14" y="116" width="172" height="24" rx="2" fill="#0d0d12"/>
+              <rect x="20" y="122" width="40" height="3" rx="1" fill="rgba(255,255,255,0.15)"/>
+              <rect x="68" y="122" width="60" height="3" rx="1" fill="rgba(255,255,255,0.08)"/>
+              <rect x="20" y="129" width="28" height="2" rx="1" fill="rgba(255,255,255,0.06)"/>
+              <rect x="152" y="122" width="28" height="3" rx="1" fill="rgba(255,255,255,0.06)"/>
+              <defs><linearGradient id="ag" x1="14" y1="12" x2="186" y2="116" gradientUnits="userSpaceOnUse"><stop stop-color="#1a1428"/><stop offset="1" stop-color="#060508"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Annotation</span>
+            <span class="tc-use">Rodapé técnico</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <!-- GRID -->
+        <div class="tmpl-card" data-t="grid" onclick="selectTemplate('grid',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#080808"/>
+              <rect x="12" y="12" width="84" height="60" rx="2" fill="#111" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+              <rect x="104" y="12" width="84" height="60" rx="2" fill="#111" opacity="0.7" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+              <rect x="12" y="80" width="84" height="60" rx="2" fill="#111" opacity="0.5" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+              <rect x="104" y="80" width="84" height="60" rx="2" fill="#111" opacity="0.3" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+              <text x="54" y="145" font-size="8" fill="rgba(255,255,255,0.2)" text-anchor="middle">100%</text>
+              <text x="146" y="145" font-size="8" fill="rgba(255,255,255,0.2)" text-anchor="middle">75%</text>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Grid</span>
+            <span class="tc-use">4 escalas comparadas</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </div>
+
+      <!-- Category 3: Creative -->
+      <div class="tmpl-pane" id="tmpl-pane-creative">
+        <!-- POSTER -->
+        <div class="tmpl-card" data-t="poster" onclick="selectTemplate('poster',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#111"/>
+              <rect x="10" y="18" width="118" height="80" rx="3" fill="url(#edt)" transform="rotate(-3 64 58)"/>
+              <rect x="140" y="22" width="46" height="5" rx="2" fill="rgba(255,255,255,0.5)"/>
+              <rect x="140" y="32" width="36" height="3" rx="1" fill="rgba(255,255,255,0.2)"/>
+              <rect x="140" y="40" width="42" height="2" rx="1" fill="rgba(255,255,255,0.12)"/>
+              <rect x="140" y="46" width="30" height="2" rx="1" fill="rgba(255,255,255,0.08)"/>
+              <defs><linearGradient id="edt" x1="10" y1="18" x2="128" y2="98" gradientUnits="userSpaceOnUse"><stop stop-color="#1f1030"/><stop offset="1" stop-color="#0d0820"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Poster</span>
+            <span class="tc-use">Editorial inclinado</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <!-- NEON -->
+        <div class="tmpl-card" data-t="neon" onclick="selectTemplate('neon',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#000"/>
+              <rect x="20" y="16" width="160" height="100" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+              <rect x="22" y="18" width="156" height="96" rx="3" fill="rgba(255,255,255,0.01)" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+              <rect x="20" y="16" width="160" height="100" rx="4" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" style="filter:blur(4px)"/>
+              <rect x="18" y="14" width="164" height="104" rx="5" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="10"/>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Neon</span>
+            <span class="tc-use">Borda luminosa</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <!-- CINEMATIC -->
+        <div class="tmpl-card" data-t="cinematic" onclick="selectTemplate('cinematic',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#000"/>
+              <rect x="0" y="0" width="32" height="150" fill="url(#cleft)" opacity="0.7"/>
+              <rect x="168" y="0" width="32" height="150" fill="url(#cright)" opacity="0.7"/>
+              <rect x="32" y="0" width="136" height="150" fill="#0a0a10"/>
+              <rect x="32" y="0" width="136" height="150" fill="url(#cg)" opacity="0.5"/>
+              <line x1="0" y1="30" x2="200" y2="30" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+              <line x1="0" y1="120" x2="200" y2="120" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+              <defs>
+                <linearGradient id="cleft" x1="0" y1="75" x2="32" y2="75"><stop stop-color="#1a0a2e"/><stop offset="1" stop-color="#0a0a0a" stop-opacity="0.3"/></linearGradient>
+                <linearGradient id="cright" x1="200" y1="75" x2="168" y2="75"><stop stop-color="#1a0a2e"/><stop offset="1" stop-color="#0a0a0a" stop-opacity="0.3"/></linearGradient>
+                <linearGradient id="cg" x1="32" y1="0" x2="168" y2="150" gradientUnits="userSpaceOnUse"><stop stop-color="#120818"/><stop offset="1" stop-color="#060408"/></linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Cinematic</span>
+            <span class="tc-use">Ultrawide 21:9</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <!-- STORY -->
+        <div class="tmpl-card" data-t="story" onclick="selectTemplate('story',this)">
+          <div class="tc-preview">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="150" fill="#0a0a0a"/>
+              <rect x="64" y="8" width="72" height="128" rx="8" fill="#141414" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
+              <rect x="68" y="16" width="64" height="112" rx="4" fill="#111"/>
+              <rect x="68" y="16" width="64" height="112" rx="4" fill="url(#stg)" opacity="0.6"/>
+              <rect x="89" y="11" width="22" height="3" rx="1.5" fill="#2a2a2a"/>
+              <defs><linearGradient id="stg" x1="68" y1="16" x2="132" y2="128" gradientUnits="userSpaceOnUse"><stop stop-color="#1e0a38"/><stop offset="1" stop-color="#060410"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div class="tc-foot">
+            <span class="tc-name">Story</span>
+            <span class="tc-use">Instagram / TikTok 9:16</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </div>
+
+      <details class="opts-wrap">
+        <summary class="opts-summary">Opções de exportação</summary>
+        <div class="opts-body">
+          <div>
+            <div class="cfg-label">Recursos adicionais</div>
+            <label class="checkbox-row" style="margin-bottom:10px;"><input type="checkbox" id="opt-smartcrop"> <span>Recorte inteligente — exporta seções individuais (hero, nav, footer…)</span></label>
+            <label class="checkbox-row"><input type="checkbox" id="opt-social"> <span>Exportação social — versões para Twitter, LinkedIn, Instagram e OG</span></label>
+          </div>
+          <div>
+            <div class="cfg-label">Labels de saída</div>
+            <label class="checkbox-row" style="margin-bottom:10px;"><input type="checkbox" id="opt-url" checked> <span>Exibir URL na imagem</span></label>
+            <label class="checkbox-row"><input type="checkbox" id="opt-date" checked> <span>Exibir data de captura na imagem</span></label>
+          </div>
+        </div>
+      </details>
+
+      <div class="sticky-cta">
+        <div class="sticky-inner">
+          <button class="btn btn-p btn-full" id="s4-confirm-btn" onclick="handleStartCapture()">
+            <span id="s4-confirm-text">Iniciar Captura</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ S5: CAPTURING ═══ -->
+<div class="wrap">
+  <div class="s" id="s5">
+    <div style="padding:80px 0;">
+      <div class="cap-wrap">
+        <h2>Capturando…</h2>
+        <p class="cap-sub">Cada página é capturada em resolução máxima e renderizada com seu template.</p>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="prog-counter"><span id="prog-done">0</span><span class="prog-sep"> de </span><span id="prog-total">0</span></div>
+        <div class="prog-label">páginas concluídas</div>
+        <div class="prog-curr" id="prog-curr">Inicializando…</div>
+        <div class="gallery-row" id="cap-gallery"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ S6: PREVIEW ═══ -->
+<div class="wrapW">
+  <div class="s" id="s6">
+    <div style="padding:48px 0 100px;">
+      <div class="section-head">
+        <h2>Pronto para download</h2>
+        <p>Clique nas imagens para ampliar. A versão completa será entregue sem marcas d'água.</p>
+      </div>
+      <span class="wm-notice">
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="3" stroke="currentColor" stroke-width="1.2"/><path d="M4 2.5v2L5 6" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+        Prévia com marca d'água
+      </span>
+      <div class="preview-grid" id="preview-grid"></div>
+      <div class="pay-card">
+        <div class="pay-head">
+          <span class="pay-label" id="pay-label-text">Download HD</span>
+          <span class="pay-price" id="pay-price-display">Gratuito</span>
+        </div>
+        <ul class="pay-list">
+          <li>Desktop + Mobile em alta resolução, por página</li>
+          <li>Template aplicado, arquivos PNG prontos para apresentação</li>
+          <li>ZIP organizado com manifest.json</li>
+        </ul>
+        <button class="btn btn-p btn-full" id="pay-btn" onclick="handlePayment()">
+          <span id="pay-btn-text">Baixar agora</span>
+        </button>
+        <button class="btn btn-g btn-full" id="wm-download-btn" onclick="handleWatermarkDownload()" style="margin-top:10px;display:none;">
+          Baixar com marca d'água — grátis
+        </button>
+        <div class="sched-row">
+          <label class="sched-toggle">
+            <input type="checkbox" id="sched-check" onchange="toggleSchedule()">
+            <span>Receber relatório de acompanhamento — gratuito</span>
+          </label>
+          <div class="sched-email" id="sched-email">
+            <input type="email" id="sched-email-input" placeholder="seu@email.com" style="margin-top:8px;">
+          </div>
+        </div>
+        <p class="pay-err" id="pay-err"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ S7: SUCCESS ═══ -->
+<div class="wrap">
+  <div class="s" id="s7">
+    <div style="padding:80px 0;text-align:center;">
+      <div class="check-ring">
+        <svg class="check-svg" viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r="24"/>
+          <path d="M14 26l8 8 16-16"/>
+        </svg>
+      </div>
+      <h2>Download pronto!</h2>
+      <p class="succ-sub">Seu arquivo está sendo baixado automaticamente.</p>
+      <div class="succ-status" id="succ-status">
+        <div class="sp sp-w" style="width:13px;height:13px;border-width:1.8px;"></div>
+        Preparando download…
+      </div>
+      <div class="share-box" id="share-box" style="display:none;">
+        <div class="share-label">Link de prévia (48h)</div>
+        <div class="share-link" id="share-link-text"></div>
+        <button class="share-copy" id="share-copy-btn" onclick="copyShareLink()">Copiar link</button>
+      </div>
+      <button class="btn btn-g" id="new-btn" onclick="resetAll(null)" style="display:none;">← Capturar outro site</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <footer>
+    <div class="ftr">
+      <a href="/" class="ftr-logo" onclick="resetAll(event)">snapshot.pro</a>
+      <span class="ftr-copy">&copy; 2026 SnapShot.pro</span>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══ LIGHTBOX ═══ -->
+<div id="lightbox" onclick="closeLightbox(event)">
+  <div class="lb-inner">
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+    <div class="lb-tabs" id="lb-tabs"></div>
+    <img class="lb-img" id="lb-img" src="" alt="">
+  </div>
+</div>
+
+<!-- ═══ PURCHASE MODAL ═══ -->
+<div id="pkg-modal" onclick="closePkgModal(event)">
+  <div class="pm-inner">
+    <button class="pm-close-btn" onclick="closePkgModal()">✕</button>
+    <div class="pm-head"><h2>Planos SnapShot.pro</h2></div>
+    <p class="pm-sub">Sem marcas d'água, capturas ilimitadas e templates premium.</p>
+
+    <div class="pm-grid" id="pm-grid">
+      <!-- rendered by JS -->
+    </div>
+
+    <button class="btn btn-p btn-full" id="pm-buy-btn" onclick="handlePkgPurchase()">
+      <span id="pm-buy-text">Escolha um plano</span>
+    </button>
+
+    <div class="pm-divider">Já assinou?</div>
+
+    <div class="pm-code-section">
+      <div class="pm-code-label">Insira seu código de acesso</div>
+      <div class="pm-code-row">
+        <input id="pm-code-input" type="text" placeholder="CÓDIGO DE ACESSO" style="text-transform:uppercase;letter-spacing:0.08em;" autocomplete="off">
+        <button class="btn btn-g" style="height:48px;width:90px;flex-shrink:0;" onclick="applyModalCode()">Aplicar</button>
+      </div>
+      <div class="code-status" id="pm-code-status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let jobId           = null;
+  let pages           = [];
+  let selected        = new Set();
+  let currentTemplate = 'void';
+  let compareMode     = false;
+  let crawlTimer      = null;
+  let capTimer        = null;
+  let statsAnimDone   = false;
+  let activeCode      = null;
+  let sseSource       = null;
+  let selectedPkg     = null;
+  let packages        = [];
+  let applyWatermark  = true;
+
+  // ── Section management ────────────────────────────────────────────────────
+  let currentSection = 's1';
+  function show(id) {
+    currentSection = id;
+    ['s1','s2','s3','s4','s5','s6','s7'].forEach(s => {
+      const el = document.getElementById(s);
+      el.classList.remove('vis');
+      setTimeout(() => { if (s !== currentSection) { el.classList.remove('in'); el.style.display=''; } }, 150);
+    });
+    const target = document.getElementById(id);
+    target.classList.add('in');
+    target.style.display = 'block';
+    requestAnimationFrame(() => requestAnimationFrame(() => target.classList.add('vis')));
+    window.scrollTo({ top:0, behavior:'smooth' });
+    // Hide footer on inner steps so it doesn't block sticky CTA
+    const footer = document.querySelector('footer');
+    if (footer) {
+      const showFooter = id === 's1' || id === 's7';
+      footer.classList.toggle('hidden-footer', !showFooter);
+    }
+  }
+
+  // ── Fetch helpers ─────────────────────────────────────────────────────────
+  async function api(url, opts, ms) {
+    const ctl = new AbortController();
+    const tid = setTimeout(() => ctl.abort(), ms || 35000);
+    try {
+      const r = await fetch(url, { ...opts, signal:ctl.signal });
+      const d = await r.json().catch(() => ({}));
+      return { ok:r.ok, status:r.status, data:d };
+    } catch(e) {
+      return { ok:false, status:0, data:{ error: e.name==='AbortError' ? 'Tempo limite excedido. Tente novamente.' : 'Erro de conexão. Verifique sua internet.' } };
+    } finally { clearTimeout(tid); }
+  }
+  function post(url, body, ms) {
+    return api(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }, ms);
+  }
+
+  // ── Utilities ─────────────────────────────────────────────────────────────
+  function trunc(s,n) { return s && s.length>n ? s.slice(0,n)+'…' : (s||''); }
+  function esc(s)     { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function showError(msg) {
+    const el = document.getElementById('url-err');
+    el.textContent = msg; el.classList.add('on');
+  }
+
+  // ── Subscription badge ────────────────────────────────────────────────────
+  function updateSubBadge() {
+    const badge = document.getElementById('sub-badge');
+    const txt   = document.getElementById('sub-badge-text');
+    if (activeCode) {
+      badge.classList.add('active');
+      txt.textContent = '● Plano ativo';
+    } else {
+      badge.classList.remove('active');
+      txt.textContent = 'Grátis';
+    }
+  }
+
+  // ── Stats counter ─────────────────────────────────────────────────────────
+  function animateCount(el, from, to, dur) {
+    const start = performance.now();
+    const ease  = t => 1 - Math.pow(1-t,3);
+    const fmt   = n => n.toLocaleString('pt-BR');
+    const tick  = now => {
+      const t = Math.min((now-start)/dur, 1);
+      el.textContent = fmt(Math.round(from+(to-from)*ease(t)));
+      if (t<1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+  async function loadStats() {
+    const r = await api('/api/stats', {}, 5000);
+    if (!r.ok) return;
+    const el  = document.getElementById('stats-num');
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && !statsAnimDone) {
+        statsAnimDone = true;
+        animateCount(el, 0, r.data.total||0, 1500);
+        obs.disconnect();
+      }
+    });
+    obs.observe(el);
+  }
+
+  // ── Plans ─────────────────────────────────────────────────────────────────
+  async function loadPlans() {
+    const r = await api('/api/plans', {}, 5000);
+    if (!r.ok || !r.data.plans) return;
+    packages = r.data.plans;
+    renderPlanGrid();
+  }
+  function renderPlanGrid() {
+    const grid = document.getElementById('pm-grid');
+    grid.innerHTML = '';
+    packages.forEach((plan, i) => {
+      const isFirst = i === 0;
+      const card    = document.createElement('div');
+      card.className = 'pkg-card' + (isFirst ? ' sel' : '');
+      if (isFirst) { selectedPkg = plan.key; }
+      card.dataset.pkg = plan.key;
+      const capLabel = plan.captures ? `${plan.captures}/mês` : 'Ilimitadas';
+      card.innerHTML = `
+        <div class="pkg-badge${plan.popular?' best':''}">${plan.popular?'Popular':plan.name}</div>
+        <div class="pkg-cap">${plan.captures||'∞'}</div>
+        <div class="pkg-cap-label">${plan.captures?'capturas/mês':'capturas'}</div>
+        <div class="pkg-price">${plan.priceLabel}</div>
+        <div class="pkg-chk"><svg viewBox="0 0 10 10" fill="none" width="10" height="10"><path d="M1.5 5l2.5 2.5 4.5-5" stroke="#0a0a0a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.pkg-card').forEach(c => c.classList.remove('sel'));
+        card.classList.add('sel');
+        selectedPkg = plan.key;
+        document.getElementById('pm-buy-text').textContent = `Assinar ${plan.name} — ${plan.priceLabel}`;
+      });
+      grid.appendChild(card);
+    });
+    if (packages.length > 0) {
+      selectedPkg = packages[0].key;
+      document.getElementById('pm-buy-text').textContent = `Assinar ${packages[0].name} — ${packages[0].priceLabel}`;
+    }
+  }
+
+  // ── Purchase modal ────────────────────────────────────────────────────────
+  window.openPkgModal = function() {
+    document.getElementById('pkg-modal').classList.add('on');
+  };
+  window.closePkgModal = function(e) {
+    if (!e || e.target === document.getElementById('pkg-modal')) {
+      document.getElementById('pkg-modal').classList.remove('on');
+    }
+  };
+  window.handlePkgPurchase = async function() {
+    if (!selectedPkg) return;
+    const btn = document.getElementById('pm-buy-btn');
+    const txt = document.getElementById('pm-buy-text');
+    btn.disabled = true;
+    txt.textContent = 'Criando assinatura…';
+    try {
+      const r = await post('/api/checkout', { plan: selectedPkg }, 15000);
+      if (r.ok && r.data.checkoutUrl) {
+        txt.textContent = 'Redirecionando para pagamento…';
+        window.location.href = r.data.checkoutUrl;
+      } else {
+        txt.textContent = 'Erro ao criar cobrança. Tente novamente.';
+        btn.disabled = false;
+      }
+    } catch {
+      txt.textContent = 'Erro de conexão.';
+      btn.disabled = false;
+    }
+  };
+  window.applyModalCode = async function() {
+    const code   = document.getElementById('pm-code-input').value.trim().toUpperCase();
+    const status = document.getElementById('pm-code-status');
+    if (!code) return;
+    const r = await post('/api/validate-code', { code }, 8000);
+    if (!r.ok || !r.data.valid) {
+      status.textContent = r.data.reason || 'Código inválido. Verifique e tente novamente.';
+      status.className = 'code-status bad';
+      return;
+    }
+    activeCode = code;
+    localStorage.setItem('snapshot_sub_code', code);
+    updateSubBadge();
+    const remaining = r.data.info.remaining;
+    const remText   = remaining === null ? 'ilimitadas' : `${remaining} disponível(is)`;
+    status.textContent = `✓ ${r.data.info.plan} — ${remText}`;
+    status.className = 'code-status ok';
+    setTimeout(() => { document.getElementById('pkg-modal').classList.remove('on'); }, 1200);
+  };
+
+  // ── Template tab switching ────────────────────────────────────────────────
+  window.switchTemplateTab = function(cat, el) {
+    document.querySelectorAll('.tmpl-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.tmpl-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('tmpl-pane-' + cat).classList.add('active');
+  };
+
+  // ── Compare toggle ────────────────────────────────────────────────────────
+  window.toggleCompare = function() {
+    compareMode = !compareMode;
+    const btn  = document.getElementById('compare-toggle-btn');
+    const vs   = document.getElementById('vs-badge');
+    const url2 = document.getElementById('url2');
+    const grp2 = document.getElementById('url2-group');
+    const dot  = document.getElementById('compare-dot');
+    btn.classList.toggle('active', compareMode);
+    dot.style.background = compareMode ? '#fff' : '';
+    vs.style.display   = compareMode ? 'flex' : 'none';
+    url2.style.display  = compareMode ? '' : 'none';
+    grp2.style.display  = compareMode ? 'block' : 'none';
+    document.getElementById('explore-btn-text').textContent = compareMode ? 'Capturar e Comparar' : 'Capturar Screenshots';
+  };
+
+  // ── Crawl phases ──────────────────────────────────────────────────────────
+  const PHASES = ['Conectando ao domínio','Analisando estrutura de navegação','Mapeando páginas internas','Construindo seleção'];
+  let phraseIdx = 0, phraseTimer = null;
+  function startPhrases() {
+    phraseIdx = 0;
+    const el = document.getElementById('crawl-phase');
+    el.textContent = PHASES[0]; el.style.opacity='1';
+    phraseTimer = setInterval(() => {
+      el.style.opacity='0';
+      setTimeout(() => { phraseIdx=(phraseIdx+1)%PHASES.length; el.textContent=PHASES[phraseIdx]; el.style.opacity='1'; }, 400);
+    }, 2200);
+  }
+  function stopPhrases() { clearInterval(phraseTimer); }
+
+  // ── Log entry ─────────────────────────────────────────────────────────────
+  function appendLog(message) {
+    const log = document.getElementById('crawl-log');
+    const now = new Date();
+    const ts  = `${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+    const row = document.createElement('div');
+    row.className = 'log-entry';
+    row.innerHTML = `<span class="log-ts">${ts}</span><span>${esc(message)}</span>`;
+    log.appendChild(row);
+    log.scrollTop = log.scrollHeight;
+    setTimeout(() => row.classList.add('in'), 20);
+  }
+
+  // ── Human-readable error messages ────────────────────────────────────────
+  function humanError(raw) {
+    if (!raw) return 'Algo deu errado. Tente novamente.';
+    if (/timeout|demorou|timed out/i.test(raw))  return 'O site demorou demais para responder. Tente com outro endereço.';
+    if (/ERR_NAME_NOT_RESOLVED|dns/i.test(raw))  return 'Endereço não encontrado. Verifique se a URL está correta.';
+    if (/ERR_CONNECTION_REFUSED/i.test(raw))      return 'O servidor recusou a conexão. O site pode estar offline.';
+    if (/quota|limite/i.test(raw))               return 'Limite diário atingido. Compre créditos para continuar.';
+    if (/invalid url|url inválida/i.test(raw))    return 'URL inválida. Certifique-se de incluir https://';
+    return raw;
+  }
+
+  // ── Explore handler ───────────────────────────────────────────────────────
+  window.handleExplore = async function() {
+    const url1val = document.getElementById('url1').value.trim();
+    const url2val = compareMode ? document.getElementById('url2').value.trim() : '';
+    document.getElementById('url-err').classList.remove('on');
+
+    if (!url1val) { showError('Insira uma URL para continuar.'); return; }
+    if (!url1val.startsWith('http://') && !url1val.startsWith('https://')) { showError('A URL deve começar com http:// ou https://'); return; }
+    if (compareMode && (!url2val || (!url2val.startsWith('http://') && !url2val.startsWith('https://')))) { showError('Insira a segunda URL válida.'); return; }
+
+    const btn  = document.getElementById('explore-btn');
+    const text = document.getElementById('explore-btn-text');
+    btn.disabled = true;
+    text.textContent = 'Processando…';
+
+    if (compareMode) {
+      document.getElementById('compare-info-box').style.display = 'block';
+      document.getElementById('ci-url1').textContent = trunc(url1val, 40);
+      document.getElementById('ci-url2').textContent = trunc(url2val, 40);
+      btn.disabled = false;
+      text.textContent = 'Capturar e Comparar';
+      show('s4');
+      return;
+    }
+
+    show('s2');
+    startPhrases();
+    document.getElementById('crawl-log').innerHTML = '';
+    document.getElementById('crawl-list').innerHTML = '';
+    document.getElementById('crawl-list').classList.add('collapsed');
+    document.getElementById('crawl-expand-btn').style.display = 'none';
+    document.getElementById('pages-found-n').textContent = '0';
+
+    try {
+      const domain = new URL(url1val).hostname.replace('www.','');
+      document.getElementById('crawl-domain-text').textContent = domain;
+    } catch {}
+
+    document.getElementById('est-banner').classList.add('on');
+
+    const body = { url: url1val };
+    if (activeCode) body.subscriptionCode = activeCode;
+
+    const r = await post('/api/crawl', body, 15000);
+    btn.disabled  = false;
+    text.textContent = 'Capturar Screenshots';
+
+    if (!r.ok) {
+      document.getElementById('est-banner').classList.remove('on');
+      if (r.data.quotaExceeded) {
+        openPkgModal();
+        showError('Limite gratuito atingido. Compre créditos para continuar.');
+        show('s1');
+      } else {
+        showError(humanError(r.data.error));
+        show('s1');
+      }
+      stopPhrases();
+      return;
+    }
+
+    jobId = r.data.jobId;
+    startCrawlStream(jobId);
+  };
+
+  // ── Crawl SSE stream ──────────────────────────────────────────────────────
+  function startCrawlStream(jId) {
+    if (sseSource) { sseSource.close(); sseSource = null; }
+
+    const listEl  = document.getElementById('crawl-list');
+    const countEl = document.getElementById('pages-found-n');
+    let timeout;
+
+    timeout = setTimeout(async () => {
+      if (sseSource) { sseSource.close(); sseSource = null; }
+      stopPhrases();
+      const r = await api(`/api/crawl-status/${jId}`, {}, 8000);
+      if (!r.ok) { showError('Erro de conexão.'); show('s1'); return; }
+      const { status, pages:pg } = r.data;
+      if (status === 'failed') { showError(humanError(r.data.error)); show('s1'); return; }
+      if (pg && pg.length > 0) { pages=pg; renderPageGrid(); show('s3'); }
+      else { showError('Nenhuma página encontrada neste site.'); show('s1'); }
+    }, 90000);
+
+    try {
+      sseSource = new EventSource(`/api/crawl-stream/${jId}`);
+    } catch(e) {
+      clearTimeout(timeout);
+      startCrawlPoll(jId);
+      return;
+    }
+
+    sseSource.onmessage = (evt) => {
+      let data;
+      try { data = JSON.parse(evt.data); } catch { return; }
+
+      if (data.message) appendLog(data.message);
+
+      if (data.done) {
+        clearTimeout(timeout);
+        sseSource.close(); sseSource = null;
+        stopPhrases();
+        document.getElementById('est-banner').classList.remove('on');
+
+        if (data.status === 'failed') {
+          showError(humanError(data.error));
+          show('s1');
+          return;
+        }
+        if (data.pages && data.pages.length > 0) {
+          pages = data.pages;
+          countEl.textContent = pages.length;
+          renderPageGrid();
+          show('s3');
+        } else {
+          api(`/api/crawl-status/${jId}`, {}, 8000).then(r => {
+            if (!r.ok || !r.data.pages || r.data.pages.length === 0) {
+              showError('Nenhuma página encontrada neste site.'); show('s1');
+            } else {
+              pages = r.data.pages;
+              renderPageGrid(); show('s3');
+            }
+          });
+        }
+        return;
+      }
+
+      if (data.ts && data.message) {
+        const urlMatch = data.message.match(/https?:\/\/\S+/);
+        if (urlMatch) {
+          countEl.textContent = String(Number(countEl.textContent||0)+1);
+          const item = document.createElement('div');
+          item.className = 'crawl-item';
+          item.innerHTML = `<div class="done-dot"></div><span>${trunc(urlMatch[0],55)}</span>`;
+          listEl.appendChild(item);
+          setTimeout(() => item.classList.add('in'), 20);
+          updateCrawlExpandBtn();
+        }
+      }
+    };
+
+    sseSource.onerror = () => {
+      clearTimeout(timeout);
+      if (sseSource) { sseSource.close(); sseSource = null; }
+      stopPhrases();
+      api(`/api/crawl-status/${jId}`, {}, 8000).then(r => {
+        if (!r.ok) { showError('Erro de conexão.'); show('s1'); return; }
+        const { status, pages:pg } = r.data;
+        if (status === 'failed') { showError(humanError(r.data.error)); show('s1'); return; }
+        if (pg && pg.length > 0) { pages=pg; renderPageGrid(); show('s3'); }
+        else startCrawlPoll(jId);
+      });
+    };
+  }
+
+  // ── Crawl poll (fallback) ─────────────────────────────────────────────────
+  function startCrawlPoll(jId) {
+    const listEl  = document.getElementById('crawl-list');
+    const countEl = document.getElementById('pages-found-n');
+    let attempts  = 0;
+    crawlTimer = setInterval(async () => {
+      attempts++;
+      if (attempts >= 60) {
+        clearInterval(crawlTimer); stopPhrases();
+        showError('O site demorou demais para responder. Tente com outro endereço.'); show('s1'); return;
+      }
+      const r = await api(`/api/crawl-status/${jId}`, {}, 8000);
+      if (!r.ok) return;
+      const { status, pages:pg } = r.data;
+      if (status === 'failed') {
+        clearInterval(crawlTimer); stopPhrases();
+        showError(humanError(r.data.error)); show('s1'); return;
+      }
+      if (pg && pg.length > 0) {
+        countEl.textContent = pg.length;
+        for (let i=listEl.children.length; i<pg.length; i++) {
+          const item = document.createElement('div');
+          item.className = 'crawl-item';
+          item.innerHTML = `<div class="done-dot"></div><span>${trunc(pg[i].url,55)}</span>`;
+          listEl.appendChild(item);
+          setTimeout(() => item.classList.add('in'), 20);
+        }
+      }
+      if (status !== 'crawling' && pg && pg.length > 0) {
+        clearInterval(crawlTimer); stopPhrases();
+        pages = pg; renderPageGrid(); show('s3');
+      }
+    }, 2000);
+  }
+
+  // ── Crawl list expand/collapse ────────────────────────────────────────────
+  function updateCrawlExpandBtn() {
+    const listEl = document.getElementById('crawl-list');
+    const btn    = document.getElementById('crawl-expand-btn');
+    const count  = listEl.children.length;
+    if (count > 5) {
+      btn.style.display = 'block';
+      const isCollapsed = listEl.classList.contains('collapsed');
+      const hidden = count - 5;
+      btn.textContent = isCollapsed ? `Expandir (+${hidden} páginas)` : 'Recolher';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+  window.toggleCrawlList = function() {
+    const listEl = document.getElementById('crawl-list');
+    listEl.classList.toggle('collapsed');
+    updateCrawlExpandBtn();
+  };
+
+  // ── Page grid ─────────────────────────────────────────────────────────────
+  const BADGE_CLASS = { homepage:'pt-homepage', article:'pt-article', product:'pt-product', about:'pt-about', pricing:'pt-pricing', service:'pt-service', other:'pt-other' };
+  const BADGE_LABEL = { homepage:'Início', article:'Artigo', product:'Produto', about:'Sobre', pricing:'Preços', service:'Serviço', other:'Outro' };
+
+  function renderPageGrid() {
+    const grid = document.getElementById('pages-grid');
+    grid.innerHTML = ''; selected.clear();
+    pages.forEach(pg => {
+      const card = document.createElement('div');
+      card.className = 'page-card'; card.dataset.url = pg.url;
+      const cls = BADGE_CLASS[pg.pageType] || 'pt-other';
+      const lbl = BADGE_LABEL[pg.pageType] || 'Outro';
+      card.innerHTML = `
+        <div class="pc-thumb">
+          ${pg.thumbnailUrl ? `<img src="${pg.thumbnailUrl}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'pc-placeholder\\'><div class=\\'sp sp-w\\' style=\\'width:16px;height:16px;border-width:2px;\\'></div></div>'">` : '<div class="pc-placeholder"><div class="sp sp-w" style="width:16px;height:16px;border-width:2px;"></div></div>'}
+        </div>
+        <div class="pc-body">
+          <div class="pc-title">${esc(pg.title||pg.url)}</div>
+          <div class="pc-url">${trunc(pg.url,38)}</div>
+          <span class="pt-badge ${cls}">${lbl}</span>
+        </div>
+        <div class="chk-badge"><svg viewBox="0 0 12 12" fill="none" width="12" height="12"><path d="M2 6l3 3 5-6" stroke="#080808" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+      card.addEventListener('click', () => togglePage(pg.url, card));
+      grid.appendChild(card);
+    });
+    updateS3Btn();
+  }
+
+  function togglePage(url, card) {
+    if (selected.has(url)) { selected.delete(url); card.classList.remove('sel'); }
+    else                   { selected.add(url);    card.classList.add('sel'); }
+    updateS3Btn();
+  }
+  function updateS3Btn() {
+    const n   = selected.size;
+    const btn = document.getElementById('s3-next-btn');
+    const txt = document.getElementById('s3-next-text');
+    btn.disabled = n===0;
+    txt.textContent = n===0 ? 'Selecione páginas para continuar' : `Capturar ${n} página${n>1?'s':''} selecionada${n>1?'s':''}`;
+  }
+  window.selectAll   = function() { document.querySelectorAll('.page-card').forEach(c => { c.classList.add('sel'); selected.add(c.dataset.url); }); updateS3Btn(); };
+  window.deselectAll = function() { document.querySelectorAll('.page-card').forEach(c => c.classList.remove('sel')); selected.clear(); updateS3Btn(); };
+
+  window.goToConfig = async function() {
+    if (selected.size===0) return;
+    const r = await post('/api/select-pages', { jobId, selectedUrls:Array.from(selected) }, 10000);
+    if (!r.ok) return;
+    show('s4');
+  };
+
+  // ── Template selection ────────────────────────────────────────────────────
+  window.selectTemplate = function(name, el) {
+    currentTemplate = name;
+    document.querySelectorAll('.tmpl-card').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+  };
+
+  // ── Start capture ─────────────────────────────────────────────────────────
+  window.handleStartCapture = async function() {
+    const btn = document.getElementById('s4-confirm-btn');
+    const txt = document.getElementById('s4-confirm-text');
+    btn.disabled = true; txt.textContent = 'Iniciando…';
+
+    const renderConfig = {
+      template:    currentTemplate,
+      smartCrop:   document.getElementById('opt-smartcrop').checked,
+      socialExport:document.getElementById('opt-social').checked,
+      showUrl:     document.getElementById('opt-url').checked,
+      showDate:    document.getElementById('opt-date').checked,
+    };
+
+    const url1val = document.getElementById('url1').value.trim();
+    const url2val = document.getElementById('url2').value.trim();
+
+    let r;
+    if (compareMode) {
+      r = await post('/api/compare', { url1:url1val, url2:url2val, renderConfig }, 15000);
+    } else {
+      r = await post('/api/start-capture', { jobId, renderConfig }, 10000);
+    }
+
+    btn.disabled = false; txt.textContent = 'Iniciar Captura';
+    if (!r.ok) return;
+    if (compareMode) jobId = r.data.jobId;
+
+    document.getElementById('prog-total').textContent = compareMode ? 2 : selected.size;
+    document.getElementById('prog-done').textContent  = '0';
+    document.getElementById('prog-fill').style.width  = '0%';
+    document.getElementById('prog-curr').textContent  = 'Inicializando…';
+    document.getElementById('cap-gallery').innerHTML   = '';
+    show('s5');
+    startCapturePoll();
+  };
+
+  // ── Capture poll ──────────────────────────────────────────────────────────
+  function startCapturePoll() {
+    capTimer = setInterval(async () => {
+      const r = await api(`/api/capture-progress/${jobId}`, {}, 8000);
+      if (!r.ok) return;
+      const { status, captureProgress:cp, gallery:gal, applyWatermark:wm } = r.data;
+      if (wm !== undefined) applyWatermark = wm;
+      if (cp) {
+        document.getElementById('prog-done').textContent  = cp.completed || 0;
+        document.getElementById('prog-total').textContent = cp.total || 0;
+        document.getElementById('prog-curr').textContent  = cp.current ? `Capturando: ${cp.current}` : 'Inicializando…';
+        document.getElementById('prog-fill').style.width  = (cp.percent||0) + '%';
+      }
+      if (gal && gal.length > 0) {
+        const galEl = document.getElementById('cap-gallery');
+        for (let i=galEl.children.length; i<gal.length; i++) {
+          const thumb = document.createElement('div');
+          thumb.className = 'gal-thumb';
+          thumb.innerHTML = `<img src="${gal[i].previewUrl}" alt="" loading="lazy" onerror="this.style.display='none'">`;
+          galEl.appendChild(thumb);
+          setTimeout(() => thumb.classList.add('in'), 30);
+        }
+      }
+      if (status === 'ready') {
+        clearInterval(capTimer);
+        renderPreviewGrid();
+        updateDownloadPanel();
+        show('s6');
+      }
+    }, 1500);
+  }
+
+  function updateDownloadPanel() {
+    const hasWm = applyWatermark;
+    document.getElementById('pay-label-text').textContent = hasWm ? 'Remover marca d\'água' : 'Download HD';
+    document.getElementById('pay-btn-text').textContent   = hasWm ? 'Assinar para remover marca d\'água' : 'Baixar agora';
+    document.getElementById('wm-download-btn').style.display = hasWm ? '' : 'none';
+    // Hide the CSS watermark overlay in preview cards when no server-side watermark
+    if (!hasWm) {
+      document.querySelectorAll('.wm-overlay').forEach(el => el.style.display = 'none');
+      document.querySelector('.wm-notice') && (document.querySelector('.wm-notice').style.display = 'none');
+    }
+  }
+
+  // ── Preview grid ──────────────────────────────────────────────────────────
+  function renderPreviewGrid() {
+    const grid = document.getElementById('preview-grid');
+    grid.innerHTML = '';
+    const subset = compareMode
+      ? [{ url: document.getElementById('url1').value.trim(), title:'Comparação' }]
+      : pages.filter(p => selected.has(p.url));
+
+    subset.forEach((pg, i) => {
+      const desktopSrc = compareMode
+        ? `/screenshots/${jobId}/compare/comparison.png`
+        : `/screenshots/${jobId}/page-${String(i).padStart(2,'0')}/desktop-professional.png`;
+      const mobileSrc = compareMode
+        ? desktopSrc
+        : `/screenshots/${jobId}/page-${String(i).padStart(2,'0')}/mobile-professional.png`;
+      const previewSrc = compareMode
+        ? desktopSrc
+        : `/screenshots/${jobId}/page-${String(i).padStart(2,'0')}/preview.png`;
+
+      const card = document.createElement('div');
+      card.className = 'prev-card';
+      card.innerHTML = `
+        <div class="prev-img">
+          <img src="${previewSrc}" alt="" loading="lazy" onerror="this.style.display='none'">
+          <div class="wm-overlay"><span>SNAPSHOT.PRO</span></div>
+        </div>
+        <div class="prev-body">
+          <div class="prev-title">${esc(pg.title||pg.url)}</div>
+          <div class="prev-url">${trunc(pg.url,40)}</div>
+        </div>`;
+      card.addEventListener('click', () => openLightbox(desktopSrc, mobileSrc, pg.title||pg.url));
+      grid.appendChild(card);
+    });
+  }
+
+  // ── Lightbox ──────────────────────────────────────────────────────────────
+  let lbDesktop = '', lbMobile = '';
+  function openLightbox(desktop, mobile, title) {
+    lbDesktop = desktop; lbMobile = mobile;
+    const tabs = document.getElementById('lb-tabs');
+    tabs.innerHTML = `
+      <button class="lb-tab active" onclick="lbSetTab('desktop',this)">Desktop</button>
+      <button class="lb-tab" onclick="lbSetTab('mobile',this)">Mobile</button>`;
+    document.getElementById('lb-img').src = desktop;
+    document.getElementById('lightbox').classList.add('on');
+  }
+  window.lbSetTab = function(tab, el) {
+    document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('lb-img').src = tab==='desktop' ? lbDesktop : lbMobile;
+  };
+  window.closeLightbox = function(e) {
+    if (!e || e.target===document.getElementById('lightbox') || e.target.classList.contains('lb-close')) {
+      document.getElementById('lightbox').classList.remove('on');
+    }
+  };
+
+  // ── Schedule toggle ───────────────────────────────────────────────────────
+  window.toggleSchedule = function() {
+    document.getElementById('sched-email').classList.toggle('on', document.getElementById('sched-check').checked);
+  };
+
+  // ── Payment ───────────────────────────────────────────────────────────────
+  window.handlePayment = async function() {
+    const payErr = document.getElementById('pay-err');
+    payErr.textContent = '';
+    const btn = document.getElementById('pay-btn');
+    const txt = document.getElementById('pay-btn-text');
+    btn.disabled = true; txt.textContent = 'Processando…';
+
+    const r = await post('/api/create-checkout', { jobId }, 15000);
+
+    // Needs upgrade (has watermark, user wants clean version)
+    if (r.data && r.data.requiresUpgrade) {
+      btn.disabled = false;
+      txt.textContent = applyWatermark ? 'Assinar para remover marca d\'água' : 'Baixar agora';
+      if (r.data.plans) { packages = r.data.plans; renderPlanGrid(); }
+      openPkgModal();
+      return;
+    }
+
+    if (!r.ok || !r.data.checkoutUrl) {
+      btn.disabled = false; txt.textContent = applyWatermark ? 'Assinar para remover marca d\'água' : 'Baixar agora';
+      payErr.textContent = humanError((r.data && r.data.error) || 'Erro ao processar pagamento.');
+      return;
+    }
+    window.location.href = r.data.checkoutUrl;
+  };
+
+  window.handleWatermarkDownload = async function() {
+    const r = await post('/api/create-checkout', { jobId, withWatermark: true }, 10000);
+    if (r.ok && r.data.checkoutUrl) window.location.href = r.data.checkoutUrl;
+  };
+
+  // ── Success ───────────────────────────────────────────────────────────────
+  function handleSuccess(jId) {
+    jobId = jId;
+    show('s7');
+    history.replaceState({}, '', location.origin + location.pathname);
+
+    setTimeout(() => {
+      const a = document.createElement('a');
+      a.href = `/api/download/${jId}`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      const st = document.getElementById('succ-status');
+      st.classList.add('done');
+      st.innerHTML = '✓ Download iniciado! Verifique sua pasta de downloads.';
+      document.getElementById('new-btn').style.display = 'inline-flex';
+
+      fetch(`/api/share-token/${jId}`).then(r => r.json()).then(d => {
+        if (d.token) {
+          document.getElementById('share-box').style.display = 'block';
+          document.getElementById('share-link-text').textContent = `${location.origin}/share/${d.token}`;
+        }
+      }).catch(() => {});
+    }, 1500);
+  }
+
+  window.copyShareLink = function() {
+    const txt = document.getElementById('share-link-text').textContent;
+    navigator.clipboard.writeText(txt).catch(() => {});
+    document.getElementById('share-copy-btn').textContent = 'Copiado!';
+    setTimeout(() => { document.getElementById('share-copy-btn').textContent = 'Copiar link'; }, 2000);
+  };
+
+  // ── Reset ─────────────────────────────────────────────────────────────────
+  window.resetAll = function(e) {
+    if (e) e.preventDefault();
+    if (crawlTimer) clearInterval(crawlTimer);
+    if (capTimer)   clearInterval(capTimer);
+    if (sseSource)  { sseSource.close(); sseSource = null; }
+    jobId = null; pages = []; selected.clear(); compareMode = false;
+    document.getElementById('url1').value = '';
+    document.getElementById('url2').value = '';
+    document.getElementById('url-err').classList.remove('on');
+    document.getElementById('url2').style.display    = 'none';
+    document.getElementById('url2-group').style.display = 'none';
+    document.getElementById('vs-badge').style.display = 'none';
+    document.getElementById('compare-toggle-btn').classList.remove('active');
+    document.getElementById('compare-dot').style.background = '';
+    document.getElementById('explore-btn-text').textContent = 'Capturar Screenshots';
+    document.getElementById('compare-info-box').style.display = 'none';
+    document.getElementById('est-banner').classList.remove('on');
+    statsAnimDone = false;
+    applyWatermark = true;
+    show('s1');
+    loadStats();
+  };
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  document.getElementById('url1').addEventListener('keydown', e => { if (e.key==='Enter') handleExplore(); });
+  document.getElementById('url1').addEventListener('input',   () => document.getElementById('url-err').classList.remove('on'));
+  document.getElementById('url2').addEventListener('keydown', e => { if (e.key==='Enter') handleExplore(); });
+  document.addEventListener('keydown', e => { if (e.key==='Escape') { closeLightbox(); closePkgModal(); } });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  const params = new URLSearchParams(location.search);
+  if (params.get('success')==='true' && params.get('jobId')) {
+    handleSuccess(params.get('jobId'));
+  } else {
+    show('s1');
+    loadStats();
+    loadPlans();
+  }
+
+  // Restore saved subscription code from localStorage
+  (function initCode() {
+    const saved = localStorage.getItem('snapshot_sub_code');
+    if (!saved) return;
+    activeCode = saved;
+    updateSubBadge();
+    // Validate in background — remove if expired
+    post('/api/validate-code', { code: saved }, 5000).then(r => {
+      if (!r.ok || !r.data.valid) {
+        activeCode = null;
+        localStorage.removeItem('snapshot_sub_code');
+        updateSubBadge();
+      }
+    });
+  })();
+
+})();
+</script>
+</body>
+</html>
