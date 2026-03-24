@@ -149,7 +149,6 @@
     }
 
     .hero-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:16px; }
-    .compare-dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); transition:background 0.2s; }
 
     .stats-row { display:flex; gap:32px; margin-top:48px; padding-top:32px; border-top:1px solid var(--border-subtle); }
     .stat-item { display:flex; flex-direction:column; gap:2px; }
@@ -203,6 +202,7 @@
     .section-head p { font-size:14px; color:var(--text-secondary); }
     .action-row { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
     .pages-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+    .pages-grid.grouped { display:flex; flex-direction:column; gap:16px; }
     .page-card {
       background:var(--card-bg); border:1px solid var(--border-subtle);
       border-radius:14px; overflow:hidden; cursor:pointer;
@@ -212,7 +212,8 @@
     .page-card.sel { border-color:rgba(255,255,255,0.5); }
     .pc-thumb { width:100%; aspect-ratio:16/10; background:#111; overflow:hidden; position:relative; }
     .pc-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-    .pc-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+    .pc-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#1a1a1a; }
+    .pc-placeholder svg { opacity:0.2; }
     .pc-body { padding:10px 12px; }
     .pc-title { font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
     .pc-url { font-size:11px; color:var(--text-tertiary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:6px; }
@@ -235,40 +236,225 @@
     /* ═══════════ S4: CONFIG ═══════════ */
     #s4 { padding:48px 0 100px; }
 
-    /* Template tabs */
+    /* ── Template tabs ── */
     .tmpl-tabs {
-      display:flex; gap:2px; margin-bottom:16px;
-      background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle);
-      border-radius:10px; padding:3px;
+      display:flex; gap:2px; margin-bottom:20px;
+      background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle);
+      border-radius:11px; padding:3px;
     }
     .tmpl-tab {
-      flex:1; padding:7px 12px; border-radius:8px; border:none; cursor:pointer;
+      flex:1; padding:8px 10px; border-radius:8px; border:none; cursor:pointer;
       font-family:var(--font); font-size:13px; font-weight:500;
-      background:transparent; color:rgba(255,255,255,0.6);
-      transition:all 0.15s; text-align:center;
+      background:transparent; color:rgba(255,255,255,0.45);
+      transition:all 0.15s; text-align:center; white-space:nowrap;
     }
-    .tmpl-tab.active { background:#fff; color:#000; }
-    .tmpl-tab:not(.active):hover { color:rgba(255,255,255,0.85); }
+    .tmpl-tab.active { background:#fff; color:#000; font-weight:600; }
+    .tmpl-tab:not(.active):hover { color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.05); }
 
-    .tmpl-pane { display:none; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+    /* ── Template panes ── */
+    .tmpl-pane { display:none; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
     .tmpl-pane.active { display:grid; }
-    @media(max-width:700px) { .tmpl-pane { grid-template-columns:repeat(2,1fr); } }
+    @media(max-width:800px) { .tmpl-pane { grid-template-columns:repeat(3,1fr); } }
+    @media(max-width:500px) { .tmpl-pane { grid-template-columns:repeat(2,1fr); } }
 
+    /* ── Template cards ── */
     .tmpl-card {
-      background:var(--card-bg); border:1px solid var(--border-subtle);
-      border-radius:12px; overflow:hidden; cursor:pointer;
-      transition:border-color var(--transition),background var(--transition); position:relative;
+      background:var(--card-bg); border:1.5px solid var(--border-subtle);
+      border-radius:14px; overflow:hidden; cursor:pointer; position:relative;
+      transition:border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.12s;
     }
-    .tmpl-card:hover { background:var(--card-bg-hover); border-color:var(--border-mid); }
-    .tmpl-card.sel { border-color:rgba(255,255,255,0.45); }
-    .tc-preview { width:100%; aspect-ratio:4/3; background:#111; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-    .tc-preview svg { width:100%; height:100%; }
-    .tc-foot { padding:8px 12px; }
-    .tc-name { font-size:12px; font-weight:600; color:var(--text-secondary); transition:color var(--transition); display:block; }
-    .tc-use  { font-size:10px; color:var(--text-tertiary); margin-top:1px; display:block; }
-    .tmpl-card:hover .tc-name,.tmpl-card.sel .tc-name { color:var(--text-primary); }
-    .tc-chk { position:absolute; top:6px; right:6px; width:18px; height:18px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity var(--transition); }
+    .tmpl-card:hover {
+      background:var(--card-bg-hover); border-color:var(--border-mid);
+      transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    }
+    .tmpl-card.sel {
+      border-color:rgba(255,255,255,0.55);
+      box-shadow:0 0 0 3px rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .tmpl-card:active:not(.tpl-locked) { transform:translateY(0); }
+
+    .tc-preview {
+      width:100%; aspect-ratio:4/3; background:#0d0d0d;
+      display:flex; align-items:center; justify-content:center; overflow:hidden;
+    }
+    .tc-preview svg { width:100%; height:100%; display:block; }
+
+    .tc-foot { padding:10px 12px 12px; }
+    .tc-name {
+      font-size:13px; font-weight:600; color:var(--text-secondary);
+      transition:color var(--transition); display:block; line-height:1.3;
+    }
+    .tc-desc {
+      font-size:11px; color:var(--text-tertiary); margin-top:3px;
+      display:block; line-height:1.4;
+      overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    }
+    .tmpl-card:hover .tc-name, .tmpl-card.sel .tc-name { color:var(--text-primary); }
+
+    /* Checkmark badge */
+    .tc-chk {
+      position:absolute; top:8px; right:8px; width:20px; height:20px;
+      background:#fff; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; transition:opacity var(--transition);
+      box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    }
     .tmpl-card.sel .tc-chk { opacity:1; }
+
+    /* ── Template Sheet Lateral ── */
+    #tmpl-sheet-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300;
+      opacity:0; pointer-events:none; transition:opacity 0.25s;
+    }
+    #tmpl-sheet-overlay.open { opacity:1; pointer-events:auto; }
+
+    #tmpl-sheet {
+      position:fixed; top:0; right:0; bottom:0; width:380px; max-width:100vw;
+      background:#121212; border-left:1px solid rgba(255,255,255,0.08);
+      z-index:301; display:flex; flex-direction:column;
+      transform:translateX(100%); transition:transform 0.25s ease-out;
+      overflow-y:auto;
+    }
+    #tmpl-sheet.open { transform:translateX(0); }
+
+    .sheet-header {
+      display:flex; align-items:flex-start; gap:14px; padding:20px;
+      border-bottom:1px solid rgba(255,255,255,0.07);
+    }
+    .sheet-preview-wrap { flex-shrink:0; }
+    .sheet-preview { width:120px; height:90px; border-radius:8px; overflow:hidden; background:#1a1a1a; }
+    .sheet-preview svg { width:100%; height:100%; }
+    .sheet-header-info { flex:1; min-width:0; padding-top:4px; }
+    .sheet-tmpl-name { font-size:15px; font-weight:600; color:rgba(255,255,255,0.9); margin-bottom:4px; }
+    .sheet-subtitle { font-size:12px; color:rgba(255,255,255,0.4); }
+    .sheet-close {
+      flex-shrink:0; width:32px; height:32px; border-radius:8px; border:none;
+      background:transparent; color:rgba(255,255,255,0.4); cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:background 150ms,color 150ms;
+    }
+    .sheet-close:hover { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.8); }
+
+    .sheet-section-title {
+      font-size:11px; font-weight:500; color:rgba(255,255,255,0.35);
+      letter-spacing:0.07em; text-transform:uppercase;
+      padding:20px 20px 10px;
+    }
+    .sheet-mode-cards { display:flex; flex-direction:column; gap:8px; padding:0 20px; }
+    .sheet-mode-card {
+      display:flex; align-items:center; gap:12px; padding:14px;
+      border:1px solid rgba(255,255,255,0.08); border-radius:10px;
+      cursor:pointer; transition:border-color 150ms,background 150ms; position:relative;
+    }
+    .sheet-mode-card:hover { background:rgba(255,255,255,0.03); border-color:rgba(255,255,255,0.15); }
+    .sheet-mode-card.sel { border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.04); }
+    .smc-icon { flex-shrink:0; color:rgba(255,255,255,0.5); }
+    .sheet-mode-card.sel .smc-icon { color:rgba(255,255,255,0.9); }
+    .smc-title { font-size:13px; font-weight:600; color:rgba(255,255,255,0.8); margin-bottom:2px; }
+    .smc-sub { font-size:11px; color:rgba(255,255,255,0.35); }
+    .smc-chk {
+      position:absolute; top:10px; right:10px; width:18px; height:18px;
+      background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center;
+      opacity:0; transition:opacity 150ms;
+    }
+    .sheet-mode-card.sel .smc-chk { opacity:1; }
+
+    #sheet-page-list {
+      padding:12px 20px; display:flex; flex-direction:column; gap:6px;
+      border-top:1px solid rgba(255,255,255,0.06); margin-top:12px;
+    }
+    .sheet-page-row {
+      display:flex; align-items:center; gap:10px; padding:8px 10px;
+      border-radius:8px; cursor:pointer;
+    }
+    .sheet-page-row:hover { background:rgba(255,255,255,0.04); }
+    .sheet-pg-chk { width:14px; height:14px; accent-color:#fff; cursor:pointer; flex-shrink:0; }
+    .sheet-pg-title { font-size:12px; color:rgba(255,255,255,0.7); font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    .sheet-footer {
+      margin-top:auto; display:flex; gap:10px; padding:20px;
+      border-top:1px solid rgba(255,255,255,0.07);
+    }
+    .sheet-btn-cancel {
+      flex:1; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.12);
+      background:transparent; color:rgba(255,255,255,0.6); font-family:var(--font);
+      font-size:13px; font-weight:500; cursor:pointer; transition:all 150ms;
+    }
+    .sheet-btn-cancel:hover { background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); }
+    .sheet-btn-apply {
+      flex:2; padding:12px; border-radius:10px; border:none;
+      background:#fff; color:#0a0a0a; font-family:var(--font);
+      font-size:13px; font-weight:700; cursor:pointer; transition:background 150ms;
+    }
+    .sheet-btn-apply:hover { background:#e8e8e8; }
+    .sheet-btn-reset {
+      display:flex; align-items:center; gap:6px; background:none; border:none;
+      color:rgba(255,255,255,0.3); font-size:12px; font-weight:500; cursor:pointer;
+      padding:6px 10px; border-radius:6px; transition:all 150ms;
+    }
+    .sheet-btn-reset svg { transition:transform 300ms; }
+    .sheet-btn-reset:hover { color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.06); }
+    .sheet-btn-reset:hover svg { transform:rotate(-45deg); }
+
+    /* Badge de template por página no card */
+    .page-card { position:relative; }
+    .tmpl-badge {
+      position:absolute; bottom:6px; left:8px; font-size:10px;
+      color:rgba(255,255,255,0.5); background:rgba(0,0,0,0.5);
+      border-radius:4px; padding:2px 6px; font-family:monospace;
+      pointer-events:none; backdrop-filter:blur(4px);
+    }
+
+    /* ── Per-page summary strip ── */
+    #per-page-summary {
+      display:none; margin:0 0 20px;
+      background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07);
+      border-radius:12px; padding:14px 16px; position:relative;
+    }
+    #per-page-summary.visible { display:block; }
+    .pps-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .pps-title { font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.35); }
+    .pps-reset { font-size:11px; color:rgba(255,255,255,0.3); background:none; border:none; cursor:pointer; font-family:var(--font); padding:0; }
+    .pps-reset:hover { color:rgba(255,255,255,0.7); }
+    .pps-rows { display:flex; flex-direction:column; gap:4px; }
+    .pps-row {
+      display:flex; align-items:center; gap:10px; padding:6px 8px;
+      border-radius:8px; font-size:12px;
+    }
+    .pps-row:hover { background:rgba(255,255,255,0.04); }
+    .pps-thumb { width:28px; height:21px; border-radius:4px; overflow:hidden; flex-shrink:0; background:#1a1a1a; }
+    .pps-thumb svg { width:100%; height:100%; display:block; }
+    .pps-pg { flex:1; min-width:0; color:rgba(255,255,255,0.55); font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pps-tname { font-size:11px; font-weight:600; color:rgba(255,255,255,0.4); flex-shrink:0; }
+    .pps-rm { width:16px; height:16px; border-radius:4px; background:none; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:12px; flex-shrink:0; }
+    .pps-rm:hover { color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.06); }
+
+    /* ── Tab count badges ── */
+    .tmpl-tab-count {
+      display:inline-block; font-size:10px; font-weight:700;
+      background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.5);
+      border-radius:999px; padding:1px 5px; margin-left:4px; vertical-align:middle;
+    }
+    .tmpl-tab.active .tmpl-tab-count { background:rgba(0,0,0,0.12); color:rgba(0,0,0,0.5); }
+
+    /* ── Sheet page rows — improved ── */
+    .sheet-page-row { transition:background 100ms; }
+    .sheet-pg-cur-tpl {
+      font-size:10px; color:rgba(255,255,255,0.25); font-family:monospace;
+      margin-left:auto; flex-shrink:0; padding-right:2px;
+    }
+    .sheet-pg-thumb { width:22px; height:16px; border-radius:3px; overflow:hidden; background:#1a1a1a; flex-shrink:0; }
+    .sheet-pg-thumb svg { width:100%; height:100%; display:block; }
+
+    /* Per-page template rows */
+    .pp-row { display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--border-subtle); }
+    .pp-row:last-child { border-bottom:none; }
+    .pp-url { flex:1; font-size:12px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; }
+    .pp-select { background:#1a1a1a; border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-primary); font-size:12px; padding:5px 8px; cursor:pointer; min-width:130px; }
+    .pp-select:focus { outline:none; border-color:rgba(255,255,255,0.3); }
 
     .opts-wrap { border:1px solid var(--border-subtle); border-radius:var(--radius); overflow:hidden; margin-bottom:20px; }
     .opts-summary { padding:16px 20px; background:var(--card-bg); cursor:pointer; font-size:14px; font-weight:600; color:var(--text-secondary); list-style:none; display:flex; align-items:center; justify-content:space-between; user-select:none; transition:all var(--transition); }
@@ -282,8 +468,6 @@
     .checkbox-row { display:flex; align-items:center; gap:10px; cursor:pointer; }
     .checkbox-row input[type="checkbox"] { width:14px; height:14px; accent-color:#fff; cursor:pointer; }
     .checkbox-row span { font-size:13px; color:var(--text-secondary); }
-    .compare-info { background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:var(--radius); padding:16px 20px; font-size:14px; color:var(--text-secondary); margin-bottom:20px; }
-    .compare-info strong { color:var(--text-primary); }
     .sticky-cta { position:fixed; bottom:0; left:0; right:0; z-index:100; background:linear-gradient(to top,var(--bg-base) 65%,transparent); padding:24px; }
     .sticky-inner { max-width:480px; margin:0 auto; }
 
@@ -361,39 +545,152 @@
     .lb-img { max-width:80vw; max-height:75vh; object-fit:contain; border-radius:8px; display:block; }
 
     /* ═══════════ PURCHASE MODAL ═══════════ */
-    #pkg-modal { display:none; position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.8); backdrop-filter:blur(6px); align-items:center; justify-content:center; }
+    #pkg-modal { display:none; position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.82); backdrop-filter:blur(8px); align-items:center; justify-content:center; }
     #pkg-modal.on { display:flex; }
     .pm-inner {
-      background:var(--card-bg); border:1px solid var(--border-mid);
-      border-radius:var(--radius); padding:32px; max-width:540px; width:100%;
-      margin:16px; box-shadow:0 20px 60px rgba(0,0,0,0.6); position:relative;
+      background:#141414; border:1px solid rgba(255,255,255,0.12);
+      border-radius:20px; padding:32px; max-width:860px; width:100%;
+      margin:16px; box-shadow:0 24px 72px rgba(0,0,0,0.7); position:relative;
+      max-height:92vh; overflow-y:auto;
     }
-    .pm-head { margin-bottom:8px; }
-    .pm-head h2 { font-size:20px; }
+    .pm-screen { display:none; }
+    .pm-screen.active { display:block; }
+    .pm-close-btn { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.07); border:none; color:rgba(255,255,255,0.5); font-size:16px; cursor:pointer; padding:6px 10px; border-radius:8px; line-height:1; transition:all 150ms; }
+    .pm-close-btn:hover { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); }
+
+    /* Tela 1 — Seleção de plano */
+    .pm-head h2 { font-size:20px; font-weight:700; margin-bottom:6px; }
     .pm-sub { font-size:14px; color:var(--text-secondary); margin-bottom:24px; }
-    .pm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
-    @media(max-width:480px) { .pm-grid { grid-template-columns:1fr; } }
-    .pkg-card { background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle); border-radius:12px; padding:16px; cursor:pointer; transition:all var(--transition); text-align:center; position:relative; }
-    .pkg-card:hover { border-color:var(--border-mid); background:rgba(255,255,255,0.07); }
-    .pkg-card.sel { border-color:rgba(255,255,255,0.45); background:rgba(255,255,255,0.07); }
-    .pkg-badge { font-size:10px; font-weight:600; letter-spacing:0.05em; padding:2px 8px; border-radius:var(--radius-badge); background:rgba(255,255,255,0.1); color:var(--text-secondary); margin-bottom:10px; display:inline-block; }
-    .pkg-badge.best { background:rgba(100,220,130,0.15); color:#7eed9f; }
-    .pkg-cap { font-size:32px; font-weight:800; letter-spacing:-0.02em; color:var(--text-primary); }
-    .pkg-cap-label { font-size:11px; color:var(--text-tertiary); margin-bottom:8px; }
-    .pkg-price { font-size:16px; font-weight:700; color:var(--text-primary); }
-    .pkg-price-sub { font-size:11px; color:var(--text-tertiary); }
-    .pkg-chk { position:absolute; top:8px; right:8px; width:18px; height:18px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity var(--transition); }
+    .pm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+    @media(max-width:600px) { .pm-grid { grid-template-columns:1fr; } }
+    .pkg-card { background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle); border-radius:16px; padding:22px 18px; cursor:pointer; transition:all var(--transition); text-align:left; position:relative; }
+    .pkg-card:hover { border-color:var(--border-mid); background:rgba(255,255,255,0.06); }
+    .pkg-card.sel { border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.07); box-shadow:0 0 0 1px rgba(255,255,255,0.15); }
+    .pkg-badge { font-size:10px; font-weight:700; letter-spacing:0.06em; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,0.1); color:var(--text-secondary); margin-bottom:14px; display:inline-block; text-transform:uppercase; }
+    .pkg-badge.best { background:rgba(100,220,130,0.18); color:#7eed9f; }
+    .pkg-cap { font-size:32px; font-weight:800; letter-spacing:-0.03em; color:var(--text-primary); line-height:1; }
+    .pkg-cap-label { font-size:11px; color:var(--text-tertiary); margin:5px 0 12px; }
+    .pkg-price { font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:16px; }
+    .pkg-chk { position:absolute; top:14px; right:14px; width:20px; height:20px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity var(--transition); }
     .pkg-card.sel .pkg-chk { opacity:1; }
+    .pkg-feats { list-style:none; text-align:left; display:flex; flex-direction:column; gap:8px; margin-top:6px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.07); }
+    .pkg-feats li { font-size:12.5px; color:rgba(255,255,255,0.6); display:flex; align-items:flex-start; gap:8px; line-height:1.4; }
+    .pkg-feats li::before { content:'✓'; color:#4ade80; font-size:11px; font-weight:700; flex-shrink:0; margin-top:1px; }
+    .pkg-feats li.no { color:rgba(255,255,255,0.22); }
+    .pkg-feats li.no::before { content:'–'; color:rgba(255,255,255,0.2); }
     .pm-divider { display:flex; align-items:center; gap:12px; margin:20px 0 16px; font-size:12px; color:var(--text-tertiary); }
     .pm-divider::before,.pm-divider::after { content:''; flex:1; height:1px; background:var(--border-subtle); }
-    .pm-code-section { margin-top:0; }
     .pm-code-label { font-size:12px; font-weight:500; color:var(--text-tertiary); margin-bottom:8px; }
     .pm-code-row { display:flex; gap:8px; margin-bottom:8px; }
     .pm-code-row input { flex:1; }
-    .pm-close-btn { position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text-tertiary); font-size:18px; cursor:pointer; padding:4px 8px; }
     .code-status { font-size:12px; }
     .code-status.ok  { color:#4ade80; }
     .code-status.bad { color:#f87171; }
+
+    /* Tela 2 — Formulário de checkout */
+    .co-back { background:none; border:none; color:rgba(255,255,255,0.4); font-family:inherit; font-size:13px; cursor:pointer; padding:0; margin-bottom:20px; display:flex; align-items:center; gap:6px; transition:color 150ms; }
+    .co-back:hover { color:rgba(255,255,255,0.8); }
+    .co-summary { background:#0f0f0f; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px 18px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; }
+    .co-summary-name { font-size:15px; font-weight:700; }
+    .co-summary-price { font-size:22px; font-weight:800; letter-spacing:-0.02em; }
+    .co-summary-sub { font-size:11px; color:rgba(255,255,255,0.35); margin-top:2px; }
+    .co-form { display:flex; flex-direction:column; gap:12px; margin-bottom:20px; }
+    .co-field { display:flex; flex-direction:column; gap:5px; }
+    .co-label { font-size:11px; font-weight:600; color:rgba(255,255,255,0.4); letter-spacing:0.05em; text-transform:uppercase; }
+    .co-input { background:#0a0a0a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:11px 14px; color:rgba(255,255,255,0.9); font-family:inherit; font-size:14px; outline:none; transition:border-color 150ms; }
+    .co-input:focus { border-color:rgba(255,255,255,0.35); }
+    .co-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media(max-width:420px) { .co-row { grid-template-columns:1fr; } }
+    .co-submit { width:100%; background:#fff; color:#0a0a0a; border:none; border-radius:10px; padding:14px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; transition:background 150ms; margin-top:4px; }
+    .co-submit:hover { background:#e8e8e8; }
+    .co-submit:disabled { background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.4); cursor:not-allowed; }
+    .co-err { font-size:12px; color:#f87171; min-height:16px; margin-top:2px; }
+
+    /* ── Template lock ── */
+    .tmpl-card.tpl-locked { opacity:0.65; cursor:pointer; }
+    .tmpl-card.tpl-locked:hover { opacity:0.9; border-color:rgba(255,255,255,0.1); transform:none; }
+    .tpl-lock-icon {
+      position:absolute; top:8px; right:8px; width:24px; height:24px;
+      background:rgba(0,0,0,0.7); border-radius:6px; border:1px solid rgba(255,255,255,0.1);
+      backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+      display:flex; align-items:center; justify-content:center;
+      z-index:10; pointer-events:none;
+    }
+    .tpl-lock-icon svg { display:block; }
+
+    /* ── Capture limit banner ── */
+    #capture-limit-banner {
+      display:none; background:rgba(251,191,36,0.08); border-bottom:1px solid rgba(251,191,36,0.2);
+      padding:10px 24px; font-size:13px; color:rgba(255,255,255,0.8);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    #capture-limit-banner.shown { display:flex; }
+    #capture-limit-banner:not(.shown) { display:none; }
+    .cap-limit-btn { background:rgba(251,191,36,0.15); border:1px solid rgba(251,191,36,0.3); color:#fbbf24; font-size:12px; font-weight:600; padding:5px 12px; border-radius:6px; cursor:pointer; white-space:nowrap; font-family:inherit; }
+
+    /* ── Crawl limit message ── */
+    #crawl-limit-msg {
+      display:none; margin-top:16px; background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.07); border-radius:10px;
+      padding:14px 18px; font-size:13px; color:rgba(255,255,255,0.55);
+      display:flex; align-items:center; gap:10px;
+    }
+    #crawl-limit-msg.shown { display:flex; }
+    #crawl-limit-msg:not(.shown) { display:none; }
+    .crawl-limit-link { color:rgba(255,255,255,0.7); text-decoration:underline; cursor:pointer; }
+
+    /* ── Sub-badge plan styles ── */
+    #sub-badge.plan-starter { background:rgba(74,222,128,0.08); border-color:rgba(74,222,128,0.2); color:#4ade80; }
+    #sub-badge.plan-pro     { background:rgba(139,92,246,0.12); border-color:rgba(139,92,246,0.3); color:#a78bfa; }
+    #sub-badge.plan-agency  { background:rgba(251,191,36,0.1); border-color:rgba(251,191,36,0.25); color:#fbbf24; }
+    .badge-counter-warn  { color:#fbbf24; }
+    .badge-counter-urgent { color:#f87171; }
+    @keyframes pulse-badge { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .badge-counter-urgent { animation: pulse-badge 1.5s ease-in-out infinite; }
+
+
+    /* Tela 3 — QR Code PIX */
+    .pix-amount { font-size:36px; font-weight:800; letter-spacing:-0.03em; color:#fff; text-align:center; margin-bottom:4px; }
+    .pix-plan-name { font-size:13px; color:rgba(255,255,255,0.4); text-align:center; margin-bottom:24px; }
+    .pix-qr-wrap { display:flex; justify-content:center; margin-bottom:20px; }
+    .pix-qr-wrap img { width:200px; height:200px; border-radius:12px; border:2px solid #fff; background:#fff; display:block; }
+    .pix-copy-row { display:flex; align-items:center; gap:8px; margin-bottom:20px; }
+    .pix-code-text { flex:1; font-family:monospace; font-size:11px; color:rgba(255,255,255,0.45); background:#0a0a0a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px 12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pix-copy-btn { flex-shrink:0; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.7); font-family:inherit; font-size:12px; font-weight:600; padding:10px 14px; cursor:pointer; white-space:nowrap; transition:all 150ms; }
+    .pix-copy-btn:hover { background:rgba(255,255,255,0.13); }
+    .pix-instruction { text-align:center; font-size:13px; color:rgba(255,255,255,0.4); margin-bottom:20px; line-height:1.5; }
+    .pix-timer { text-align:center; font-size:12px; color:rgba(255,255,255,0.28); margin-bottom:16px; }
+    .pix-timer.warn { color:#f87171; }
+    .pix-waiting { display:flex; align-items:center; justify-content:center; gap:8px; font-size:12px; color:rgba(255,255,255,0.3); margin-bottom:12px; }
+    .pix-dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.3); animation:dot-blink 1.4s ease-in-out infinite; }
+    .pix-dot:nth-child(2){ animation-delay:.2s; }
+    .pix-dot:nth-child(3){ animation-delay:.4s; }
+    @keyframes dot-blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+    .pix-dev-btn { display:block; width:100%; margin-top:8px; background:none; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; padding:10px; color:rgba(255,255,255,0.3); font-family:inherit; font-size:12px; cursor:pointer; transition:all 150ms; }
+    .pix-dev-btn:hover { border-color:rgba(255,255,255,0.3); color:rgba(255,255,255,0.6); }
+    .pix-spinner { width:20px; height:20px; border:2px solid rgba(255,255,255,0.1); border-top-color:rgba(255,255,255,0.6); border-radius:50%; animation:spin .8s linear infinite; display:inline-block; margin:0 auto; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Tela 3 — Confirmação */
+    .pix-success-wrap { text-align:center; padding:8px 0; }
+    .check-svg-wrap { width:80px; height:80px; margin:0 auto 24px; }
+    .check-circle-anim { stroke:#4ade80; stroke-width:2.5; fill:none; stroke-dasharray:166; stroke-dashoffset:166; stroke-linecap:round; animation:stroke-anim .6s cubic-bezier(.65,0,.45,1) .2s forwards; }
+    .check-mark-anim { stroke:#4ade80; stroke-width:2.5; fill:none; stroke-dasharray:48; stroke-dashoffset:48; stroke-linecap:round; stroke-linejoin:round; animation:stroke-anim .4s cubic-bezier(.65,0,.45,1) .7s forwards; }
+    .check-bg-circle { fill:rgba(74,222,128,0.06); }
+    @keyframes stroke-anim { to { stroke-dashoffset:0; } }
+    .pix-success-title { font-size:24px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px; }
+    .pix-success-sub { font-size:14px; color:rgba(255,255,255,0.45); margin-bottom:28px; }
+    .pix-access-box { background:#0f0f0f; border:1px solid rgba(255,255,255,0.15); border-radius:12px; padding:20px; margin-bottom:20px; }
+    .pix-access-code { font-family:monospace; font-size:19px; font-weight:700; letter-spacing:0.15em; color:#fff; word-break:break-all; margin-bottom:12px; }
+    .pix-access-copy { width:100%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:10px; color:rgba(255,255,255,0.7); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:all 150ms; }
+    .pix-access-copy:hover { background:rgba(255,255,255,0.13); }
+    .pix-save-warn { font-size:12px; color:rgba(255,255,255,0.28); margin-bottom:24px; line-height:1.5; }
+    .pix-start-btn { width:100%; background:#fff; color:#0a0a0a; border:none; border-radius:10px; padding:14px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; transition:background 150ms; }
+    .pix-start-btn:hover { background:#e8e8e8; }
+
+    /* Banner PIX pendente */
+    #pix-pending-banner { display:none; background:#1a1400; border:1px solid rgba(255,200,0,0.2); border-radius:10px; padding:12px 16px; margin:12px 24px; cursor:pointer; font-size:13px; color:rgba(255,200,0,0.8); text-align:center; transition:all 150ms; }
+    #pix-pending-banner:hover { background:#1f1900; }
 
     /* Footer */
     footer { border-top:1px solid var(--border-subtle); padding:28px 0; margin-top:40px; transition:opacity 0.2s ease; }
@@ -401,6 +698,94 @@
     .ftr { display:flex; align-items:center; justify-content:space-between; }
     .ftr-logo { font-size:14px; font-weight:700; color:var(--text-tertiary); text-decoration:none; }
     .ftr-copy { font-size:13px; color:var(--text-tertiary); }
+
+    /* ── Body bottom padding for history bar ── */
+    body { padding-bottom: 60px; }
+
+    /* ── Platform badge ── */
+    #platform-badge { display:none; align-items:center; gap:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:999px; padding:4px 12px; font-size:12px; color:rgba(255,255,255,0.65); margin-top:8px; width:fit-content; animation:fadeIn 0.2s ease; }
+    #platform-badge.show { display:inline-flex; }
+    /* ── URL normalize hint ── */
+    #url-normalize-hint { font-size:12px; color:rgba(255,255,255,0.32); margin-top:6px; display:none; animation:fadeIn 0.2s ease; }
+    /* ── URL history dropdown ── */
+    #url-history-dd { position:absolute; top:calc(100% + 4px); left:0; right:0; background:#1a1a1a; border:1px solid rgba(255,255,255,0.12); border-radius:12px; z-index:50; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.6); }
+    #url-history-dd .hist-item { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer; transition:background 0.15s; gap:10px; }
+    #url-history-dd .hist-item:hover { background:rgba(255,255,255,0.05); }
+    #url-history-dd .hist-domain { font-size:13px; font-weight:500; color:rgba(255,255,255,0.85); }
+    #url-history-dd .hist-date { font-size:11px; color:rgba(255,255,255,0.3); }
+    #url-history-dd .hist-remove { font-size:14px; color:rgba(255,255,255,0.25); cursor:pointer; padding:2px 6px; border-radius:4px; }
+    #url-history-dd .hist-remove:hover { color:rgba(255,255,255,0.6); background:rgba(255,255,255,0.06); }
+    /* ── Extra URL inputs ── */
+    .extra-url-row { display:flex; align-items:center; gap:8px; margin-top:8px; animation:slideDown 0.2s ease; }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    /* ── Page groups ── */
+    .pg-group { width:100%; }
+    .pg-group-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:10px; cursor:pointer; user-select:none; }
+    .pg-group-header:hover { background:rgba(255,255,255,0.05); }
+    .pg-group-title { font-size:12px; font-weight:600; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:0.08em; }
+    .pg-group-count { font-size:11px; color:rgba(255,255,255,0.3); margin-left:6px; }
+    .pg-group-actions { display:flex; align-items:center; gap:8px; }
+    .pg-group-selall { font-size:11px; color:rgba(255,255,255,0.4); cursor:pointer; padding:3px 10px; border-radius:4px; border:1px solid rgba(255,255,255,0.1); }
+    .pg-group-selall:hover { color:rgba(255,255,255,0.7); border-color:rgba(255,255,255,0.2); }
+    .pg-group-toggle { font-size:10px; color:rgba(255,255,255,0.3); padding:2px 6px; }
+    .pg-group-pages { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; padding:16px 0 0; }
+    .pg-group.collapsed .pg-group-pages { display:none; }
+    /* ── Recommended badge ── */
+    .pg-recommended { position:absolute; top:8px; left:8px; width:22px; height:22px; background:rgba(255,255,255,0.12); border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:2; }
+    /* ── Above fold toggle ── */
+    .pg-fold-toggle { display:flex; align-items:center; gap:5px; font-size:11px; color:rgba(255,255,255,0.4); cursor:pointer; padding:4px 0; user-select:none; border-top:1px solid rgba(255,255,255,0.05); margin-top:6px; }
+    .pg-fold-toggle.active { color:rgba(255,255,255,0.85); }
+    /* ── Manual pages section ── */
+    #manual-section { margin-top:24px; }
+    #manual-header { display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:10px 14px; background:rgba(255,255,255,0.03); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); }
+    #manual-header:hover { background:rgba(255,255,255,0.05); }
+    #manual-header-title { font-size:13px; color:rgba(255,255,255,0.55); }
+    #manual-body { display:none; margin-top:12px; padding:16px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid rgba(255,255,255,0.07); }
+    #manual-body.open { display:block; animation:slideDown 0.2s ease; }
+    .manual-field { display:flex; gap:8px; margin-bottom:12px; }
+    .manual-field input { flex:1; }
+    .manual-badge { background:rgba(34,197,94,0.15); color:#22c55e; font-size:10px; font-weight:600; padding:2px 7px; border-radius:999px; }
+    /* ── Template per-page layout ── */
+    #s4-inner { display:grid; grid-template-columns:38% 62%; gap:24px; min-height:400px; }
+    @media(max-width:720px) { #s4-inner { grid-template-columns:1fr; } }
+    .s4-page-list { display:flex; flex-direction:column; gap:6px; }
+    .s4-page-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; transition:all 0.15s; border-left:2px solid transparent; }
+    .s4-page-item:hover { background:rgba(255,255,255,0.04); }
+    .s4-page-item.active { background:rgba(255,255,255,0.07); border-left-color:#fff; }
+    .s4-page-thumb { width:48px; height:32px; border-radius:4px; object-fit:cover; background:rgba(255,255,255,0.05); flex-shrink:0; }
+    .s4-page-title { font-size:13px; font-weight:500; color:rgba(255,255,255,0.85); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+    .s4-tpl-indicator { width:28px; height:20px; border-radius:4px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.06); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:8px; color:rgba(255,255,255,0.3); }
+    /* ── Page status indicators ── */
+    .ps-indicator { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .ps-waiting { background:rgba(255,255,255,0.2); }
+    .ps-capturing { background:#fbbf24; animation:pulse 1s infinite; }
+    .ps-done { background:#22c55e; }
+    .ps-failed { background:#ef4444; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+    /* ── Session history dropdown ── */
+    #history-btn { display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:8px; background:transparent; border:1px solid rgba(255,255,255,0.08); cursor:pointer; opacity:0.3; pointer-events:none; transition:opacity 0.2s,border-color 0.2s; position:relative; }
+    #history-btn.has-items { opacity:0.7; pointer-events:auto; }
+    #history-btn.has-items:hover { opacity:1; border-color:rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); }
+    #history-dropdown { display:none; position:absolute; top:48px; right:0; width:320px; background:#161616; border:1px solid rgba(255,255,255,0.1); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.8),0 4px 16px rgba(0,0,0,0.5); padding:16px; max-height:400px; overflow-y:auto; z-index:500; }
+    #history-dropdown.open { display:block; animation:fadeIn 0.15s ease; }
+    #history-dropdown-title { font-size:11px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:12px; font-weight:600; }
+    .hist-job-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; cursor:pointer; border:1px solid transparent; transition:background 0.15s,border-color 0.15s; }
+    .hist-job-row:hover { background:rgba(255,255,255,0.04); border-color:rgba(255,255,255,0.07); }
+    .hist-job-thumb { width:64px; height:44px; border-radius:5px; overflow:hidden; background:#222; flex-shrink:0; }
+    .hist-job-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .hist-job-meta { flex:1; min-width:0; }
+    .hist-job-domain { font-size:12px; color:rgba(255,255,255,0.75); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .hist-job-sub { font-size:11px; color:rgba(255,255,255,0.35); margin-top:2px; }
+    .hist-job-dl { width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); flex-shrink:0; color:rgba(255,255,255,0.5); }
+    .hist-job-dl:hover { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); }
+    /* ── Capture limit banner (updated) ── */
+    #capture-limit-banner { background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2); border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#fbbf24; }
+    /* ── Crawl limit message (updated) ── */
+    #crawl-limit-msg { background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.15); border-radius:8px; padding:10px 14px; margin-top:12px; font-size:12px; color:rgba(251,191,36,0.8); }
+    /* ── Loading dot ── */
+    .url-loading-dot { display:none; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.4); animation:pulse 1s infinite; margin-left:6px; }
+    .url-loading-dot.show { display:inline-block; }
   </style>
 </head>
 <body>
@@ -409,14 +794,30 @@
 <header>
   <div class="hdr">
     <a class="logo" onclick="resetAll(event)" href="/">SnapShot<span style="color:rgba(255,255,255,0.35)">.</span>pro</a>
-    <div class="hdr-right">
-      <div id="sub-badge" title="Status da assinatura" onclick="openPkgModal()">
+    <div class="hdr-right" style="position:relative;">
+      <div id="history-btn" title="Histórico desta sessão" onclick="toggleHistoryDropdown(event)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div id="capture-badge" style="display:none;font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);color:#fbbf24;cursor:pointer;" title="Limite diário de capturas" onclick="openUpgradeModal('starter','Aumente seu limite diário')">
+        <span id="capture-badge-text"></span>
+      </div>
+      <!-- [COR-7] Pill de plano abre modal de info -->
+      <div id="sub-badge" title="Ver detalhes do plano" onclick="openPlanInfoModal()">
         <span id="sub-badge-text">Grátis</span>
       </div>
-      <button class="btn btn-g" style="height:36px;font-size:12px;padding:0 14px;" onclick="openPkgModal()">Assinar</button>
+      <div id="history-dropdown">
+        <div id="history-dropdown-title">Capturas desta sessão</div>
+        <div id="history-dropdown-list"></div>
+      </div>
+      <button style="background:#ffffff;color:#0a0a0a;font-weight:600;font-size:13px;padding:7px 16px;border-radius:7px;border:none;cursor:pointer;height:auto;" id="assinar-btn" onclick="openPkgModal()">Assinar</button>
     </div>
   </div>
 </header>
+<div id="pix-pending-banner" onclick="reopenPixModal()">Você tem um pagamento PIX pendente — Ver QR Code</div>
+<div id="capture-limit-banner">
+  <span id="cap-limit-text">Você atingiu o limite de capturas do seu plano.</span>
+  <button class="cap-limit-btn" onclick="openUpgradeModal('pro','Aumente seu limite de capturas')">Fazer upgrade →</button>
+</div>
 
 <!-- ═══ S1: HERO ═══ -->
 <div class="wrap">
@@ -437,14 +838,13 @@
       <div class="url-group">
         <div>
           <div class="input-label">Site a capturar</div>
-          <div class="url-row">
+          <div class="url-row" id="url-input-wrap" style="position:relative;">
             <input id="url1" type="url" placeholder="https://exemplo.com" autocomplete="off" spellcheck="false">
-            <span id="vs-badge" style="display:none;align-items:center;justify-content:center;width:36px;height:48px;font-size:11px;font-weight:700;color:var(--text-tertiary)">VS</span>
           </div>
-        </div>
-        <div id="url2-group" style="display:none;">
-          <div class="input-label">Segunda URL (comparar)</div>
-          <input id="url2" type="url" placeholder="https://concorrente.com" autocomplete="off" spellcheck="false" style="display:none;">
+          <div id="url-normalize-hint"></div>
+          <div id="platform-badge"><span class="url-loading-dot"></span></div>
+          <div id="url-extra-inputs"></div>
+          <button type="button" id="add-url-btn" style="display:none;margin-top:8px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:13px;font-family:var(--font);cursor:pointer;padding:4px 0;">＋ Adicionar outra URL</button>
         </div>
       </div>
 
@@ -453,9 +853,6 @@
       <div class="hero-actions">
         <button class="btn btn-p" id="explore-btn" onclick="handleExplore()" style="height:50px;font-size:15px;padding:0 28px;">
           <span id="explore-btn-text">Capturar Screenshots</span>
-        </button>
-        <button class="btn btn-g" id="compare-toggle-btn" onclick="toggleCompare()" style="display:flex;align-items:center;gap:6px;">
-          <span class="compare-dot" id="compare-dot"></span>Modo Comparar
         </button>
       </div>
 
@@ -466,11 +863,11 @@
         </div>
         <div class="stat-item">
           <span class="stat-num">12</span>
-          <span class="stat-lbl">templates disponíveis</span>
+          <span class="stat-lbl">templates profissionais</span>
         </div>
         <div class="stat-item">
-          <span class="stat-num">∞</span>
-          <span class="stat-lbl">capturas gratuitas</span>
+          <span class="stat-num" id="quota-num">3</span>
+          <span class="stat-lbl" id="quota-lbl">capturas restantes</span>
         </div>
       </div>
     </div>
@@ -518,6 +915,31 @@
         <button class="btn btn-g" onclick="deselectAll()">Limpar seleção</button>
       </div>
       <div class="pages-grid" id="pages-grid"></div>
+      <div id="manual-section">
+        <div id="manual-header" onclick="toggleManualSection()">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <span id="manual-header-title">Não encontrou a página que precisa?</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="manual-limit-badge" style="font-size:11px;color:rgba(255,255,255,0.35);"></span>
+            <svg id="manual-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div id="manual-body">
+          <div class="manual-field">
+            <input type="text" id="manual-query-input" placeholder="login, /pricing/enterprise, https://site.com/checkout" style="height:40px;font-size:13px;">
+            <button class="btn btn-g" style="height:40px;font-size:12px;white-space:nowrap;" onclick="searchManualPage()">Buscar e adicionar</button>
+          </div>
+          <div id="manual-status" style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;"></div>
+          <div id="manual-suggestions" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+        </div>
+      </div>
+      <div id="crawl-limit-msg">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"/><path d="M8 5v3.5" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11" r="0.7" fill="rgba(255,255,255,0.4)"/></svg>
+        <span id="crawl-limit-text">Seu plano permite ver até X páginas.</span>
+        <span class="crawl-limit-link" onclick="openUpgradeModal('pro','Ver mais páginas')">Ver planos →</span>
+      </div>
       <div class="sticky-cta">
         <div class="sticky-inner">
           <button class="btn btn-p btn-full" id="s3-next-btn" onclick="goToConfig()" disabled>
@@ -538,287 +960,58 @@
         <p>Como suas imagens serão entregues.</p>
       </div>
 
-      <div id="compare-info-box" class="compare-info" style="display:none;">
-        Comparando <strong id="ci-url1"></strong> vs <strong id="ci-url2"></strong>
+      <!-- Template tabs with live counts -->
+      <div class="tmpl-tabs" id="tmpl-tabs-bar">
+        <button class="tmpl-tab active" data-tab="free"         onclick="switchTemplateTab('free',this)">Gratuitos<span class="tmpl-tab-count" id="tab-count-free"></span></button>
+        <button class="tmpl-tab"        data-tab="device"       onclick="switchTemplateTab('device',this)">Dispositivos<span class="tmpl-tab-count" id="tab-count-device"></span></button>
+        <button class="tmpl-tab"        data-tab="professional" onclick="switchTemplateTab('professional',this)">Profissional<span class="tmpl-tab-count" id="tab-count-professional"></span></button>
+        <button class="tmpl-tab"        data-tab="creative"     onclick="switchTemplateTab('creative',this)">Criativo<span class="tmpl-tab-count" id="tab-count-creative"></span></button>
       </div>
 
-      <!-- Template tabs -->
-      <div class="tmpl-tabs">
-        <button class="tmpl-tab active" onclick="switchTemplateTab('frames',this)">Molduras</button>
-        <button class="tmpl-tab" onclick="switchTemplateTab('pro',this)">Profissional</button>
-        <button class="tmpl-tab" onclick="switchTemplateTab('creative',this)">Editorial</button>
+      <!-- Dynamic template panes — rendered by loadTemplates() -->
+      <div id="tmpl-panes-wrap">
+        <div class="tmpl-pane active" id="tmpl-pane-free"></div>
+        <div class="tmpl-pane"        id="tmpl-pane-device"></div>
+        <div class="tmpl-pane"        id="tmpl-pane-professional"></div>
+        <div class="tmpl-pane"        id="tmpl-pane-creative"></div>
       </div>
 
-      <!-- Category 1: Device Frames -->
-      <div class="tmpl-pane active" id="tmpl-pane-frames">
-        <!-- VOID -->
-        <div class="tmpl-card sel" data-t="void" onclick="selectTemplate('void',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#000"/>
-              <rect x="28" y="18" width="144" height="86" rx="3" fill="#0d0d0d" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
-              <rect x="32" y="22" width="136" height="78" rx="2" fill="#111"/>
-              <rect x="32" y="22" width="136" height="78" rx="2" fill="url(#vg)" opacity="0.4"/>
-              <rect x="90" y="104" width="20" height="16" rx="1.5" fill="#0a0a0a" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
-              <rect x="70" y="120" width="60" height="3" rx="1.5" fill="#111" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
-              <defs><radialGradient id="vg" cx="50%" cy="30%"><stop stop-color="rgba(255,255,255,0.06)"/><stop offset="1" stop-color="transparent"/></radialGradient></defs>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Void</span>
-            <span class="tc-use">Monitor minimalista</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <!-- Per-page template summary (shown when overrides exist) -->
+      <div id="per-page-summary">
+        <div class="pps-header">
+          <span class="pps-title">Templates por página</span>
+          <button class="pps-reset" onclick="resetAllPageTemplates()">Resetar tudo</button>
         </div>
-        <!-- SLATE -->
-        <div class="tmpl-card" data-t="slate" onclick="selectTemplate('slate',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#0e0e0e"/>
-              <rect x="74" y="12" width="52" height="92" rx="8" fill="#1a1a1a" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
-              <rect x="78" y="22" width="44" height="72" rx="2" fill="#111"/>
-              <rect x="78" y="22" width="44" height="72" rx="2" fill="url(#sg)" opacity="0.5"/>
-              <rect x="93" y="16" width="14" height="3" rx="1.5" fill="#333"/>
-              <circle cx="100" cy="112" r="4" fill="#2a2a2a" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
-              <defs><linearGradient id="sg" x1="78" y1="22" x2="122" y2="94" gradientUnits="userSpaceOnUse"><stop stop-color="#1e1e2e"/><stop offset="1" stop-color="#0a0a0f"/></linearGradient></defs>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Slate</span>
-            <span class="tc-use">Smartphone premium</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-        <!-- DUO -->
-        <div class="tmpl-card" data-t="duo" onclick="selectTemplate('duo',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#080808"/>
-              <rect x="10" y="22" width="118" height="76" rx="3" fill="#141414" stroke="rgba(255,255,255,0.15)" stroke-width="0.8"/>
-              <rect x="14" y="26" width="110" height="68" rx="2" fill="#0e0e0e"/>
-              <rect x="14" y="26" width="110" height="68" fill="url(#dg)" opacity="0.5" rx="2"/>
-              <rect x="138" y="30" width="52" height="82" rx="6" fill="#141414" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
-              <rect x="142" y="38" width="44" height="64" rx="1.5" fill="#0e0e0e"/>
-              <rect x="142" y="38" width="44" height="64" fill="url(#dg2)" opacity="0.5" rx="1.5"/>
-              <rect x="157" y="33" width="10" height="2" rx="1" fill="#2a2a2a"/>
-              <defs>
-                <linearGradient id="dg" x1="14" y1="26" x2="124" y2="94" gradientUnits="userSpaceOnUse"><stop stop-color="#1a1040"/><stop offset="1" stop-color="#060510"/></linearGradient>
-                <linearGradient id="dg2" x1="142" y1="38" x2="186" y2="102" gradientUnits="userSpaceOnUse"><stop stop-color="#1a1040"/><stop offset="1" stop-color="#060510"/></linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Duo</span>
-            <span class="tc-use">Desktop + Mobile</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-        <!-- FLOAT -->
-        <div class="tmpl-card" data-t="float" onclick="selectTemplate('float',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="url(--fbg)"/>
-              <rect width="200" height="150" fill="#0a0a0a"/>
-              <rect x="24" y="24" width="152" height="90" rx="4" fill="url(#fsh)" opacity="0.6"/>
-              <rect x="20" y="18" width="152" height="90" rx="4" fill="#111"/>
-              <rect x="20" y="18" width="152" height="90" rx="4" fill="url(#fg)" opacity="0.5"/>
-              <defs>
-                <radialGradient id="fg" cx="50%" cy="40%"><stop stop-color="rgba(255,255,255,0.04)"/><stop offset="1" stop-color="transparent"/></radialGradient>
-                <linearGradient id="fsh" x1="24" y1="114" x2="176" y2="114" gradientUnits="userSpaceOnUse"><stop stop-color="transparent"/><stop offset="0.5" stop-color="rgba(0,0,0,0.7)"/><stop offset="1" stop-color="transparent"/></linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Float</span>
-            <span class="tc-use">Sombra dramática</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-      </div>
-
-      <!-- Category 2: Professional -->
-      <div class="tmpl-pane" id="tmpl-pane-pro">
-        <!-- CHROME -->
-        <div class="tmpl-card" data-t="chrome" onclick="selectTemplate('chrome',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#0d0d0d"/>
-              <rect x="14" y="14" width="172" height="116" rx="5" fill="#1a1a1a" stroke="rgba(255,255,255,0.1)" stroke-width="0.8"/>
-              <rect x="14" y="14" width="172" height="26" rx="5" fill="#222"/>
-              <rect x="14" y="32" width="172" height="8" fill="#222"/>
-              <circle cx="28" cy="27" r="4.5" fill="#ff5f57"/>
-              <circle cx="42" cy="27" r="4.5" fill="#ffbd2e"/>
-              <circle cx="56" cy="27" r="4.5" fill="#28c840"/>
-              <rect x="70" y="23" width="100" height="8" rx="4" fill="#333"/>
-              <rect x="18" y="42" width="164" height="84" rx="2" fill="#111"/>
-              <rect x="18" y="42" width="164" height="84" rx="2" fill="url(#cg)" opacity="0.5"/>
-              <defs><linearGradient id="cg" x1="18" y1="42" x2="182" y2="126" gradientUnits="userSpaceOnUse"><stop stop-color="#0d1428"/><stop offset="1" stop-color="#06091a"/></linearGradient></defs>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Chrome</span>
-            <span class="tc-use">Frame de browser</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-        <!-- PAPER -->
-        <div class="tmpl-card" data-t="paper" onclick="selectTemplate('paper',this)">
-          <div class="tc-preview" style="background:#e8e8e8;">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#f0f0f0"/>
-              <rect x="18" y="18" width="164" height="104" rx="4" fill="rgba(0,0,0,0.06)"/>
-              <rect x="16" y="16" width="164" height="104" rx="4" fill="rgba(0,0,0,0.04)"/>
-              <rect x="14" y="14" width="164" height="104" rx="4" fill="#fff"/>
-              <rect x="14" y="14" width="164" height="104" rx="4" fill="url(#pg)" opacity="0.4"/>
-              <defs><linearGradient id="pg" x1="14" y1="14" x2="178" y2="118" gradientUnits="userSpaceOnUse"><stop stop-color="#dde5ff"/><stop offset="1" stop-color="#eef2ff"/></linearGradient></defs>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Paper</span>
-            <span class="tc-use">Fundo branco limpo</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-        <!-- ANNOTATION -->
-        <div class="tmpl-card" data-t="annotation" onclick="selectTemplate('annotation',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#08090e"/>
-              <rect x="14" y="12" width="172" height="104" rx="2" fill="#0e0e14"/>
-              <rect x="14" y="12" width="172" height="104" rx="2" fill="url(#ag)" opacity="0.5"/>
-              <line x1="14" y1="116" x2="186" y2="116" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
-              <rect x="14" y="116" width="172" height="24" rx="2" fill="#0d0d12"/>
-              <rect x="20" y="122" width="40" height="3" rx="1" fill="rgba(255,255,255,0.15)"/>
-              <rect x="68" y="122" width="60" height="3" rx="1" fill="rgba(255,255,255,0.08)"/>
-              <rect x="20" y="129" width="28" height="2" rx="1" fill="rgba(255,255,255,0.06)"/>
-              <rect x="152" y="122" width="28" height="3" rx="1" fill="rgba(255,255,255,0.06)"/>
-              <defs><linearGradient id="ag" x1="14" y1="12" x2="186" y2="116" gradientUnits="userSpaceOnUse"><stop stop-color="#1a1428"/><stop offset="1" stop-color="#060508"/></linearGradient></defs>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Annotation</span>
-            <span class="tc-use">Rodapé técnico</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-        <!-- GRID -->
-        <div class="tmpl-card" data-t="grid" onclick="selectTemplate('grid',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#080808"/>
-              <rect x="12" y="12" width="84" height="60" rx="2" fill="#111" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
-              <rect x="104" y="12" width="84" height="60" rx="2" fill="#111" opacity="0.7" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
-              <rect x="12" y="80" width="84" height="60" rx="2" fill="#111" opacity="0.5" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
-              <rect x="104" y="80" width="84" height="60" rx="2" fill="#111" opacity="0.3" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
-              <text x="54" y="145" font-size="8" fill="rgba(255,255,255,0.2)" text-anchor="middle">100%</text>
-              <text x="146" y="145" font-size="8" fill="rgba(255,255,255,0.2)" text-anchor="middle">75%</text>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Grid</span>
-            <span class="tc-use">4 escalas comparadas</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-      </div>
-
-      <!-- Category 3: Creative -->
-      <div class="tmpl-pane" id="tmpl-pane-creative">
-        <!-- POSTER -->
-        <div class="tmpl-card" data-t="poster" onclick="selectTemplate('poster',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#111"/>
-              <rect x="10" y="18" width="118" height="80" rx="3" fill="url(#edt)" transform="rotate(-3 64 58)"/>
-              <rect x="140" y="22" width="46" height="5" rx="2" fill="rgba(255,255,255,0.5)"/>
-              <rect x="140" y="32" width="36" height="3" rx="1" fill="rgba(255,255,255,0.2)"/>
-              <rect x="140" y="40" width="42" height="2" rx="1" fill="rgba(255,255,255,0.12)"/>
-              <rect x="140" y="46" width="30" height="2" rx="1" fill="rgba(255,255,255,0.08)"/>
-              <defs><linearGradient id="edt" x1="10" y1="18" x2="128" y2="98" gradientUnits="userSpaceOnUse"><stop stop-color="#1f1030"/><stop offset="1" stop-color="#0d0820"/></linearGradient></defs>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Poster</span>
-            <span class="tc-use">Editorial inclinado</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-        <!-- NEON -->
-        <div class="tmpl-card" data-t="neon" onclick="selectTemplate('neon',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#000"/>
-              <rect x="20" y="16" width="160" height="100" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
-              <rect x="22" y="18" width="156" height="96" rx="3" fill="rgba(255,255,255,0.01)" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
-              <rect x="20" y="16" width="160" height="100" rx="4" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" style="filter:blur(4px)"/>
-              <rect x="18" y="14" width="164" height="104" rx="5" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="10"/>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Neon</span>
-            <span class="tc-use">Borda luminosa</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-        <!-- CINEMATIC -->
-        <div class="tmpl-card" data-t="cinematic" onclick="selectTemplate('cinematic',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#000"/>
-              <rect x="0" y="0" width="32" height="150" fill="url(#cleft)" opacity="0.7"/>
-              <rect x="168" y="0" width="32" height="150" fill="url(#cright)" opacity="0.7"/>
-              <rect x="32" y="0" width="136" height="150" fill="#0a0a10"/>
-              <rect x="32" y="0" width="136" height="150" fill="url(#cg)" opacity="0.5"/>
-              <line x1="0" y1="30" x2="200" y2="30" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
-              <line x1="0" y1="120" x2="200" y2="120" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
-              <defs>
-                <linearGradient id="cleft" x1="0" y1="75" x2="32" y2="75"><stop stop-color="#1a0a2e"/><stop offset="1" stop-color="#0a0a0a" stop-opacity="0.3"/></linearGradient>
-                <linearGradient id="cright" x1="200" y1="75" x2="168" y2="75"><stop stop-color="#1a0a2e"/><stop offset="1" stop-color="#0a0a0a" stop-opacity="0.3"/></linearGradient>
-                <linearGradient id="cg" x1="32" y1="0" x2="168" y2="150" gradientUnits="userSpaceOnUse"><stop stop-color="#120818"/><stop offset="1" stop-color="#060408"/></linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Cinematic</span>
-            <span class="tc-use">Ultrawide 21:9</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-        <!-- STORY -->
-        <div class="tmpl-card" data-t="story" onclick="selectTemplate('story',this)">
-          <div class="tc-preview">
-            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="150" fill="#0a0a0a"/>
-              <rect x="64" y="8" width="72" height="128" rx="8" fill="#141414" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
-              <rect x="68" y="16" width="64" height="112" rx="4" fill="#111"/>
-              <rect x="68" y="16" width="64" height="112" rx="4" fill="url(#stg)" opacity="0.6"/>
-              <rect x="89" y="11" width="22" height="3" rx="1.5" fill="#2a2a2a"/>
-              <defs><linearGradient id="stg" x1="68" y1="16" x2="132" y2="128" gradientUnits="userSpaceOnUse"><stop stop-color="#1e0a38"/><stop offset="1" stop-color="#060410"/></linearGradient></defs>
-            </svg>
-          </div>
-          <div class="tc-foot">
-            <span class="tc-name">Story</span>
-            <span class="tc-use">Instagram / TikTok 9:16</span>
-          </div>
-          <div class="tc-chk"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
+        <div class="pps-rows" id="pps-rows"></div>
       </div>
 
       <details class="opts-wrap">
         <summary class="opts-summary">Opções de exportação</summary>
         <div class="opts-body">
+          <!-- [COR-10] Indicador de qualidade de saída -->
+          <div>
+            <div class="cfg-label">Qualidade de saída</div>
+            <div id="quality-indicator" style="font-family:'Outfit',sans-serif;font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;"></div>
+          </div>
           <div>
             <div class="cfg-label">Recursos adicionais</div>
             <label class="checkbox-row" style="margin-bottom:10px;"><input type="checkbox" id="opt-smartcrop"> <span>Recorte inteligente — exporta seções individuais (hero, nav, footer…)</span></label>
-            <label class="checkbox-row"><input type="checkbox" id="opt-social"> <span>Exportação social — versões para Twitter, LinkedIn, Instagram e OG</span></label>
+            <!-- [COR-10] Exportação social — apenas Pro/Agency -->
+            <div id="extras-group" style="display:none;">
+              <label class="checkbox-row" style="margin-bottom:10px;"><input type="checkbox" id="opt-social"> <span>Exportação social — versões para Twitter, LinkedIn, Instagram e OG</span></label>
+            </div>
+            <label class="checkbox-row"><input type="checkbox" id="opt-mockup" checked> <span>Mockup Profissional — aplica sombra e bordas arredondadas</span></label>
           </div>
           <div>
-            <div class="cfg-label">Labels de saída</div>
+            <div class="cfg-label">Visualização e Qualidade</div>
             <label class="checkbox-row" style="margin-bottom:10px;"><input type="checkbox" id="opt-url" checked> <span>Exibir URL na imagem</span></label>
-            <label class="checkbox-row"><input type="checkbox" id="opt-date" checked> <span>Exibir data de captura na imagem</span></label>
+            <label class="checkbox-row" style="margin-bottom:10px;"><input type="checkbox" id="opt-date" checked> <span>Exibir data de captura</span></label>
+            <label class="checkbox-row"><input type="checkbox" id="opt-retina" checked> <span>Qualidade Retina (2x) — imagens mais nítidas (Starter+)</span></label>
           </div>
         </div>
       </details>
+
+      <div id="resolution-badge" style="margin:16px 0 8px;text-align:center;font-size:12px;font-weight:500;letter-spacing:0.04em;"></div>
 
       <div class="sticky-cta">
         <div class="sticky-inner">
@@ -854,9 +1047,20 @@
     <div style="padding:48px 0 100px;">
       <div class="section-head">
         <h2>Pronto para download</h2>
-        <p>Clique nas imagens para ampliar. A versão completa será entregue sem marcas d'água.</p>
+        <p>Clique nas imagens para ampliar e baixar o ZIP.</p>
       </div>
-      <span class="wm-notice">
+      <div id="s6-free-notice" style="display:none;margin-bottom:16px;padding:11px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:10px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span><b style="color:rgba(255,255,255,0.7)">Plano Grátis:</b> apenas Desktop · resolução padrão · com marca d'água.</span>
+        <span style="margin-left:auto;white-space:nowrap;cursor:pointer;color:rgba(255,255,255,0.65);text-decoration:underline;" onclick="openUpgradeModal('starter','Remova as limitações do plano grátis')">Fazer upgrade →</span>
+      </div>
+      <div id="rerender-banner" style="display:none;margin-bottom:16px;padding:12px 16px;border-radius:12px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);font-size:13px;color:rgba(255,255,255,0.75);display:flex;align-items:center;gap:12px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span style="flex:1;">Plano ativado! Suas capturas foram feitas com marca d'água. <b style="color:rgba(255,255,255,0.9);">Remover agora?</b></span>
+        <button onclick="doRerender()" style="background:#4ade80;color:#0a0a0a;border:none;border-radius:7px;font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer;white-space:nowrap;">Remover marca d'água</button>
+        <button onclick="document.getElementById('rerender-banner').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,0.35);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">&#215;</button>
+      </div>
+      <span id="wm-notice-badge" class="wm-notice" style="display:none;">
         <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="3" stroke="currentColor" stroke-width="1.2"/><path d="M4 2.5v2L5 6" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
         Prévia com marca d'água
       </span>
@@ -871,11 +1075,29 @@
           <li>Template aplicado, arquivos PNG prontos para apresentação</li>
           <li>ZIP organizado com manifest.json</li>
         </ul>
-        <button class="btn btn-p btn-full" id="pay-btn" onclick="handlePayment()">
-          <span id="pay-btn-text">Baixar agora</span>
+        <div id="dl-mode-radios" style="display:flex;gap:8px;margin-bottom:12px;">
+          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.65);background:rgba(255,255,255,0.04);">
+            <input type="radio" name="dl-mode" value="full" checked style="accent-color:#fff;"> ZIP Completo
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.65);background:rgba(255,255,255,0.04);">
+            <input type="radio" name="dl-mode" value="desktop" style="accent-color:#fff;"> Só Desktop
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.65);background:rgba(255,255,255,0.04);">
+            <input type="radio" name="dl-mode" value="mobile" style="accent-color:#fff;"> Só Mobile
+          </label>
+        </div>
+        <!-- Free: primary white button + upgrade card -->
+        <button id="wm-download-btn" onclick="handleWatermarkDownload()" style="display:none;width:100%;height:52px;background:#ffffff;color:#0a0a0a;font-family:Outfit,sans-serif;font-weight:700;font-size:15px;border-radius:10px;border:none;cursor:pointer;margin-bottom:10px;">
+          Baixar com marca d'água
         </button>
-        <button class="btn btn-g btn-full" id="wm-download-btn" onclick="handleWatermarkDownload()" style="margin-top:10px;display:none;">
-          Baixar com marca d'água — grátis
+        <div id="upgrade-card" style="display:none;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:3px;">Remover marca d'água</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:10px;">Imagens limpas, HD 2× e todos os templates</div>
+          <button class="btn btn-p btn-full" onclick="openPkgModal()" style="height:36px;font-size:13px;">Ver planos</button>
+        </div>
+        <!-- Paid: clean download button -->
+        <button class="btn btn-p btn-full" id="pay-btn" onclick="handlePayment()" style="display:none;">
+          <span id="pay-btn-text">Baixar imagens</span>
         </button>
         <div class="sched-row">
           <label class="sched-toggle">
@@ -909,9 +1131,10 @@
         Preparando download…
       </div>
       <div class="share-box" id="share-box" style="display:none;">
-        <div class="share-label">Link de prévia (48h)</div>
+        <div class="share-label">Link de prévia</div>
         <div class="share-link" id="share-link-text"></div>
         <button class="share-copy" id="share-copy-btn" onclick="copyShareLink()">Copiar link</button>
+        <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:8px;">Este link expira em 48 horas.</div>
       </div>
       <button class="btn btn-g" id="new-btn" onclick="resetAll(null)" style="display:none;">← Capturar outro site</button>
     </div>
@@ -939,30 +1162,103 @@
 <!-- ═══ PURCHASE MODAL ═══ -->
 <div id="pkg-modal" onclick="closePkgModal(event)">
   <div class="pm-inner">
-    <button class="pm-close-btn" onclick="closePkgModal()">✕</button>
-    <div class="pm-head"><h2>Planos SnapShot.pro</h2></div>
-    <p class="pm-sub">Sem marcas d'água, capturas ilimitadas e templates premium.</p>
+    <button class="pm-close-btn" id="pm-close-btn" onclick="closePkgModal()">✕</button>
 
-    <div class="pm-grid" id="pm-grid">
-      <!-- rendered by JS -->
-    </div>
-
-    <button class="btn btn-p btn-full" id="pm-buy-btn" onclick="handlePkgPurchase()">
-      <span id="pm-buy-text">Escolha um plano</span>
-    </button>
-
-    <div class="pm-divider">Já assinou?</div>
-
-    <div class="pm-code-section">
+    <!-- Tela 1: Seleção de plano -->
+    <div class="pm-screen active" id="pm-screen-1">
+      <div class="pm-head"><h2>Planos SnapShot.pro</h2></div>
+      <p class="pm-sub">Sem marcas d'água, todos os templates e exportação em alta resolução.</p>
+      <div class="pm-grid" id="pm-grid"><!-- rendered by JS --></div>
+      <button class="btn btn-p btn-full" id="pm-buy-btn" onclick="handlePkgPurchase()" style="margin-top:4px;">
+        <span id="pm-buy-text">Escolha um plano</span>
+      </button>
+      <div class="pm-divider">Já assinou?</div>
       <div class="pm-code-label">Insira seu código de acesso</div>
       <div class="pm-code-row">
-        <input id="pm-code-input" type="text" placeholder="CÓDIGO DE ACESSO" style="text-transform:uppercase;letter-spacing:0.08em;" autocomplete="off">
+        <input id="pm-code-input" type="text" placeholder="SNAP-XXXX-XXXX-XXXX" style="text-transform:uppercase;letter-spacing:0.06em;" autocomplete="off">
         <button class="btn btn-g" style="height:48px;width:90px;flex-shrink:0;" onclick="applyModalCode()">Aplicar</button>
       </div>
       <div class="code-status" id="pm-code-status"></div>
     </div>
+
+    <!-- Tela 2: Formulário de checkout -->
+    <div class="pm-screen" id="pm-screen-2">
+      <button class="co-back" onclick="showPmScreen(1)">← Voltar aos planos</button>
+      <div class="co-summary" id="co-summary">
+        <div>
+          <div class="co-summary-name" id="co-plan-name">—</div>
+          <div class="co-summary-sub" id="co-plan-sub">Assinatura mensal · Cancele quando quiser</div>
+        </div>
+        <div class="co-summary-price" id="co-plan-price">R$ —,—</div>
+      </div>
+      <form class="co-form" id="co-form" onsubmit="return false;">
+        <div class="co-field">
+          <label class="co-label">Nome completo</label>
+          <input class="co-input" id="co-name" type="text" placeholder="Seu nome completo" autocomplete="name" required>
+        </div>
+        <div class="co-field">
+          <label class="co-label">E-mail</label>
+          <input class="co-input" id="co-email" type="email" placeholder="seu@email.com" autocomplete="email" required>
+        </div>
+        <div class="co-row">
+          <div class="co-field">
+            <label class="co-label">CPF</label>
+            <input class="co-input" id="co-cpf" type="text" placeholder="000.000.000-00" maxlength="14" autocomplete="off">
+          </div>
+          <div class="co-field">
+            <label class="co-label">Telefone</label>
+            <input class="co-input" id="co-phone" type="tel" placeholder="(11) 99999-9999" maxlength="15" autocomplete="tel">
+          </div>
+        </div>
+        <div class="co-err" id="co-err"></div>
+        <button class="co-submit" id="co-submit-btn" onclick="submitCheckoutForm()">Gerar QR Code PIX</button>
+      </form>
+    </div>
+
+    <!-- Tela 3: QR Code PIX -->
+    <div class="pm-screen" id="pm-screen-3">
+      <div class="pix-amount" id="pix-amount">R$ --,--</div>
+      <div class="pix-plan-name" id="pix-plan-label"></div>
+      <div class="pix-qr-wrap">
+        <div id="pix-qr-loading" style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;border-radius:12px;border:2px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);">
+          <div class="pix-spinner"></div>
+        </div>
+        <img id="pix-qr-img" src="" alt="QR Code PIX" style="display:none;width:200px;height:200px;border-radius:12px;border:2px solid #fff;background:#fff;">
+      </div>
+      <div class="pix-copy-row">
+        <div class="pix-code-text" id="pix-code-text">Gerando código PIX…</div>
+        <button class="pix-copy-btn" id="pix-copy-btn" onclick="copyPixCode()">Copiar código PIX</button>
+      </div>
+      <p class="pix-instruction">Abra seu banco, escaneie o QR Code ou cole o código, e confirme o pagamento.</p>
+      <div class="pix-waiting"><div class="pix-dot"></div><div class="pix-dot"></div><div class="pix-dot"></div><span>Aguardando pagamento…</span></div>
+      <div class="pix-timer" id="pix-timer"></div>
+      <button class="pix-dev-btn" id="pix-dev-btn" onclick="simulatePixPayment()" style="display:none;">⚡ Simular pagamento (dev)</button>
+    </div>
+
+    <!-- Tela 4: Confirmação -->
+    <div class="pm-screen" id="pm-screen-4">
+      <div class="pix-success-wrap">
+        <div class="check-svg-wrap">
+          <svg viewBox="0 0 80 80" width="80" height="80">
+            <circle cx="40" cy="40" r="36" class="check-bg-circle"/>
+            <circle cx="40" cy="40" r="36" class="check-circle-anim"/>
+            <polyline points="24,41 35,52 56,30" class="check-mark-anim"/>
+          </svg>
+        </div>
+        <div class="pix-success-title">Pagamento confirmado!</div>
+        <div class="pix-success-sub">Seu plano foi ativado.</div>
+        <div class="pix-access-box">
+          <div class="pix-access-code" id="success-code"></div>
+          <button class="pix-access-copy" id="success-copy-btn" onclick="copyAccessCode()">Copiar código de acesso</button>
+        </div>
+        <p class="pix-save-warn">Salve este código. Ele é seu acesso permanente e pode ser inserido em qualquer dispositivo.</p>
+        <button class="pix-start-btn" onclick="startUsing()">Começar a usar →</button>
+      </div>
+    </div>
+
   </div>
 </div>
+
 
 <script>
 (function () {
@@ -972,8 +1268,10 @@
   let jobId           = null;
   let pages           = [];
   let selected        = new Set();
-  let currentTemplate = 'void';
-  let compareMode     = false;
+  let currentTemplate  = 'void';
+  let selectedTemplate = 'void'; // [COR-3] alias para currentTemplate usado no sheet
+  let pageTemplates    = {};   // { [url]: templateId } — per-page template override
+  let _planBannerShown = false; // [COR-5] flag para evitar banner duplicado de plano ativado
   let crawlTimer      = null;
   let capTimer        = null;
   let statsAnimDone   = false;
@@ -982,6 +1280,18 @@
   let selectedPkg     = null;
   let packages        = [];
   let applyWatermark  = true;
+  let groupedPages    = null;
+  const THUMB_PLACEHOLDER_HTML = `<div class="pc-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>`;
+  let currentJobId    = null;
+  let currentDomain   = '';
+  let selectedUrls    = [];
+  let crawledPages    = [];
+  let captureGallery  = []; // populated during capture polling — correct index→file mapping
+  // PIX state
+  let currentPixId    = null;
+  let pixPollingTimer = null;
+  let pixTimerInterval = null;
+  let currentPlan     = { plan: 'free' };
 
   // ── Section management ────────────────────────────────────────────────────
   let currentSection = 's1';
@@ -1018,12 +1328,33 @@
     } finally { clearTimeout(tid); }
   }
   function post(url, body, ms) {
-    return api(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }, ms);
+    const headers = { 'Content-Type':'application/json' };
+    if (activeCode) headers['x-access-code'] = activeCode;
+    return api(url, { method:'POST', headers, body:JSON.stringify(body) }, ms);
   }
 
   // ── Utilities ─────────────────────────────────────────────────────────────
   function trunc(s,n) { return s && s.length>n ? s.slice(0,n)+'…' : (s||''); }
   function esc(s)     { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function showToast(msg, duration) {
+    duration = duration || 4000;
+    let el = document.getElementById('_toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '_toast';
+      el.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(12px);background:rgba(20,20,20,0.96);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.9);font-size:14px;font-weight:500;padding:12px 20px;border-radius:10px;z-index:9999;opacity:0;transition:opacity 0.2s ease,transform 0.2s ease;pointer-events:none;backdrop-filter:blur(8px);max-width:360px;text-align:center;';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    el.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(-50%) translateY(12px)';
+    }, duration);
+  }
   function showError(msg) {
     const el = document.getElementById('url-err');
     el.textContent = msg; el.classList.add('on');
@@ -1031,14 +1362,127 @@
 
   // ── Subscription badge ────────────────────────────────────────────────────
   function updateSubBadge() {
-    const badge = document.getElementById('sub-badge');
-    const txt   = document.getElementById('sub-badge-text');
-    if (activeCode) {
-      badge.classList.add('active');
-      txt.textContent = '● Plano ativo';
+    const badge   = document.getElementById('sub-badge');
+    const txt     = document.getElementById('sub-badge-text');
+    const btn     = document.getElementById('assinar-btn');
+    const planKey = currentPlan && currentPlan.plan || 'free';
+    const planCfg = currentPlan || {};
+
+    badge.classList.remove('active','plan-starter','plan-pro','plan-agency');
+
+    const capBadge = document.getElementById('capture-badge');
+    const capTxt   = document.getElementById('capture-badge-text');
+    const freeNotice = document.getElementById('free-plan-notice');
+
+    if (activeCode && planKey !== 'free') {
+      badge.classList.add(`plan-${planKey}`);
+      if (btn) btn.style.display = 'none';
+      if (capBadge) capBadge.style.display = 'none';
+      if (freeNotice) freeNotice.style.display = 'none';
+
+      if (planKey === 'starter') {
+        const limit = planCfg.capturesPerMonth || planCfg.monthlyCaptures || 60;
+        const used  = planCfg.capturesUsed || 0;
+        const rem   = Math.max(0, limit - used);
+        let counterClass = '';
+        if (rem <= 5)  counterClass = 'badge-counter-urgent';
+        else if (rem <= 20) counterClass = 'badge-counter-warn';
+        const icon = rem <= 5 ? '!' : '●';
+        txt.innerHTML = `${icon} Starter <span class="${counterClass}">${rem}/${limit}</span>`;
+      } else if (planKey === 'pro') {
+        txt.textContent = 'Pro';
+      } else if (planKey === 'agency') {
+        txt.textContent = 'Agency';
+      } else {
+        txt.textContent = `● ${planCfg.name || planKey}`;
+      }
     } else {
-      badge.classList.remove('active');
-      txt.textContent = 'Grátis';
+      txt.innerHTML = '<span title="Imagens com marca d\'água — Faça upgrade">Grátis</span>';
+      if (btn) btn.style.display = '';
+      if (freeNotice) freeNotice.style.display = '';
+
+      // Mostrar badge de limite diário se disponível
+      const dayLimit = planCfg.capturesPerDay || 3;
+      const dayUsed  = planCfg.dailyUsed || 0;
+      if (capBadge && capTxt && dayUsed > 0) {
+        capTxt.textContent = `${dayUsed}/${dayLimit} hoje`;
+        capBadge.style.display = '';
+      } else if (capBadge) {
+        capBadge.style.display = 'none';
+      }
+    }
+
+
+    updateQuotaDisplay();
+  }
+
+  // ── Aplicar plano à interface ─────────────────────────────────────────────
+  function applyPlanToInterface() {
+    const planKey    = currentPlan && currentPlan.plan || 'free';
+    const planCfg    = currentPlan || {};
+    applyWatermark   = planCfg.watermark !== false;
+    const unlockedTpls = planCfg.templatesUnlocked || ['void','chrome','float','annotation'];
+
+    // Resolution badge
+    const resBadge = document.getElementById('resolution-badge');
+    if (resBadge) {
+      if (planKey === 'free') {
+        resBadge.innerHTML = '<span style="color:#f59e0b;">&#9679;</span>&nbsp;Resolução padrão &middot; 1x';
+      } else {
+        resBadge.innerHTML = '<span style="color:#4ade80;">&#9679;</span>&nbsp;Alta resolução &middot; 2x';
+      }
+    }
+
+    // (s6 free-plan notice is handled by updateDownloadPanel)
+
+    // Aplicar ícone de cadeado minimalista nos templates bloqueados
+    document.querySelectorAll('.tmpl-card').forEach(card => {
+      const tmplId  = card.dataset.t;
+      if (!tmplId) return;
+      const isLocked = unlockedTpls !== 'all' && !(Array.isArray(unlockedTpls) && unlockedTpls.includes(tmplId));
+      card.classList.toggle('tpl-locked', isLocked);
+
+      // Remove ícone anterior se existir
+      const prev = card.querySelector('.tpl-lock-icon');
+      if (prev) prev.remove();
+
+      if (isLocked) {
+        const icon = document.createElement('div');
+        icon.className = 'tpl-lock-icon';
+        icon.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>`;
+        card.appendChild(icon);
+        card.onclick = () => openUpgradeModal('starter', `Desbloqueie "${tmplId}"`);
+      } else {
+        const tid = tmplId;
+        card.onclick = () => openTemplateSheet(tid, card);
+      }
+    });
+
+    // Compat: data-plan-lock elements
+    document.querySelectorAll('[data-plan-lock]').forEach(el => {
+      const required = el.dataset.planLock;
+      const ok       = unlockedTpls === 'all' || required === 'free' || planKey !== 'free';
+      el.classList.toggle('locked', !ok);
+    });
+
+    // [COR-6][COR-10] Atualizar contadores das abas e indicador de qualidade
+    if (typeof updateTabCounts === 'function') updateTabCounts();
+
+    // [COR-10] Indicador de qualidade
+    const qualEl = document.getElementById('quality-indicator');
+    if (qualEl) {
+      const dsf = (currentPlan && currentPlan.deviceScaleFactor) || 1;
+      if (dsf >= 2) {
+        qualEl.innerHTML = '<span style="color:#4ade80;">&#9679;</span> Alta resolução · Retina 2x';
+      } else {
+        qualEl.innerHTML = '<span style="color:#f59e0b;">&#9679;</span> Resolução padrão · 1x — <span onclick="openUpgradeModal(\'starter\',\'\')" style="color:rgba(255,255,255,0.55);cursor:pointer;text-decoration:underline;">Upgrade para 2x</span>';
+      }
+    }
+
+    // [COR-10] Extras (socialExport) — apenas Pro/Agency
+    const extrasGroup = document.getElementById('extras-group');
+    if (extrasGroup) {
+      extrasGroup.style.display = (planKey === 'pro' || planKey === 'agency') ? 'block' : 'none';
     }
   }
 
@@ -1068,6 +1512,32 @@
     obs.observe(el);
   }
 
+  function updateQuotaDisplay() {
+    const numEl = document.getElementById('quota-num');
+    const lblEl = document.getElementById('quota-lbl');
+    if (!numEl || !lblEl) return;
+    const planKey = currentPlan && currentPlan.plan || 'free';
+    const planCfg = currentPlan || {};
+
+    if (planKey === 'pro' || planKey === 'agency') {
+      numEl.textContent = '∞';
+      lblEl.textContent = 'capturas ilimitadas';
+    } else if (planKey === 'starter') {
+      const limit = planCfg.capturesPerMonth || 60;
+      const used  = planCfg.capturesUsed || 0;
+      const rem   = Math.max(0, limit - used);
+      numEl.textContent = rem;
+      lblEl.textContent = 'capturas restantes';
+    } else {
+      // free plan — daily limit
+      const limit = planCfg.capturesPerDay || 3;
+      const used  = planCfg.dailyUsed || 0;
+      const rem   = Math.max(0, limit - used);
+      numEl.textContent = rem;
+      lblEl.textContent = 'capturas restantes hoje';
+    }
+  }
+
   // ── Plans ─────────────────────────────────────────────────────────────────
   async function loadPlans() {
     const r = await api('/api/plans', {}, 5000);
@@ -1075,21 +1545,66 @@
     packages = r.data.plans;
     renderPlanGrid();
   }
+  const PLAN_BENEFITS = {
+    starter: [
+      'Sem marca d\'água',
+      '12 templates profissionais',
+      '60 capturas por mês',
+      'Até 10 páginas por crawl',
+      'Desktop + Mobile · Alta resolução',
+      'Até 2 páginas manuais por job',
+      'Modelo diferente por página',
+      'ZIP organizado por página',
+    ],
+    pro: [
+      'Sem marca d\'água',
+      '12 templates profissionais',
+      'Capturas ilimitadas',
+      'Até 20 páginas por crawl',
+      'Desktop + Mobile · Alta resolução',
+      'Até 8 páginas manuais por job',
+      'Modo comparação A/B',
+      'Recorte inteligente (smart crop)',
+      'Exportação para redes sociais',
+      'Múltiplas URLs simultâneas',
+      'Link de compartilhamento (7 dias)',
+    ],
+    agency: [
+      'Sem marca d\'água',
+      '12 templates profissionais',
+      'Capturas ilimitadas',
+      'Crawl ilimitado (até 999 páginas)',
+      'Desktop + Mobile · Alta resolução',
+      'Páginas manuais ilimitadas',
+      'Modo comparação A/B + exportação social',
+      'Múltiplas URLs · até 5 por job',
+      'Link de compartilhamento (30 dias)',
+      'Acesso via API',
+      '3 códigos de acesso simultâneos',
+      'Fila prioritária de renderização',
+    ],
+  };
   function renderPlanGrid() {
     const grid = document.getElementById('pm-grid');
+    if (!grid) return;
     grid.innerHTML = '';
     packages.forEach((plan, i) => {
-      const isFirst = i === 0;
-      const card    = document.createElement('div');
-      card.className = 'pkg-card' + (isFirst ? ' sel' : '');
-      if (isFirst) { selectedPkg = plan.key; }
+      const isPro  = plan.key === 'pro';
+      const card   = document.createElement('div');
+      card.className = 'pkg-card' + (i === 0 ? ' sel' : '');
+      if (i === 0) selectedPkg = plan.key;
       card.dataset.pkg = plan.key;
-      const capLabel = plan.captures ? `${plan.captures}/mês` : 'Ilimitadas';
+      const capAmt     = plan.capturesPerMonth !== undefined ? plan.capturesPerMonth : plan.monthlyCaptures;
+      const capDisplay = capAmt === -1 ? '∞' : (capAmt != null ? capAmt : '—');
+      const capLabel   = capAmt === -1 ? 'capturas ilimitadas' : 'capturas/mês';
+      const feats      = PLAN_BENEFITS[plan.key] || [];
+      const featsHtml  = feats.map(f => `<li>${f}</li>`).join('');
       card.innerHTML = `
-        <div class="pkg-badge${plan.popular?' best':''}">${plan.popular?'Popular':plan.name}</div>
-        <div class="pkg-cap">${plan.captures||'∞'}</div>
-        <div class="pkg-cap-label">${plan.captures?'capturas/mês':'capturas'}</div>
+        <div class="pkg-badge${isPro?' best':''}">${isPro?'Popular':plan.name}</div>
+        <div class="pkg-cap">${capDisplay}</div>
+        <div class="pkg-cap-label">${capLabel}</div>
         <div class="pkg-price">${plan.priceLabel}</div>
+        <ul class="pkg-feats">${featsHtml}</ul>
         <div class="pkg-chk"><svg viewBox="0 0 10 10" fill="none" width="10" height="10"><path d="M1.5 5l2.5 2.5 4.5-5" stroke="#0a0a0a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
       card.addEventListener('click', () => {
         document.querySelectorAll('.pkg-card').forEach(c => c.classList.remove('sel'));
@@ -1105,35 +1620,295 @@
     }
   }
 
-  // ── Purchase modal ────────────────────────────────────────────────────────
+  // ── Modal: abrir / fechar ────────────────────────────────────────────────
   window.openPkgModal = function() {
+    const head = document.querySelector('.pm-head h2');
+    if (head) head.textContent = 'Planos SnapShot.pro';
+    showPmScreen(1);
     document.getElementById('pkg-modal').classList.add('on');
   };
+
+  // ── Modal de upgrade contextual ──────────────────────────────────────────
+  window.openUpgradeModal = function(highlightPlan, reason) {
+    const head = document.querySelector('.pm-head h2');
+    if (head) head.textContent = reason || 'Planos SnapShot.pro';
+    showPmScreen(1);
+    document.getElementById('pkg-modal').classList.add('on');
+    setTimeout(() => {
+      document.querySelectorAll('.pkg-card').forEach(c => c.classList.remove('sel'));
+      const target = document.querySelector(`.pkg-card[data-pkg="${highlightPlan}"]`);
+      if (target) {
+        target.classList.add('sel');
+        selectedPkg = highlightPlan;
+        const btnTxt = document.getElementById('pm-buy-text');
+        const pkg    = packages.find(p => p.key === highlightPlan) || {};
+        if (btnTxt && pkg.name) btnTxt.textContent = `Assinar ${pkg.name}${pkg.priceLabel ? ' — ' + pkg.priceLabel : ''}`;
+      }
+    }, 60);
+  };
+
+  // ── Banner de limite de capturas ─────────────────────────────────────────
+  function showCaptureLimitBanner(used, limit, planName) {
+    const el  = document.getElementById('capture-limit-banner');
+    const txt = document.getElementById('cap-limit-text');
+    if (txt) txt.textContent = `Você atingiu o limite de ${limit} capturas do Plano ${planName || 'Starter'}. Faça upgrade para o Pro e capture sem limites.`;
+    if (el)  el.classList.add('shown');
+  }
+  function hideCaptureLimitBanner() {
+    const el = document.getElementById('capture-limit-banner');
+    if (el) el.classList.remove('shown');
+  }
+
+  // ── Mensagem de limite de crawl ──────────────────────────────────────────
+  function updateCrawlLimitMsg(planLimit, totalFound) {
+    const msg = document.getElementById('crawl-limit-msg');
+    const txt = document.getElementById('crawl-limit-text');
+    if (!msg) return;
+    if (planLimit && totalFound && totalFound > planLimit) {
+      if (txt) txt.textContent = `Seu plano permite ver até ${planLimit} páginas. Este site tem ${totalFound} páginas.`;
+      msg.classList.add('shown');
+    } else {
+      msg.classList.remove('shown');
+    }
+  }
   window.closePkgModal = function(e) {
     if (!e || e.target === document.getElementById('pkg-modal')) {
+      // Salvar pixId pendente antes de fechar
+      if (currentPixId) localStorage.setItem('snapshot_pending_pix', currentPixId);
+      stopPixPolling();
       document.getElementById('pkg-modal').classList.remove('on');
     }
   };
-  window.handlePkgPurchase = async function() {
+  function showPmScreen(n) {
+    document.querySelectorAll('.pm-screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById(`pm-screen-${n}`);
+    if (el) el.classList.add('active');
+  }
+
+  // ── Assinar: ir para formulário de checkout ───────────────────────────────
+  window.handlePkgPurchase = function() {
     if (!selectedPkg) return;
-    const btn = document.getElementById('pm-buy-btn');
-    const txt = document.getElementById('pm-buy-text');
+    // Preencher resumo do plano na tela 2
+    const pkg = packages.find(p => p.key === selectedPkg) || {};
+    const price = pkg.priceCents || 0;
+    document.getElementById('co-plan-name').textContent  = `Plano ${pkg.name || selectedPkg}`;
+    document.getElementById('co-plan-price').textContent = pkg.priceLabel || `R$ ${(price/100).toFixed(2).replace('.',',')}`;
+    document.getElementById('co-err').textContent = '';
+    showPmScreen(2);
+  };
+
+  // ── Tela 2: submeter formulário e chamar API ──────────────────────────────
+  window.submitCheckoutForm = async function() {
+    const name  = (document.getElementById('co-name').value  || '').trim();
+    const email = (document.getElementById('co-email').value || '').trim();
+    const cpf   = (document.getElementById('co-cpf').value   || '').trim();
+    const phone = (document.getElementById('co-phone').value || '').trim();
+    const errEl = document.getElementById('co-err');
+
+    if (!name)  { errEl.textContent = 'Informe seu nome completo.'; return; }
+    if (!email || !email.includes('@')) { errEl.textContent = 'E-mail inválido.'; return; }
+    errEl.textContent = '';
+
+    const btn = document.getElementById('co-submit-btn');
     btn.disabled = true;
-    txt.textContent = 'Criando assinatura…';
+    btn.textContent = 'Gerando QR Code…';
+
     try {
-      const r = await post('/api/checkout', { plan: selectedPkg }, 15000);
-      if (r.ok && r.data.checkoutUrl) {
-        txt.textContent = 'Redirecionando para pagamento…';
-        window.location.href = r.data.checkoutUrl;
-      } else {
-        txt.textContent = 'Erro ao criar cobrança. Tente novamente.';
+      const r = await post('/api/create-pix', {
+        plan:     selectedPkg,
+        customer: { name, email, cpf, phone },
+      }, 15000);
+      if (r.ok && r.data.pixId) {
         btn.disabled = false;
+        btn.textContent = 'Gerar QR Code PIX';
+        showPixScreen(r.data);
+      } else {
+        errEl.textContent = r.data.error || 'Erro ao gerar PIX. Tente novamente.';
+        btn.disabled = false;
+        btn.textContent = 'Gerar QR Code PIX';
       }
     } catch {
-      txt.textContent = 'Erro de conexão.';
+      errEl.textContent = 'Erro de conexão. Tente novamente.';
       btn.disabled = false;
+      btn.textContent = 'Gerar QR Code PIX';
     }
   };
+
+  // ── Tela 3: exibir QR Code e iniciar polling ─────────────────────────────
+  function showPixScreen(data) {
+    currentPixId = data.pixId;
+    localStorage.setItem('snapshot_pending_pix', data.pixId);
+    showPmScreen(3);
+
+    // Valor
+    const cents = data.amount || 0;
+    document.getElementById('pix-amount').textContent = `R$ ${(cents/100).toFixed(2).replace('.',',')}`;
+    document.getElementById('pix-plan-label').textContent = data.planName || selectedPkg || '';
+
+    // QR Code
+    const qrImg     = document.getElementById('pix-qr-img');
+    const qrLoading = document.getElementById('pix-qr-loading');
+    if (data.brCodeBase64) {
+      qrImg.src = data.brCodeBase64;
+      qrImg.style.display = 'block';
+      qrLoading.style.display = 'none';
+    }
+
+    // Código copia-e-cola
+    const pixBrCode = data.brCode || '';
+    document.getElementById('pix-code-text').textContent = pixBrCode;
+    window._pixBrCode = pixBrCode;
+
+    // Botão dev
+    const devBtn = document.getElementById('pix-dev-btn');
+    if (devBtn) devBtn.style.display = '';
+
+    // Timer de expiração
+    startPixTimer(data.expiresAt);
+
+    // Polling
+    startPixPolling(data.pixId);
+  }
+
+  function startPixTimer(expiresAt) {
+    clearInterval(pixTimerInterval);
+    const el = document.getElementById('pix-timer');
+    const update = () => {
+      const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+      if (diff === 0) {
+        el.textContent = 'PIX expirado — gere um novo';
+        el.classList.add('warn');
+        clearInterval(pixTimerInterval);
+        return;
+      }
+      const m = Math.floor(diff / 60), s = diff % 60;
+      el.textContent = `Expira em: ${m}:${String(s).padStart(2,'0')}`;
+      el.classList.remove('warn');
+    };
+    update();
+    pixTimerInterval = setInterval(update, 1000);
+  }
+
+  function startPixPolling(pixId) {
+    stopPixPolling();
+    const poll = async () => {
+      try {
+        const r = await api(`/api/pix-status?pixId=${encodeURIComponent(pixId)}`, {}, 8000);
+        if (r.ok && r.data.status === 'paid' && r.data.accessCode) {
+          stopPixPolling();
+          showSuccessScreen(r.data.accessCode, r.data.plan || selectedPkg);
+          return;
+        }
+        if (r.ok && r.data.status === 'expired') {
+          stopPixPolling();
+          return;
+        }
+      } catch {}
+      pixPollingTimer = setTimeout(poll, 2000);
+    };
+    pixPollingTimer = setTimeout(poll, 2000);
+  }
+
+  function stopPixPolling() {
+    if (pixPollingTimer) { clearTimeout(pixPollingTimer); pixPollingTimer = null; }
+    if (pixTimerInterval) { clearInterval(pixTimerInterval); pixTimerInterval = null; }
+  }
+
+  // ── Copiar código PIX ────────────────────────────────────────────────────
+  window.copyPixCode = function() {
+    const code = window._pixBrCode || '';
+    if (!code) return;
+    navigator.clipboard.writeText(code).catch(()=>{});
+    const btn = document.getElementById('pix-copy-btn');
+    if (btn) { btn.textContent = 'Copiado!'; setTimeout(()=>{ btn.textContent='Copiar código PIX'; }, 2000); }
+  };
+
+  // ── Simular pagamento (dev) ───────────────────────────────────────────────
+  window.simulatePixPayment = async function() {
+    if (!currentPixId) return;
+    const btn = document.getElementById('pix-dev-btn');
+    if (btn) btn.textContent = 'Simulando…';
+    try {
+      const r = await post('/api/simulate-pix', { pixId: currentPixId }, 10000);
+      if (r.ok && r.data.accessCode) {
+        stopPixPolling();
+        showSuccessScreen(r.data.accessCode, r.data.plan || selectedPkg);
+      } else {
+        if (btn) btn.textContent = 'Erro na simulação — tente novamente';
+        setTimeout(()=>{ if(btn) btn.textContent='⚡ Simular pagamento (dev)'; }, 2000);
+      }
+    } catch {
+      if (btn) btn.textContent = '⚡ Simular pagamento (dev)';
+    }
+  };
+
+  // ── Tela 4: sucesso ──────────────────────────────────────────────────────
+  function showSuccessScreen(accessCode, plan) {
+    stopPixPolling();
+    currentPixId = null;
+    localStorage.removeItem('snapshot_pending_pix');
+    localStorage.setItem('snapshot_access_code', accessCode);
+    localStorage.setItem('snapshot_plan', plan || 'starter');
+    window._successCode = accessCode;
+    window._successPlan = plan;
+    document.getElementById('success-code').textContent = accessCode;
+    showPmScreen(4);
+    // Ocultar botão X durante confirmação
+    const closeBtn = document.getElementById('pm-close-btn');
+    if (closeBtn) closeBtn.style.display = 'none';
+  }
+
+  window.copyAccessCode = function() {
+    const code = window._successCode || '';
+    navigator.clipboard.writeText(code).catch(()=>{});
+    const btn = document.getElementById('success-copy-btn');
+    if (btn) { btn.textContent = '✓ Copiado!'; setTimeout(()=>{ btn.textContent='Copiar código de acesso'; }, 2000); }
+  };
+
+  window.startUsing = async function() {
+    const code = window._successCode;
+    const plan = window._successPlan || 'starter';
+    if (code) {
+      activeCode  = code;
+      currentPlan = { plan, planName: plan.charAt(0).toUpperCase()+plan.slice(1) };
+      // Buscar dados completos do plano
+      try {
+        const ps = await api('/api/plan-status', { headers: { 'x-access-code': code } }, 5000);
+        if (ps.ok && ps.data.plan) currentPlan = { ...ps.data };
+      } catch {}
+      updateSubBadge();
+      applyPlanToInterface();
+    }
+    const closeBtn = document.getElementById('pm-close-btn');
+    if (closeBtn) closeBtn.style.display = '';
+    document.getElementById('pkg-modal').classList.remove('on');
+    showPmScreen(1);
+  };
+
+  // ── Reabrir modal com PIX pendente ───────────────────────────────────────
+  window.reopenPixModal = async function() {
+    const pixId = localStorage.getItem('snapshot_pending_pix');
+    if (!pixId) return;
+    // Verificar status
+    const r = await api(`/api/pix-status?pixId=${encodeURIComponent(pixId)}`, {}, 5000).catch(()=>({ok:false}));
+    if (r.ok && r.data.status === 'paid' && r.data.accessCode) {
+      showSuccessScreen(r.data.accessCode, r.data.plan);
+      document.getElementById('pkg-modal').classList.add('on');
+      document.getElementById('pix-pending-banner').style.display = 'none';
+      return;
+    }
+    if (!r.ok || r.data.status === 'expired') {
+      localStorage.removeItem('snapshot_pending_pix');
+      document.getElementById('pix-pending-banner').style.display = 'none';
+      return;
+    }
+    // Ainda pending — reabrir tela 3 sem chamar create-pix de novo
+    currentPixId = pixId;
+    showPmScreen(3);
+    document.getElementById('pkg-modal').classList.add('on');
+    startPixPolling(pixId);
+  };
+
   window.applyModalCode = async function() {
     const code   = document.getElementById('pm-code-input').value.trim().toUpperCase();
     const status = document.getElementById('pm-code-status');
@@ -1145,13 +1920,65 @@
       return;
     }
     activeCode = code;
-    localStorage.setItem('snapshot_sub_code', code);
+    const planKey = r.data.info && r.data.info.plan || 'starter';
+    currentPlan = { plan: planKey, planName: planKey.charAt(0).toUpperCase()+planKey.slice(1) };
+    localStorage.setItem('snapshot_access_code', code);
+    localStorage.setItem('snapshot_plan', planKey);
+    // Buscar dados completos do plano para aplicar corretamente
+    try {
+      const ps = await api('/api/plan-status', { headers: { 'x-access-code': code } }, 5000);
+      if (ps.ok && ps.data.plan) currentPlan = { ...ps.data };
+    } catch {}
     updateSubBadge();
+    applyPlanToInterface();
+    // [COR-4] Marcar que plano foi ativado agora — para lógica do rerender banner
+    window._justActivatedPaidPlan = true;
+    // Re-render pós-compra: verificar pendingRerenderJobId no localStorage
+    const pendingJobId = localStorage.getItem('pendingRerenderJobId');
+    if (pendingJobId) {
+      try {
+        const rrRes = await fetch(`/api/rerender/${pendingJobId}`, {
+          method: 'POST',
+          headers: { 'x-access-code': code },
+        });
+        const rrData = await rrRes.json().catch(() => ({}));
+        if (rrRes.ok && rrData.ok) {
+          localStorage.removeItem('pendingRerenderJobId');
+          showToast('Marca d\'água removida das suas imagens.');
+          if (pendingJobId === currentJobId && typeof loadPreviewGrid === 'function') {
+            loadPreviewGrid(currentJobId);
+          }
+        } else if (rrRes.status === 404) {
+          localStorage.removeItem('pendingRerenderJobId');
+          showToast('Suas imagens anteriores expiraram. Faça uma nova captura — desta vez sem marca d\'água.');
+        }
+      } catch {}
+    }
     const remaining = r.data.info.remaining;
     const remText   = remaining === null ? 'ilimitadas' : `${remaining} disponível(is)`;
     status.textContent = `✓ ${r.data.info.plan} — ${remText}`;
     status.className = 'code-status ok';
     setTimeout(() => { document.getElementById('pkg-modal').classList.remove('on'); }, 1200);
+  };
+
+  // ── Re-render sem marca d'água após compra ────────────────────────────────
+  window.doRerender = async function() {
+    const banner = document.getElementById('rerender-banner');
+    if (!currentJobId) return;
+    if (banner) banner.innerHTML = '<span style="opacity:0.6;">Removendo marca d\'água…</span>';
+    const code = activeCode || localStorage.getItem('snapshot_access_code') || '';
+    const r = await fetch(`/api/rerender/${currentJobId}`, {
+      method: 'POST',
+      headers: { 'x-access-code': code },
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.ok) {
+      if (banner) banner.style.display = 'none';
+      // Recarregar preview grid para mostrar imagens sem marca d'água
+      if (typeof loadPreviewGrid === 'function') loadPreviewGrid(currentJobId);
+    } else {
+      if (banner) banner.innerHTML = `<span style="color:#f87171;">${d.error || 'Erro ao re-renderizar. Tente novamente.'}</span>`;
+    }
   };
 
   // ── Template tab switching ────────────────────────────────────────────────
@@ -1162,21 +1989,6 @@
     document.getElementById('tmpl-pane-' + cat).classList.add('active');
   };
 
-  // ── Compare toggle ────────────────────────────────────────────────────────
-  window.toggleCompare = function() {
-    compareMode = !compareMode;
-    const btn  = document.getElementById('compare-toggle-btn');
-    const vs   = document.getElementById('vs-badge');
-    const url2 = document.getElementById('url2');
-    const grp2 = document.getElementById('url2-group');
-    const dot  = document.getElementById('compare-dot');
-    btn.classList.toggle('active', compareMode);
-    dot.style.background = compareMode ? '#fff' : '';
-    vs.style.display   = compareMode ? 'flex' : 'none';
-    url2.style.display  = compareMode ? '' : 'none';
-    grp2.style.display  = compareMode ? 'block' : 'none';
-    document.getElementById('explore-btn-text').textContent = compareMode ? 'Capturar e Comparar' : 'Capturar Screenshots';
-  };
 
   // ── Crawl phases ──────────────────────────────────────────────────────────
   const PHASES = ['Conectando ao domínio','Analisando estrutura de navegação','Mapeando páginas internas','Construindo seleção'];
@@ -1205,41 +2017,52 @@
     setTimeout(() => row.classList.add('in'), 20);
   }
 
+  // ── Mapa de mensagens de erro padronizadas ────────────────────────────────
+  const ERROR_MESSAGES = {
+    INVALID_URL:      'Por favor insira uma URL válida começando com http:// ou https://',
+    SITE_INACCESSIBLE:'Não conseguimos acessar este site. Ele pode estar fora do ar ou bloquear acessos automáticos.',
+    DAILY_LIMIT:      (data) => `Você usou suas ${(data && data.limit) || 3} capturas gratuitas de hoje. Renova à meia-noite.`,
+    MONTHLY_LIMIT:    (data) => `Você atingiu as ${data && data.limit} capturas do seu plano este mês.`,
+    PAYMENT_PENDING:  'Pagamento ainda não confirmado. Se você já pagou, aguarde alguns segundos.',
+    FILE_EXPIRED:     'Suas imagens expiraram. Arquivos ficam disponíveis por 2 horas após a captura.',
+  };
+
+  function getUserErrorMessage(errorKey, data) {
+    const msg = ERROR_MESSAGES[errorKey];
+    if (!msg) return errorKey || 'Algo deu errado. Tente novamente.';
+    return typeof msg === 'function' ? msg(data) : msg;
+  }
+
   // ── Human-readable error messages ────────────────────────────────────────
   function humanError(raw) {
     if (!raw) return 'Algo deu errado. Tente novamente.';
     if (/timeout|demorou|timed out/i.test(raw))  return 'O site demorou demais para responder. Tente com outro endereço.';
     if (/ERR_NAME_NOT_RESOLVED|dns/i.test(raw))  return 'Endereço não encontrado. Verifique se a URL está correta.';
     if (/ERR_CONNECTION_REFUSED/i.test(raw))      return 'O servidor recusou a conexão. O site pode estar offline.';
-    if (/quota|limite/i.test(raw))               return 'Limite diário atingido. Compre créditos para continuar.';
-    if (/invalid url|url inválida/i.test(raw))    return 'URL inválida. Certifique-se de incluir https://';
+    if (/quota|limite.*dia/i.test(raw))           return getUserErrorMessage('DAILY_LIMIT');
+    if (/limite.*mensal|mensal.*limite/i.test(raw)) return getUserErrorMessage('MONTHLY_LIMIT');
+    if (/invalid url|url inválida/i.test(raw))    return getUserErrorMessage('INVALID_URL');
+    if (/expirad|expired/i.test(raw))             return getUserErrorMessage('FILE_EXPIRED');
     return raw;
   }
 
   // ── Explore handler ───────────────────────────────────────────────────────
   window.handleExplore = async function() {
-    const url1val = document.getElementById('url1').value.trim();
-    const url2val = compareMode ? document.getElementById('url2').value.trim() : '';
+    const raw1 = document.getElementById('url1').value.trim();
     document.getElementById('url-err').classList.remove('on');
 
-    if (!url1val) { showError('Insira uma URL para continuar.'); return; }
-    if (!url1val.startsWith('http://') && !url1val.startsWith('https://')) { showError('A URL deve começar com http:// ou https://'); return; }
-    if (compareMode && (!url2val || (!url2val.startsWith('http://') && !url2val.startsWith('https://')))) { showError('Insira a segunda URL válida.'); return; }
+    if (!raw1) { showError('Insira uma URL para continuar.'); return; }
+
+    const url1val = normalizeUrlInput(raw1) || raw1;
+    document.getElementById('url1').value = url1val;
+    document.getElementById('url-normalize-hint').style.display = 'none';
+
+    if (!url1val.startsWith('http://') && !url1val.startsWith('https://')) { showError('URL inválida. Tente: stripe.com ou https://stripe.com'); return; }
 
     const btn  = document.getElementById('explore-btn');
     const text = document.getElementById('explore-btn-text');
     btn.disabled = true;
     text.textContent = 'Processando…';
-
-    if (compareMode) {
-      document.getElementById('compare-info-box').style.display = 'block';
-      document.getElementById('ci-url1').textContent = trunc(url1val, 40);
-      document.getElementById('ci-url2').textContent = trunc(url2val, 40);
-      btn.disabled = false;
-      text.textContent = 'Capturar e Comparar';
-      show('s4');
-      return;
-    }
 
     show('s2');
     startPhrases();
@@ -1265,9 +2088,9 @@
 
     if (!r.ok) {
       document.getElementById('est-banner').classList.remove('on');
-      if (r.data.quotaExceeded) {
-        openPkgModal();
-        showError('Limite gratuito atingido. Compre créditos para continuar.');
+      if (r.data.quotaExceeded || r.status === 429) {
+        openUpgradeModal('starter', r.data.error || 'Limite diário de capturas atingido');
+        showError(r.data.error || 'Limite gratuito atingido. Faça upgrade para continuar.');
         show('s1');
       } else {
         showError(humanError(r.data.error));
@@ -1278,6 +2101,8 @@
     }
 
     jobId = r.data.jobId;
+    currentJobId = jobId;
+    try { currentDomain = new URL(url1val).hostname.replace('www.','').split('.')[0]; } catch {}
     startCrawlStream(jobId);
   };
 
@@ -1296,9 +2121,14 @@
       if (!r.ok) { showError('Erro de conexão.'); show('s1'); return; }
       const { status, pages:pg } = r.data;
       if (status === 'failed') { showError(humanError(r.data.error)); show('s1'); return; }
-      if (pg && pg.length > 0) { pages=pg; renderPageGrid(); show('s3'); }
+      if (pg && pg.length > 0) {
+        pages = pg; crawledPages = [...pg];
+        if (r.data.grouped) { groupedPages = r.data.grouped; renderPageGroups(groupedPages, pages); }
+        else renderPageGrid();
+        show('s3');
+      }
       else { showError('Nenhuma página encontrada neste site.'); show('s1'); }
-    }, 90000);
+    }, 135000);
 
     try {
       sseSource = new EventSource(`/api/crawl-stream/${jId}`);
@@ -1327,8 +2157,15 @@
         }
         if (data.pages && data.pages.length > 0) {
           pages = data.pages;
+          crawledPages = [...pages];
           countEl.textContent = pages.length;
-          renderPageGrid();
+          if (data.grouped) {
+            groupedPages = data.grouped;
+            renderPageGroups(groupedPages, pages);
+          } else {
+            renderPageGrid();
+          }
+          updateCrawlLimitMsg(data.planLimit, data.totalFound);
           show('s3');
         } else {
           api(`/api/crawl-status/${jId}`, {}, 8000).then(r => {
@@ -1336,7 +2173,15 @@
               showError('Nenhuma página encontrada neste site.'); show('s1');
             } else {
               pages = r.data.pages;
-              renderPageGrid(); show('s3');
+              crawledPages = [...pages];
+              if (r.data.grouped) {
+                groupedPages = r.data.grouped;
+                renderPageGroups(groupedPages, pages);
+              } else {
+                renderPageGrid();
+              }
+              updateCrawlLimitMsg(r.data.planLimit, r.data.totalFound);
+              show('s3');
             }
           });
         }
@@ -1365,7 +2210,12 @@
         if (!r.ok) { showError('Erro de conexão.'); show('s1'); return; }
         const { status, pages:pg } = r.data;
         if (status === 'failed') { showError(humanError(r.data.error)); show('s1'); return; }
-        if (pg && pg.length > 0) { pages=pg; renderPageGrid(); show('s3'); }
+        if (pg && pg.length > 0) {
+          pages = pg; crawledPages = [...pg];
+          if (r.data.grouped) { groupedPages = r.data.grouped; renderPageGroups(groupedPages, pages); }
+          else renderPageGrid();
+          show('s3');
+        }
         else startCrawlPoll(jId);
       });
     };
@@ -1378,7 +2228,7 @@
     let attempts  = 0;
     crawlTimer = setInterval(async () => {
       attempts++;
-      if (attempts >= 60) {
+      if (attempts >= 75) {
         clearInterval(crawlTimer); stopPhrases();
         showError('O site demorou demais para responder. Tente com outro endereço.'); show('s1'); return;
       }
@@ -1401,7 +2251,11 @@
       }
       if (status !== 'crawling' && pg && pg.length > 0) {
         clearInterval(crawlTimer); stopPhrases();
-        pages = pg; renderPageGrid(); show('s3');
+        pages = pg; crawledPages = [...pg];
+        updateCrawlLimitMsg(r.data.planLimit, r.data.totalFound);
+        if (r.data.grouped) { groupedPages = r.data.grouped; renderPageGroups(groupedPages, pages); }
+        else renderPageGrid();
+        show('s3');
       }
     }, 2000);
   }
@@ -1440,7 +2294,7 @@
       const lbl = BADGE_LABEL[pg.pageType] || 'Outro';
       card.innerHTML = `
         <div class="pc-thumb">
-          ${pg.thumbnailUrl ? `<img src="${pg.thumbnailUrl}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'pc-placeholder\\'><div class=\\'sp sp-w\\' style=\\'width:16px;height:16px;border-width:2px;\\'></div></div>'">` : '<div class="pc-placeholder"><div class="sp sp-w" style="width:16px;height:16px;border-width:2px;"></div></div>'}
+          ${pg.thumbnailUrl ? `<img src="${pg.thumbnailUrl}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=THUMB_PLACEHOLDER_HTML">` : THUMB_PLACEHOLDER_HTML}
         </div>
         <div class="pc-body">
           <div class="pc-title">${esc(pg.title||pg.url)}</div>
@@ -1473,14 +2327,179 @@
     if (selected.size===0) return;
     const r = await post('/api/select-pages', { jobId, selectedUrls:Array.from(selected) }, 10000);
     if (!r.ok) return;
+    pageTemplates = {};
+    await loadTemplates();
     show('s4');
   };
 
-  // ── Template selection ────────────────────────────────────────────────────
+  // ── Template selection (internal — called after sheet confirm) ───────────
   window.selectTemplate = function(name, el) {
-    currentTemplate = name;
+    currentTemplate  = name;
+    selectedTemplate = name; // [COR-3] manter em sincronia
     document.querySelectorAll('.tmpl-card').forEach(c => c.classList.remove('sel'));
-    el.classList.add('sel');
+    if (el) el.classList.add('sel');
+  };
+
+  // ── Template sheet lateral ────────────────────────────────────────────────
+  // [COR-3] Estado pendente correto com _sheetPendingMap
+  let _sheetTemplateId = null;
+  let _sheetScope      = 'all';   // 'all' | 'specific'
+  let _sheetPendingMap = {};       // cópia temporária para edição
+
+  window.openTemplateSheet = function(templateId, cardEl) {
+    _sheetTemplateId = templateId;
+    _sheetScope      = 'all';
+    // [COR-3] Criar cópia do estado atual para edição pendente
+    _sheetPendingMap = Object.assign({}, pageTemplates);
+    const tpl = allTemplates.find(t => t.id === templateId) || { id: templateId, name: templateId, previewSvg: '' };
+
+    // Header
+    document.getElementById('sheet-tmpl-name').textContent = tpl.name;
+    document.getElementById('sheet-tmpl-preview').innerHTML = tpl.previewSvg || '';
+
+    // Page count label
+    const pageCount = selected.size || Array.from(document.querySelectorAll('.page-card.sel')).length || 1;
+    document.getElementById('sheet-all-label').textContent =
+      `Este template será usado em todas as ${pageCount} página${pageCount !== 1 ? 's' : ''} selecionadas`;
+
+    // Build page list with current template indicator per page
+    const listEl = document.getElementById('sheet-page-list');
+    listEl.innerHTML = '';
+    Array.from(selected).forEach(url => {
+      const job  = pages.find(p => p.url === url) || {};
+      const slug = (() => { try { return new URL(url).pathname || '/'; } catch { return url; } })();
+      const isChecked = pageTemplates[url] === templateId;
+      // Current template for this page (may differ from target)
+      const curTid  = pageTemplates[url] || currentTemplate;
+      const curTpl  = allTemplates.find(t => t.id === curTid);
+      const thumbSvg = curTpl && curTpl.previewSvg
+        ? `<div class="sheet-pg-thumb">${curTpl.previewSvg}</div>`
+        : `<div class="sheet-pg-thumb"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 16"><rect width="22" height="16" fill="#1a1a1a"/></svg></div>`;
+      const curLabel = (curTid !== templateId && curTpl) ? `<span class="sheet-pg-cur-tpl">${esc(curTpl.name)}</span>` : '';
+
+      const li = document.createElement('div');
+      li.className   = 'sheet-page-row';
+      li.dataset.url = url;
+      li.innerHTML   = `<input type="checkbox" class="sheet-pg-chk" data-url="${encodeURIComponent(url)}" onchange="toggleSheetPage(this)"${isChecked ? ' checked' : ''}>${thumbSvg}<span class="sheet-pg-title">${esc(job.title || slug)}</span>${curLabel}`;
+      // Click anywhere on the row toggles the checkbox
+      li.onclick = (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        const chk = li.querySelector('.sheet-pg-chk');
+        chk.checked = !chk.checked;
+        chk.dispatchEvent(new Event('change'));
+      };
+      listEl.appendChild(li);
+    });
+
+    // Reset mode UI
+    setSheetMode('all');
+    document.getElementById('tmpl-sheet-overlay').classList.add('open');
+    document.getElementById('tmpl-sheet').classList.add('open');
+  };
+
+  window.toggleSheetPage = function(checkbox) {
+    const url = decodeURIComponent(checkbox.dataset.url);
+    if (checkbox.checked) {
+      _sheetPendingMap[url] = _sheetTemplateId;
+    } else {
+      delete _sheetPendingMap[url];
+    }
+    // Update count label
+    const checked = Object.values(_sheetPendingMap).filter(v => v === _sheetTemplateId).length;
+    const total   = selected.size;
+    document.querySelector('#sheet-card-specific .smc-sub').textContent =
+      checked > 0 ? `${checked} de ${total} páginas selecionadas` : `Escolha em quais páginas aplicar`;
+    // Update apply button text
+    const applyBtn = document.querySelector('.sheet-btn-apply');
+    if (applyBtn) applyBtn.textContent = checked > 0 ? `Aplicar em ${checked} página${checked !== 1 ? 's' : ''}` : 'Aplicar';
+  };
+
+  window.closeTemplateSheet = function() {
+    // [COR-3] Cancelar descarta _sheetPendingMap
+    _sheetPendingMap = {};
+    document.getElementById('tmpl-sheet-overlay').classList.remove('open');
+    document.getElementById('tmpl-sheet').classList.remove('open');
+  };
+
+  window.setSheetMode = function(mode) {
+    _sheetScope = mode;
+    document.getElementById('sheet-card-all').classList.toggle('sel', mode === 'all');
+    document.getElementById('sheet-card-specific').classList.toggle('sel', mode === 'specific');
+    const listEl = document.getElementById('sheet-page-list');
+    listEl.style.display = mode === 'specific' ? 'flex' : 'none';
+    const applyBtn = document.querySelector('.sheet-btn-apply');
+    if (mode === 'specific') {
+      const checked = Object.values(_sheetPendingMap).filter(v => v === _sheetTemplateId).length;
+      const total   = selected.size;
+      document.querySelector('#sheet-card-specific .smc-sub').textContent =
+        checked > 0 ? `${checked} de ${total} páginas selecionadas` : `Escolha em quais páginas aplicar`;
+      if (applyBtn) applyBtn.textContent = checked > 0 ? `Aplicar em ${checked} página${checked !== 1 ? 's' : ''}` : 'Aplicar';
+    } else {
+      if (applyBtn) applyBtn.textContent = 'Aplicar em todas';
+    }
+  };
+
+  window.applyTemplateSheet = function() {
+    if (!_sheetTemplateId) return;
+    if (_sheetScope === 'all') {
+      // [COR-3] Aplicar a todas as páginas selecionadas — limpar overrides e definir template global
+      Array.from(selected).forEach(u => { pageTemplates[u] = _sheetTemplateId; });
+      selectedTemplate = _sheetTemplateId;
+      const card = document.querySelector(`.tmpl-card[data-t="${_sheetTemplateId}"]`);
+      selectTemplate(_sheetTemplateId, card);
+    } else {
+      // [COR-3] Aplicar apenas URLs marcadas em _sheetPendingMap
+      Object.keys(_sheetPendingMap).forEach(url => {
+        pageTemplates[url] = _sheetPendingMap[url];
+      });
+      // Remover URLs que foram desmarcadas
+      Array.from(selected).forEach(url => {
+        if (!(_sheetPendingMap[url] === _sheetTemplateId)) {
+          if (pageTemplates[url] === _sheetTemplateId) delete pageTemplates[url];
+        }
+      });
+      // Atualizar badge nos cards de página
+      Array.from(selected).forEach(url => {
+        const badge = document.querySelector(`.page-card[data-url="${esc(url)}"] .tmpl-badge`);
+        if (pageTemplates[url]) {
+          if (badge) badge.textContent = pageTemplates[url];
+          else {
+            const pc = document.querySelector(`.page-card[data-url="${esc(url)}"]`);
+            if (pc) {
+              const b = document.createElement('span');
+              b.className = 'tmpl-badge';
+              b.textContent = pageTemplates[url];
+              pc.appendChild(b);
+            }
+          }
+        } else if (badge) {
+          badge.remove();
+        }
+      });
+      // Marcar o card visual como selecionado
+      const card = document.querySelector(`.tmpl-card[data-t="${_sheetTemplateId}"]`);
+      selectTemplate(_sheetTemplateId, card);
+    }
+    _sheetPendingMap = {};
+    buildPerPageUI();
+    document.getElementById('tmpl-sheet-overlay').classList.remove('open');
+    document.getElementById('tmpl-sheet').classList.remove('open');
+  };
+
+  window.resetSheetToGlobal = function() {
+    if (!_sheetTemplateId) return;
+    // O objetivo é remover este template específico de qualquer página onde ele seja um override
+    Array.from(selected).forEach(url => {
+      if (pageTemplates[url] === _sheetTemplateId) {
+        delete pageTemplates[url];
+        // Remover badge visual
+        const badge = document.querySelector(`.page-card[data-url="${esc(url)}"] .tmpl-badge`);
+        if (badge) badge.remove();
+      }
+    });
+    _sheetPendingMap = {};
+    buildPerPageUI();
+    closeTemplateSheet();
   };
 
   // ── Start capture ─────────────────────────────────────────────────────────
@@ -1490,32 +2509,34 @@
     btn.disabled = true; txt.textContent = 'Iniciando…';
 
     const renderConfig = {
-      template:    currentTemplate,
-      smartCrop:   document.getElementById('opt-smartcrop').checked,
-      socialExport:document.getElementById('opt-social').checked,
-      showUrl:     document.getElementById('opt-url').checked,
-      showDate:    document.getElementById('opt-date').checked,
+      template:     currentTemplate,
+      pageTemplates: Object.keys(pageTemplates).length ? { ...pageTemplates } : undefined,
+      smartCrop:    document.getElementById('opt-smartcrop').checked,
+      socialExport: document.getElementById('opt-social').checked,
+      showUrl:      document.getElementById('opt-url').checked,
+      showDate:     document.getElementById('opt-date').checked,
     };
 
-    const url1val = document.getElementById('url1').value.trim();
-    const url2val = document.getElementById('url2').value.trim();
-
-    let r;
-    if (compareMode) {
-      r = await post('/api/compare', { url1:url1val, url2:url2val, renderConfig }, 15000);
-    } else {
-      r = await post('/api/start-capture', { jobId, renderConfig }, 10000);
-    }
+    const r = await post('/api/start-capture', { jobId, renderConfig }, 10000);
 
     btn.disabled = false; txt.textContent = 'Iniciar Captura';
-    if (!r.ok) return;
-    if (compareMode) jobId = r.data.jobId;
+    if (!r.ok) {
+      if (r.status === 429 && r.data && r.data.limit) {
+        showCaptureLimitBanner(r.data.used, r.data.limit, currentPlan && currentPlan.planName || 'Starter');
+      } else if (r.status === 403 && r.data && r.data.requiredPlan) {
+        openUpgradeModal(r.data.requiredPlan, r.data.error || 'Plano necessário');
+      } else {
+        showError(humanError((r.data && r.data.error) || 'Erro ao iniciar captura.'));
+      }
+      return;
+    }
 
-    document.getElementById('prog-total').textContent = compareMode ? 2 : selected.size;
+    document.getElementById('prog-total').textContent = selected.size;
     document.getElementById('prog-done').textContent  = '0';
     document.getElementById('prog-fill').style.width  = '0%';
     document.getElementById('prog-curr').textContent  = 'Inicializando…';
     document.getElementById('cap-gallery').innerHTML   = '';
+    captureGallery = [];
     show('s5');
     startCapturePoll();
   };
@@ -1528,39 +2549,113 @@
       const { status, captureProgress:cp, gallery:gal, applyWatermark:wm } = r.data;
       if (wm !== undefined) applyWatermark = wm;
       if (cp) {
-        document.getElementById('prog-done').textContent  = cp.completed || 0;
+        // [COR-8] Atualizar progresso IMEDIATAMENTE
+        document.getElementById('prog-done').textContent  = cp.completed || cp.percent || 0;
         document.getElementById('prog-total').textContent = cp.total || 0;
-        document.getElementById('prog-curr').textContent  = cp.current ? `Capturando: ${cp.current}` : 'Inicializando…';
-        document.getElementById('prog-fill').style.width  = (cp.percent||0) + '%';
+        document.getElementById('prog-fill').style.width  = (cp.percent || 0) + '%';
+        if (cp.current) {
+          try {
+            const _path = new URL(cp.current).pathname;
+            document.getElementById('prog-curr').textContent = _path || cp.current;
+          } catch {
+            document.getElementById('prog-curr').textContent = cp.current;
+          }
+        } else {
+          document.getElementById('prog-curr').textContent = 'Inicializando…';
+        }
       }
       if (gal && gal.length > 0) {
+        captureGallery = gal; // store for renderPreviewGrid()
         const galEl = document.getElementById('cap-gallery');
         for (let i=galEl.children.length; i<gal.length; i++) {
           const thumb = document.createElement('div');
           thumb.className = 'gal-thumb';
-          thumb.innerHTML = `<img src="${gal[i].previewUrl}" alt="" loading="lazy" onerror="this.style.display='none'">`;
+          thumb.innerHTML = `<img src="${gal[i].previewUrl}" alt="" loading="lazy" onload="this.parentElement.classList.add('loaded')" onerror="this.style.display='none'">`;
           galEl.appendChild(thumb);
-          setTimeout(() => thumb.classList.add('in'), 30);
+          // Faster animation trig
+          requestAnimationFrame(() => thumb.classList.add('in'));
         }
       }
       if (status === 'ready') {
         clearInterval(capTimer);
-        renderPreviewGrid();
-        updateDownloadPanel();
-        show('s6');
+        // Force progress to 100% before transitioning
+        const tot = cp && cp.total ? cp.total : (selected.size || 1);
+        document.getElementById('prog-done').textContent  = tot;
+        document.getElementById('prog-total').textContent = tot;
+        document.getElementById('prog-fill').style.width  = '100%';
+        document.getElementById('prog-curr').textContent  = 'Concluído!';
+        setTimeout(() => {
+          renderPreviewGrid();
+          updateDownloadPanel();
+          // Salvar jobId para re-render pós-compra (apenas free com watermark)
+          const planKeyNow = currentPlan && currentPlan.plan || 'free';
+          if (planKeyNow === 'free' && applyWatermark && jobId) {
+            localStorage.setItem('pendingRerenderJobId', jobId);
+          }
+          // [COR-7] Registrar no histórico de sessão quando vai para s6
+          if (!window._sessionHistory) window._sessionHistory = [];
+          try {
+            const _su = Array.from(selected);
+            const domain = _su.length > 0 ? new URL(_su[0]).hostname.replace('www.','') : (currentDomain || 'site');
+            window._sessionHistory.push({
+              domain,
+              pages: _su.length,
+              template: currentTemplate || 'void',
+              jobId: currentJobId,
+              ts: Date.now()
+            });
+          } catch {}
+          // [COR-9] Atualizar status do plano após captura
+          refreshPlanStatus();
+          show('s6');
+        }, 400);
       }
-    }, 1500);
+    }, 800);
   }
 
   function updateDownloadPanel() {
-    const hasWm = applyWatermark;
-    document.getElementById('pay-label-text').textContent = hasWm ? 'Remover marca d\'água' : 'Download HD';
-    document.getElementById('pay-btn-text').textContent   = hasWm ? 'Assinar para remover marca d\'água' : 'Baixar agora';
-    document.getElementById('wm-download-btn').style.display = hasWm ? '' : 'none';
+    const hasWm = applyWatermark; // reliable — set from server via capture-progress polling
+    document.getElementById('pay-label-text').textContent = hasWm ? 'Download' : 'Download HD';
+    // Free: show wm-btn + upgrade-card; paid: show pay-btn only
+    const wmBtn      = document.getElementById('wm-download-btn');
+    const upgradeCard = document.getElementById('upgrade-card');
+    const payBtn     = document.getElementById('pay-btn');
+    if (hasWm) {
+      if (wmBtn)       wmBtn.style.display      = '';
+      if (upgradeCard) upgradeCard.style.display = '';
+      if (payBtn)      payBtn.style.display      = 'none';
+    } else {
+      if (wmBtn)       wmBtn.style.display      = 'none';
+      if (upgradeCard) upgradeCard.style.display = 'none';
+      if (payBtn)      payBtn.style.display      = '';
+      document.getElementById('pay-btn-text').textContent = 'Baixar imagens';
+    }
+
+    // [COR-4] Badge de watermark: mostrar APENAS se currentPlan.watermark === true
+    const wmBadge = document.getElementById('wm-notice-badge');
+    if (wmBadge) wmBadge.style.display = hasWm ? 'inline-flex' : 'none';
+
+    // [COR-4] Aviso free: mostrar APENAS se currentPlan.watermark === true
+    const freeNotice = document.getElementById('s6-free-notice');
+    if (freeNotice) freeNotice.style.display = hasWm ? 'flex' : 'none';
+
+    // [COR-4][COR-5] Banner rerender: mostrar APENAS se ativou plano agora E existe pendingRerenderJobId, e apenas UMA vez
+    const rerenderBanner = document.getElementById('rerender-banner');
+    if (rerenderBanner) {
+      const pendingJobId  = localStorage.getItem('pendingRerenderJobId');
+      const justActivated = window._justActivatedPaidPlan === true;
+      const showRerender  = justActivated && !!pendingJobId && !_planBannerShown;
+      if (showRerender) {
+        _planBannerShown = true;
+        rerenderBanner.style.display = 'flex';
+      } else if (!justActivated || !pendingJobId) {
+        rerenderBanner.style.display = 'none';
+      }
+    }
+
     // Hide the CSS watermark overlay in preview cards when no server-side watermark
     if (!hasWm) {
       document.querySelectorAll('.wm-overlay').forEach(el => el.style.display = 'none');
-      document.querySelector('.wm-notice') && (document.querySelector('.wm-notice').style.display = 'none');
     }
   }
 
@@ -1568,45 +2663,51 @@
   function renderPreviewGrid() {
     const grid = document.getElementById('preview-grid');
     grid.innerHTML = '';
-    const subset = compareMode
-      ? [{ url: document.getElementById('url1').value.trim(), title:'Comparação' }]
-      : pages.filter(p => selected.has(p.url));
 
-    subset.forEach((pg, i) => {
-      const desktopSrc = compareMode
-        ? `/screenshots/${jobId}/compare/comparison.png`
-        : `/screenshots/${jobId}/page-${String(i).padStart(2,'0')}/desktop-professional.png`;
-      const mobileSrc = compareMode
-        ? desktopSrc
-        : `/screenshots/${jobId}/page-${String(i).padStart(2,'0')}/mobile-professional.png`;
-      const previewSrc = compareMode
-        ? desktopSrc
-        : `/screenshots/${jobId}/page-${String(i).padStart(2,'0')}/preview.png`;
+    // Use captureGallery (populated during polling) for correct index→file mapping.
+    // Fall back to reconstructing from selected pages if gallery data is missing.
+    const items = captureGallery.length > 0
+      ? captureGallery
+      : Array.from(selected).map((url, i) => {
+          const pg = pages.find(p => p.url === url) || {};
+          return { index: i, url, title: pg.title || url,
+            previewUrl: `/screenshots/${jobId}/page-${String(i).padStart(2,'0')}/preview.png` };
+        });
+
+    const hasMobile = currentPlan && currentPlan.mobileCapture !== false;
+
+    items.forEach(item => {
+      const idx        = String(item.index).padStart(2, '0');
+      const desktopSrc = `/screenshots/${jobId}/page-${idx}/desktop-professional.png`;
+      const mobileSrc  = hasMobile ? `/screenshots/${jobId}/page-${idx}/mobile-professional.png` : desktopSrc;
+      const previewSrc = item.previewUrl || desktopSrc;
+      const pg         = pages.find(p => p.url === item.url) || { url: item.url, title: item.title };
 
       const card = document.createElement('div');
       card.className = 'prev-card';
       card.innerHTML = `
         <div class="prev-img">
-          <img src="${previewSrc}" alt="" loading="lazy" onerror="this.style.display='none'">
+          <img src="${previewSrc}" alt="" loading="lazy" onerror="this.parentElement.style.background='#1a1a1a'">
           <div class="wm-overlay"><span>SNAPSHOT.PRO</span></div>
         </div>
         <div class="prev-body">
           <div class="prev-title">${esc(pg.title||pg.url)}</div>
           <div class="prev-url">${trunc(pg.url,40)}</div>
         </div>`;
-      card.addEventListener('click', () => openLightbox(desktopSrc, mobileSrc, pg.title||pg.url));
+      card.addEventListener('click', () => openLightbox(desktopSrc, mobileSrc, pg.title||pg.url, hasMobile));
       grid.appendChild(card);
     });
   }
 
   // ── Lightbox ──────────────────────────────────────────────────────────────
   let lbDesktop = '', lbMobile = '';
-  function openLightbox(desktop, mobile, title) {
+  function openLightbox(desktop, mobile, title, hasMobile) {
     lbDesktop = desktop; lbMobile = mobile;
     const tabs = document.getElementById('lb-tabs');
+    const showMobile = hasMobile !== false && mobile && mobile !== desktop;
     tabs.innerHTML = `
       <button class="lb-tab active" onclick="lbSetTab('desktop',this)">Desktop</button>
-      <button class="lb-tab" onclick="lbSetTab('mobile',this)">Mobile</button>`;
+      ${showMobile ? `<button class="lb-tab" onclick="lbSetTab('mobile',this)">Mobile</button>` : ''}`;
     document.getElementById('lb-img').src = desktop;
     document.getElementById('lightbox').classList.add('on');
   }
@@ -1653,9 +2754,9 @@
     window.location.href = r.data.checkoutUrl;
   };
 
-  window.handleWatermarkDownload = async function() {
-    const r = await post('/api/create-checkout', { jobId, withWatermark: true }, 10000);
-    if (r.ok && r.data.checkoutUrl) window.location.href = r.data.checkoutUrl;
+  window.handleWatermarkDownload = function() {
+    if (!jobId) return;
+    window.location.href = '/api/download/' + jobId;
   };
 
   // ── Success ───────────────────────────────────────────────────────────────
@@ -1665,8 +2766,11 @@
     history.replaceState({}, '', location.origin + location.pathname);
 
     setTimeout(() => {
+      const dlModeEl = document.querySelector('input[name="dl-mode"]:checked');
+      const dlModeVal = dlModeEl ? dlModeEl.value : 'full';
+      const dlModeParam = dlModeVal !== 'full' ? `?mode=${dlModeVal}` : '';
       const a = document.createElement('a');
-      a.href = `/api/download/${jId}`;
+      a.href = `/api/download/${jId}${dlModeParam}`;
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
@@ -1677,12 +2781,19 @@
       st.innerHTML = '✓ Download iniciado! Verifique sua pasta de downloads.';
       document.getElementById('new-btn').style.display = 'inline-flex';
 
+      // Add to session history
+      const firstPreviewUrl = `/screenshots/${jId}/page-00/preview.png`;
+      addSessionJob(jId, currentDomain || jId.slice(0,8), firstPreviewUrl, selectedUrls.length);
+
       fetch(`/api/share-token/${jId}`).then(r => r.json()).then(d => {
         if (d.token) {
           document.getElementById('share-box').style.display = 'block';
           document.getElementById('share-link-text').textContent = `${location.origin}/share/${d.token}`;
         }
       }).catch(() => {});
+      
+      // Update usage/plan metrics
+      updateSubBadge();
     }, 1500);
   }
 
@@ -1699,29 +2810,182 @@
     if (crawlTimer) clearInterval(crawlTimer);
     if (capTimer)   clearInterval(capTimer);
     if (sseSource)  { sseSource.close(); sseSource = null; }
-    jobId = null; pages = []; selected.clear(); compareMode = false;
+    jobId = null; currentJobId = null; pages = []; crawledPages = []; selectedUrls = []; groupedPages = null; selected.clear(); pageTemplates = {};
+    hideCaptureLimitBanner();
+    updateCrawlLimitMsg(null, null);
     document.getElementById('url1').value = '';
-    document.getElementById('url2').value = '';
     document.getElementById('url-err').classList.remove('on');
-    document.getElementById('url2').style.display    = 'none';
-    document.getElementById('url2-group').style.display = 'none';
-    document.getElementById('vs-badge').style.display = 'none';
-    document.getElementById('compare-toggle-btn').classList.remove('active');
-    document.getElementById('compare-dot').style.background = '';
-    document.getElementById('explore-btn-text').textContent = 'Capturar Screenshots';
-    document.getElementById('compare-info-box').style.display = 'none';
     document.getElementById('est-banner').classList.remove('on');
     statsAnimDone = false;
     applyWatermark = true;
     show('s1');
     loadStats();
+  }
+
+  // ── Per-page template UI ─────────────────────────────────────────────────
+  // [COR-2] Seção #per-page-tmpl-section removida. buildPerPageUI é no-op.
+  let allTemplates = [];
+
+  function buildPerPageUI() {
+    const summary = document.getElementById('per-page-summary');
+    const rows    = document.getElementById('pps-rows');
+    if (!summary || !rows) return;
+
+    // Group: URL → templateId; only show rows where template differs from currentTemplate
+    const overrides = Object.entries(pageTemplates).filter(([url, tid]) => tid !== currentTemplate);
+    if (overrides.length === 0) {
+      summary.classList.remove('visible');
+      return;
+    }
+
+    // Group by template
+    const byTemplate = {};
+    overrides.forEach(([url, tid]) => {
+      if (!byTemplate[tid]) byTemplate[tid] = [];
+      byTemplate[tid].push(url);
+    });
+
+    rows.innerHTML = '';
+    Object.entries(byTemplate).forEach(([tid, urls]) => {
+      const tpl = allTemplates.find(t => t.id === tid);
+      const tplName = tpl ? tpl.name : tid;
+      const svgContent = tpl && tpl.previewSvg ? tpl.previewSvg
+        : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 16"><rect width="22" height="16" fill="#1a1a1a"/></svg>`;
+
+      urls.forEach(url => {
+        const pg   = pages.find(p => p.url === url) || {};
+        const slug = (() => { try { return new URL(url).pathname || '/'; } catch { return url; } })();
+        const label = pg.title || slug;
+
+        const row = document.createElement('div');
+        row.className = 'pps-row';
+        row.innerHTML = `
+          <div class="pps-thumb">${svgContent}</div>
+          <span class="pps-pg" title="${esc(url)}">${esc(label)}</span>
+          <span class="pps-tname">${esc(tplName)}</span>
+          <button class="pps-rm" title="Remover override" onclick="removePageTemplateOverride('${encodeURIComponent(url)}')">×</button>
+        `;
+        rows.appendChild(row);
+      });
+    });
+
+    summary.classList.add('visible');
+  }
+
+  window.removePageTemplateOverride = function(encodedUrl) {
+    const url = decodeURIComponent(encodedUrl);
+    delete pageTemplates[url];
+    buildPerPageUI();
   };
+
+  window.resetAllPageTemplates = function() {
+    pageTemplates = {};
+    buildPerPageUI();
+  };
+
+  // ── Templates ─────────────────────────────────────────────────────────────
+  // [COR-6] Distribuir templates nas 4 abas com getTemplateTab()
+  function getTemplateTab(tpl) {
+    if (tpl.category === 'free')         return 'free';
+    if (tpl.category === 'creative')     return 'creative';
+    if (tpl.category === 'professional') return 'professional';
+    return 'device';
+  }
+
+  function updateTabCounts() {
+    const counts = { free: 0, device: 0, professional: 0, creative: 0 };
+    allTemplates.forEach(t => {
+      const cat = t.category || 'device';
+      if (counts[cat] !== undefined) counts[cat]++;
+    });
+    ['free','device','professional','creative'].forEach(cat => {
+      const el = document.getElementById('tab-count-' + cat);
+      if (el) el.textContent = counts[cat] || '';
+    });
+  }
+
+  async function loadTemplates() {
+    try {
+      const r = await api('/api/templates', {}, 5000);
+      if (!r.ok || !Array.isArray(r.data)) return;
+      const tpls = r.data;
+
+      const panes = {
+        free:         document.getElementById('tmpl-pane-free'),
+        device:       document.getElementById('tmpl-pane-device'),
+        professional: document.getElementById('tmpl-pane-professional'),
+        creative:     document.getElementById('tmpl-pane-creative'),
+      };
+
+      Object.values(panes).forEach(p => { if (p) p.innerHTML = ''; });
+      let firstTpl = null;
+
+      // Sort: unlocked templates first, then locked — within each group, by order
+      const sorted = [...tpls].sort((a, b) => {
+        if (a.locked !== b.locked) return a.locked ? 1 : -1;
+        return (a.order || 0) - (b.order || 0);
+      });
+
+      sorted.forEach(t => {
+        if (!firstTpl) firstTpl = t.id;
+        // [COR-6] Usar getTemplateTab() para distribuir nas abas
+        const tabKey = getTemplateTab(t);
+        const pane = panes[tabKey] || panes.device;
+        if (!pane) return;
+
+        const card = document.createElement('div');
+        card.className = 'tmpl-card' + (t.id === currentTemplate ? ' sel' : '');
+        card.dataset.t = t.id;
+        if (t.locked) card.classList.add('tpl-locked');
+
+        // [COR-6] SVG placeholder para templates sem preview
+        const svgContent = (t.previewSvg && t.previewSvg.trim().startsWith('<svg'))
+          ? t.previewSvg
+          : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" style="width:100%;height:100%;display:block"><rect width="240" height="180" fill="#1a1a1a"/><text x="120" y="94" text-anchor="middle" dominant-baseline="middle" font-family="Outfit,sans-serif" font-size="13" fill="rgba(255,255,255,0.3)">${t.name || t.id}</text></svg>`;
+
+        const lockIcon = t.locked
+          ? `<div class="tpl-lock-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>`
+          : '';
+
+        card.innerHTML = `
+          <div class="tc-preview">${svgContent}</div>
+          <div class="tc-foot">
+            <span class="tc-name">${esc(t.name)}</span>
+            <span class="tc-desc">${esc(t.description || '')}</span>
+          </div>
+          <div class="tc-chk"><svg viewBox="0 0 10 10" fill="none" width="10" height="10"><path d="M1.5 5l2.5 2.5 4.5-5" stroke="#0a0a0a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          ${lockIcon}
+        `;
+
+        card.onclick = () => {
+          if (card.classList.contains('tpl-locked')) { openUpgradeModal(t.plan || 'starter', `Desbloqueie "${t.name}"`); return; }
+          openTemplateSheet(t.id, card);
+        };
+
+        pane.appendChild(card);
+      });
+
+      if (currentTemplate === 'void' && firstTpl) {
+        currentTemplate = firstTpl;
+        selectedTemplate = firstTpl;
+        const firstCard = document.querySelector('.tmpl-card');
+        if (firstCard) firstCard.classList.add('sel');
+      }
+
+      allTemplates = sorted;
+      applyPlanToInterface();
+      buildPerPageUI();
+      // [COR-6] Atualizar contadores nas abas após renderizar
+      updateTabCounts();
+    } catch (e) {
+      console.error("Falha ao carregar templates", e);
+    }
+  }
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   document.getElementById('url1').addEventListener('keydown', e => { if (e.key==='Enter') handleExplore(); });
   document.getElementById('url1').addEventListener('input',   () => document.getElementById('url-err').classList.remove('on'));
-  document.getElementById('url2').addEventListener('keydown', e => { if (e.key==='Enter') handleExplore(); });
-  document.addEventListener('keydown', e => { if (e.key==='Escape') { closeLightbox(); closePkgModal(); } });
+  document.addEventListener('keydown', e => { if (e.key==='Escape') { closeLightbox(); closePkgModal(); closeTemplateSheet(); } });
 
   // ── Init ──────────────────────────────────────────────────────────────────
   const params = new URLSearchParams(location.search);
@@ -1731,25 +2995,570 @@
     show('s1');
     loadStats();
     loadPlans();
+    loadTemplates();
   }
 
-  // Restore saved subscription code from localStorage
-  (function initCode() {
-    const saved = localStorage.getItem('snapshot_sub_code');
-    if (!saved) return;
-    activeCode = saved;
-    updateSubBadge();
-    // Validate in background — remove if expired
-    post('/api/validate-code', { code: saved }, 5000).then(r => {
-      if (!r.ok || !r.data.valid) {
-        activeCode = null;
-        localStorage.removeItem('snapshot_sub_code');
-        updateSubBadge();
+  // ── initSubscriptionState — executado ao carregar ─────────────────────────
+  async function initSubscriptionState() {
+    const saved = localStorage.getItem('snapshot_access_code')
+               || localStorage.getItem('snapshot_sub_code'); // compat legado
+
+    if (saved) {
+      // Mostrar badge imediatamente com dado salvo (otimista)
+      const savedPlan = localStorage.getItem('snapshot_plan') || 'free';
+      activeCode   = saved;
+      currentPlan  = { plan: savedPlan, planName: savedPlan.charAt(0).toUpperCase()+savedPlan.slice(1) };
+      applyWatermark = (savedPlan === 'free');
+      updateSubBadge();
+      applyPlanToInterface();
+
+      // Validar em background
+      const headers = { 'Content-Type':'application/json', 'x-access-code': saved };
+      try {
+        const r = await api('/api/validate-code', { method:'POST', headers, body:JSON.stringify({ code: saved }) }, 5000);
+        if (!r.ok || !r.data.valid) {
+          activeCode  = null;
+          currentPlan = { plan: 'free' };
+          localStorage.removeItem('snapshot_access_code');
+          localStorage.removeItem('snapshot_sub_code');
+          localStorage.removeItem('snapshot_plan');
+          updateSubBadge();
+          applyPlanToInterface();
+        } else {
+          const planKey = r.data.info && r.data.info.plan || savedPlan;
+          // Buscar dados completos do plano do servidor
+          try {
+            const ps = await api('/api/plan-status', { headers }, 5000);
+            if (ps.ok && ps.data.plan) {
+              currentPlan = { ...ps.data };
+            } else {
+              currentPlan = { plan: planKey, planName: planKey.charAt(0).toUpperCase()+planKey.slice(1) };
+            }
+          } catch {
+            currentPlan = { plan: planKey, planName: planKey.charAt(0).toUpperCase()+planKey.slice(1) };
+          }
+          localStorage.setItem('snapshot_access_code', saved);
+          localStorage.setItem('snapshot_plan', currentPlan.plan || planKey);
+          localStorage.removeItem('snapshot_sub_code');
+          updateSubBadge();
+          applyPlanToInterface();
+        }
+      } catch {}
+    }
+
+    // Verificar PIX pendente
+    const pendingPixId = localStorage.getItem('snapshot_pending_pix');
+    if (pendingPixId && !activeCode) {
+      try {
+        const r = await api(`/api/pix-status?pixId=${encodeURIComponent(pendingPixId)}`, {}, 5000);
+        if (r.ok && r.data.status === 'paid' && r.data.accessCode) {
+          // Pago! Processar silenciosamente
+          const code    = r.data.accessCode;
+          const planKey = r.data.plan || 'starter';
+          activeCode  = code;
+          currentPlan = { plan: planKey, planName: planKey.charAt(0).toUpperCase()+planKey.slice(1) };
+          localStorage.setItem('snapshot_access_code', code);
+          localStorage.setItem('snapshot_plan', planKey);
+          localStorage.removeItem('snapshot_pending_pix');
+          try {
+            const ps = await api('/api/plan-status', { headers: { 'x-access-code': code } }, 5000);
+            if (ps.ok && ps.data.plan) currentPlan = { ...ps.data };
+          } catch {}
+          updateSubBadge();
+          applyPlanToInterface();
+        } else if (r.ok && r.data.status === 'pending') {
+          // Ainda pendente — mostrar banner
+          const banner = document.getElementById('pix-pending-banner');
+          if (banner) banner.style.display = 'block';
+        } else {
+          localStorage.removeItem('snapshot_pending_pix');
+        }
+      } catch {}
+    }
+  }
+
+  // ── Máscaras CPF / Telefone ───────────────────────────────────────────────
+  document.getElementById('co-cpf').addEventListener('input', function() {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+    else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+    else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+    this.value = v;
+  });
+  document.getElementById('co-phone').addEventListener('input', function() {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 10) v = v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+    else if (v.length > 6) v = v.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    else if (v.length > 2) v = v.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+    else if (v.length > 0) v = v.replace(/(\d{0,2})/, '($1');
+    this.value = v;
+  });
+
+  initSubscriptionState();
+
+  // ── URL Detection ────────────────────────────────────────────────────────
+  let detectTimer = null;
+  let currentPlatform = null;
+
+  const urlInput = document.getElementById('url1');
+  if (urlInput) {
+    urlInput.addEventListener('input', function() {
+      const val = this.value.trim();
+      clearTimeout(detectTimer);
+      const badge = document.getElementById('platform-badge');
+      const dot   = document.querySelector('.url-loading-dot');
+
+      // Normalize hint
+      const normalized = normalizeUrlInput(val);
+      const hint = document.getElementById('url-normalize-hint');
+      if (normalized && normalized !== val && val.length > 4) {
+        hint.textContent = 'URL normalizada: ' + normalized;
+        hint.style.display = 'block';
+      } else {
+        hint.style.display = 'none';
+      }
+
+      badge.classList.remove('show');
+      if (!val || val.length < 6) return;
+
+      detectTimer = setTimeout(async () => {
+        if (dot) dot.classList.add('show');
+        try {
+          const fullUrl = val.startsWith('http') ? val : 'https://' + val;
+          const r = await post('/api/detect-site', { url: fullUrl }, 6000);
+          if (r.ok && r.data.confidence >= 0.4) {
+            currentPlatform = r.data;
+            const icons = { wordpress:'WP', shopify:'SH', webflow:'WF', framer:'FR', nextjs:'NX', nuxt:'NU', wix:'WX', squarespace:'SS' };
+            const icon  = icons[r.data.platform] || '●';
+            badge.innerHTML = `<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:4px;">${icon}</span> ${r.data.platform.charAt(0).toUpperCase()+r.data.platform.slice(1)} detectado<span class="url-loading-dot"></span>`;
+            badge.classList.add('show');
+          }
+        } catch {}
+        if (dot) dot.classList.remove('show');
+      }, 800);
+    });
+
+    // URL history on focus
+    urlInput.addEventListener('focus', function() {
+      if (this.value.trim()) return;
+      const hist = getUrlHistory();
+      if (!hist.length) return;
+      showHistoryDropdown(hist);
+    });
+  }
+
+  document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('url-input-wrap');
+    if (wrap && !wrap.contains(e.target)) hideHistoryDropdown();
+  });
+
+  function normalizeUrlInput(input) {
+    if (!input) return '';
+    try {
+      let u = input.trim();
+      if (!u.startsWith('http://') && !u.startsWith('https://')) u = 'https://' + u;
+      const parsed = new URL(u);
+      const tracking = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','fbclid','gclid','msclkid','ttclid','twclid'];
+      tracking.forEach(p => parsed.searchParams.delete(p));
+      parsed.hash = '';
+      let result = parsed.href;
+      if (result.endsWith('/') && parsed.pathname === '/') result = result.slice(0, -1);
+      return result;
+    } catch { return ''; }
+  }
+
+  // URL history
+  function getUrlHistory() {
+    try { return JSON.parse(localStorage.getItem('snapshot_url_history') || '[]'); } catch { return []; }
+  }
+  function saveUrlHistory(url, platform) {
+    let hist = getUrlHistory();
+    let domain = '';
+    try { domain = new URL(url).hostname.replace('www.',''); } catch {}
+    hist = hist.filter(h => h.url !== url);
+    hist.unshift({ url, domain, platform: platform || 'generic', capturedAt: Date.now() });
+    hist = hist.slice(0, 5);
+    localStorage.setItem('snapshot_url_history', JSON.stringify(hist));
+  }
+
+  function showHistoryDropdown(hist) {
+    hideHistoryDropdown();
+    const wrap = document.getElementById('url-input-wrap');
+    if (!wrap) return;
+    const dd = document.createElement('div');
+    dd.id = 'url-history-dd';
+    dd.innerHTML = hist.map((h, i) => `
+      <div class="hist-item" onclick="pickHistory(${i})">
+        <div>
+          <div class="hist-domain">${esc(h.domain)}</div>
+          <div class="hist-date">${new Date(h.capturedAt).toLocaleDateString('pt-BR')}</div>
+        </div>
+        <span class="hist-remove" onclick="removeHistory(event,${i})">✕</span>
+      </div>`).join('');
+    wrap.appendChild(dd);
+  }
+  function hideHistoryDropdown() {
+    const dd = document.getElementById('url-history-dd');
+    if (dd) dd.remove();
+  }
+  window.pickHistory = function(i) {
+    const hist = getUrlHistory();
+    if (hist[i]) { document.getElementById('url1').value = hist[i].url; hideHistoryDropdown(); }
+  };
+  window.removeHistory = function(e, i) {
+    e.stopPropagation();
+    let hist = getUrlHistory();
+    hist.splice(i, 1);
+    localStorage.setItem('snapshot_url_history', JSON.stringify(hist));
+    showHistoryDropdown(hist);
+  };
+
+  // ── Multi-URL mode ────────────────────────────────────────────────────────
+  const extraUrls = [];
+  const addUrlBtn = document.getElementById('add-url-btn');
+  if (addUrlBtn) {
+    const canMulti = () => currentPlan && (currentPlan.plan === 'pro' || currentPlan.plan === 'agency');
+    addUrlBtn.addEventListener('click', () => {
+      if (!canMulti()) {
+        addUrlBtn.title = 'Disponível nos planos Pro e Agency';
+        addUrlBtn.style.color = 'rgba(251,191,36,0.7)';
+        setTimeout(() => { addUrlBtn.style.color = 'rgba(255,255,255,0.4)'; }, 2000);
+        return;
+      }
+      if (extraUrls.length >= 2) return;
+      const idx = extraUrls.length;
+      extraUrls.push('');
+      const row = document.createElement('div');
+      row.className = 'extra-url-row';
+      row.id = `extra-url-row-${idx}`;
+      row.innerHTML = `<input type="url" id="extra-url-${idx}" placeholder="https://exemplo2.com" style="height:48px;flex:1;font-size:15px;" class="url-input">
+        <button onclick="removeExtraUrl(${idx})" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.5);font-size:16px;width:36px;height:48px;cursor:pointer;">✕</button>`;
+      document.getElementById('url-extra-inputs').appendChild(row);
+      document.getElementById(`extra-url-${idx}`).addEventListener('change', e => { extraUrls[idx] = e.target.value.trim(); });
+      if (extraUrls.length >= 2) addUrlBtn.style.display = 'none';
+      else addUrlBtn.textContent = '＋ Adicionar mais uma URL';
+    });
+  }
+  window.removeExtraUrl = function(idx) {
+    extraUrls.splice(idx, 1);
+    const row = document.getElementById(`extra-url-row-${idx}`);
+    if (row) row.remove();
+    if (addUrlBtn) { addUrlBtn.style.display = ''; addUrlBtn.textContent = '＋ Adicionar outra URL'; }
+  };
+
+  // ── Page grouping rendering ───────────────────────────────────────────────
+  function renderPageGroups(grouped, allPages) {
+    const grid = document.getElementById('pages-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    grid.classList.add('grouped');
+    const groups = Object.entries(grouped);
+    groups.forEach(([groupName, groupPgs]) => {
+      if (!groupPgs.length) return;
+      const groupDiv = document.createElement('div');
+      groupDiv.className = 'pg-group';
+      // Collapse single-page groups except Principal
+      if (groupName !== 'Principal' && groupPgs.length === 1) groupDiv.classList.add('collapsed');
+
+      groupDiv.innerHTML = `
+        <div class="pg-group-header" onclick="toggleGroup(this)">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="pg-group-title">${esc(groupName)}</span>
+            <span class="pg-group-count">(${groupPgs.length})</span>
+          </div>
+          <div class="pg-group-actions" onclick="event.stopPropagation()">
+            <span class="pg-group-selall" onclick="selectGroup('${groupName.replace(/'/g,"\\'")}')">Selecionar grupo</span>
+            <span class="pg-group-toggle">▼</span>
+          </div>
+        </div>
+        <div class="pg-group-pages" id="group-${groupName.replace(/\s/g,'-')}"></div>`;
+      grid.appendChild(groupDiv);
+
+      const pagesContainer = document.getElementById(`group-${groupName.replace(/\s/g,'-')}`);
+      const sorted = [...groupPgs].sort((a,b) => (b.recommended?1:0)-(a.recommended?1:0));
+      sorted.forEach(page => {
+        const card = buildPageCard(page);
+        pagesContainer.appendChild(card);
+      });
+    });
+  }
+
+  function buildPageCard(pg) {
+    const card = document.createElement('div');
+    card.className = 'page-card'; card.dataset.url = pg.url;
+    const cls = BADGE_CLASS[pg.pageType] || 'pt-other';
+    const lbl = BADGE_LABEL[pg.pageType] || 'Outro';
+    card.innerHTML = `
+      <div class="pc-thumb">
+        ${pg.thumbnailUrl ? `<img src="${pg.thumbnailUrl}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'pc-placeholder\\'><div class=\\'sp sp-w\\' style=\\'width:16px;height:16px;border-width:2px;\\'></div></div>'">` : '<div class="pc-placeholder"><div class="sp sp-w" style="width:16px;height:16px;border-width:2px;"></div></div>'}
+        ${pg.recommended ? '<div class="pg-recommended" title="Recomendada">★</div>' : ''}
+      </div>
+      <div class="pc-body">
+        <div class="pc-title">${esc(pg.title||pg.url)}</div>
+        <div class="pc-url">${trunc(pg.url,38)}</div>
+        <span class="pt-badge ${cls}">${lbl}${pg.manual ? ' <span class="manual-badge">Manual</span>' : ''}</span>
+      </div>
+      <div class="chk-badge"><svg viewBox="0 0 12 12" fill="none" width="12" height="12"><path d="M2 6l3 3 5-6" stroke="#080808" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+    card.addEventListener('click', () => togglePage(pg.url, card));
+    return card;
+  }
+
+  window.toggleGroup = function(header) {
+    const group = header.closest('.pg-group');
+    group.classList.toggle('collapsed');
+    const toggle = header.querySelector('.pg-group-toggle');
+    if (toggle) toggle.textContent = group.classList.contains('collapsed') ? '▶' : '▼';
+  };
+
+  window.selectGroup = function(groupName) {
+    const container = document.getElementById(`group-${groupName.replace(/\s/g,'-')}`);
+    if (!container) return;
+    const cards = container.querySelectorAll('.page-card');
+    const allSel = Array.from(cards).every(c => c.classList.contains('sel'));
+    cards.forEach(card => {
+      const url = card.dataset.url;
+      if (allSel) {
+        card.classList.remove('sel');
+        selected.delete(url);
+        selectedUrls = selectedUrls.filter(u => u !== url);
+      } else {
+        if (!card.classList.contains('sel')) {
+          card.classList.add('sel');
+          selected.add(url);
+          if (!selectedUrls.includes(url)) selectedUrls.push(url);
+        }
       }
     });
-  })();
+    updateS3Btn();
+  };
+
+  // ── Manual pages ──────────────────────────────────────────────────────────
+  window.toggleManualSection = function() {
+    const body = document.getElementById('manual-body');
+    if (body) body.classList.toggle('open');
+  };
+
+  window.searchManualPage = async function() {
+    const query = document.getElementById('manual-query-input').value.trim();
+    const status = document.getElementById('manual-status');
+    if (!query) return;
+    status.textContent = 'Buscando…';
+    const baseUrl = document.getElementById('url1').value.trim();
+    // Detect if it's an absolute URL or a path/query
+    const isAbsolute = query.startsWith('http://') || query.startsWith('https://') || (!query.startsWith('/') && query.includes('.'));
+    const body = isAbsolute
+      ? { baseUrl, exactUrl: query, jobId: currentJobId }
+      : { baseUrl, query, jobId: currentJobId };
+    const r = await post('/api/crawl-manual', body, 15000);
+    if (r.ok && r.data.found) {
+      status.textContent = '✓ Adicionada: ' + r.data.title;
+      addManualPageCard(r.data);
+      document.getElementById('manual-query-input').value = '';
+    } else {
+      status.textContent = (r.data && r.data.error) || 'Página não encontrada.';
+    }
+  };
+
+  function addManualPageCard(data) {
+    crawledPages.push({ url: data.url, title: data.title, thumbnailUrl: data.thumbnailUrl, pageType: 'other', recommended: false, manual: true });
+    pages.push({ url: data.url, title: data.title, thumbnailUrl: data.thumbnailUrl, pageType: 'other', recommended: false, manual: true });
+    if (groupedPages) renderPageGroups(groupedPages, crawledPages);
+  }
+
+  // ── Session history dropdown ──────────────────────────────────────────────
+  const sessionJobs = [];
+
+  window.toggleHistoryDropdown = function(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('history-dropdown');
+    if (dd) dd.classList.toggle('open');
+  };
+
+  document.addEventListener('click', function(e) {
+    const btn = document.getElementById('history-btn');
+    const dd  = document.getElementById('history-dropdown');
+    if (dd && dd.classList.contains('open') && btn && !btn.contains(e.target)) {
+      dd.classList.remove('open');
+    }
+  });
+
+  function addSessionJob(jId, domain, thumbUrl, pageCount) {
+    sessionJobs.unshift({ jobId: jId, domain, thumbUrl, pageCount: pageCount || 0, capturedAt: Date.now() });
+    renderHistoryDropdown();
+  }
+
+  function renderHistoryDropdown() {
+    const btn  = document.getElementById('history-btn');
+    const list = document.getElementById('history-dropdown-list');
+    if (btn) btn.classList.toggle('has-items', sessionJobs.length > 0);
+    if (!list) return;
+    list.innerHTML = sessionJobs.map((j) => {
+      const ago = Math.round((Date.now() - j.capturedAt) / 60000);
+      const agoTxt = ago < 1 ? 'agora mesmo' : ago < 60 ? `${ago}min atrás` : `${Math.round(ago/60)}h atrás`;
+      return `<div class="hist-job-row">
+        <div class="hist-job-thumb">${j.thumbUrl ? `<img src="${j.thumbUrl}" onerror="this.style.display='none'">` : ''}</div>
+        <div class="hist-job-meta">
+          <div class="hist-job-domain">${esc(j.domain)}</div>
+          <div class="hist-job-sub">${j.pageCount} página${j.pageCount !== 1 ? 's' : ''} · ${agoTxt}</div>
+        </div>
+        <div class="hist-job-dl" title="Re-download" onclick="historyDownload('${esc(j.jobId)}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  window.historyDownload = async function(jId) {
+    try {
+      const r = await api(`/api/capture-progress/${jId}`, {}, 5000);
+      if (!r.ok || r.data.status === 'failed') { showToast('Job não encontrado ou falhou.'); return; }
+      if (r.data.status === 'ready' || r.data.status === 'downloaded') {
+        window.location.href = `/api/download/${jId}`;
+      } else {
+        showToast('Captura ainda em andamento.');
+      }
+    } catch { showToast('Erro ao verificar job.'); }
+  };
+
+  // showToast já declarada acima com suporte a duration
+
+  // ── [COR-9] Refresh de capturas restantes ────────────────────────────────
+  async function refreshPlanStatus() {
+    const code = activeCode || localStorage.getItem('snapshot_access_code') || '';
+    try {
+      const r = await fetch('/api/plan-status', code ? { headers: { 'x-access-code': code } } : {});
+      if (!r.ok) return;
+      const d = await r.json();
+      currentPlan = Object.assign({}, currentPlan, d);
+      if (typeof updateSubBadge === 'function') updateSubBadge();
+      if (typeof applyPlanToInterface === 'function') applyPlanToInterface();
+    } catch {}
+  }
+
+  // ── [COR-7] Modal de Info do Plano ───────────────────────────────────────
+  if (!window._sessionHistory) window._sessionHistory = [];
+
+  window.openPlanInfoModal = function() {
+    const modal = document.getElementById('modal-plan-info');
+    if (!modal) return;
+
+    const planKey = currentPlan && currentPlan.plan || 'free';
+    document.getElementById('pim-plan-name').textContent = (currentPlan && currentPlan.planName) || 'Free';
+
+    const capEl = document.getElementById('pim-captures');
+    if (planKey === 'free') {
+      const used  = (currentPlan && currentPlan.capturesUsed) || 0;
+      const limit = (currentPlan && currentPlan.capturesPerDay) || 3;
+      capEl.textContent = `${used} de ${limit} usadas hoje`;
+    } else if ((currentPlan && (currentPlan.capturesPerMonth || currentPlan.monthlyCaptures) || -1) > 0) {
+      const used  = (currentPlan && currentPlan.capturesUsed) || 0;
+      const limit = (currentPlan && currentPlan.capturesPerMonth) || (currentPlan && currentPlan.monthlyCaptures) || 0;
+      capEl.textContent = `${used} de ${limit} usadas este mês`;
+    } else {
+      capEl.textContent = 'Capturas ilimitadas';
+    }
+
+    const resetEl = document.getElementById('pim-reset');
+    if (planKey === 'free') resetEl.textContent = 'Renova à meia-noite UTC';
+    else if ((currentPlan && (currentPlan.capturesPerMonth || currentPlan.monthlyCaptures) || -1) > 0) resetEl.textContent = 'Renova no dia 1 do mês';
+    else resetEl.textContent = '';
+
+    const histEl = document.getElementById('pim-history');
+    if (window._sessionHistory.length === 0) {
+      histEl.innerHTML = '<div style="font-family:\'Outfit\',sans-serif;font-size:13px;color:rgba(255,255,255,0.35);padding:6px 0;">Nenhuma captura nesta sessão.</div>';
+    } else {
+      histEl.innerHTML = window._sessionHistory.slice(-5).reverse().map(h =>
+        `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:6px;">
+          <div style="flex:1;overflow:hidden;">
+            <div style="font-family:'Outfit',sans-serif;font-size:13px;color:rgba(255,255,255,0.75);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.domain)}</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:11px;color:rgba(255,255,255,0.35);">${h.pages} pág. · ${esc(h.template)}</div>
+          </div>
+          ${h.jobId ? `<a href="/api/download/${esc(h.jobId)}" style="font-family:'Outfit',sans-serif;font-size:12px;color:rgba(255,255,255,0.45);" download>&#8595;</a>` : ''}
+        </div>`
+      ).join('');
+    }
+
+    const upgBtn = document.getElementById('pim-upgrade-btn');
+    if (upgBtn) upgBtn.style.display = (planKey === 'pro' || planKey === 'agency') ? 'none' : 'block';
+
+    modal.style.display = 'flex';
+  };
+
+  window.closePlanInfoModal = function() {
+    const m = document.getElementById('modal-plan-info');
+    if (m) m.style.display = 'none';
+  };
 
 })();
 </script>
+
+<!-- [COR-7] Modal de Info do Plano -->
+<div id="modal-plan-info" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:24px;" onclick="if(event.target===this)closePlanInfoModal()">
+  <div style="background:#161616;border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:28px;max-width:400px;width:100%;position:relative;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 id="pim-plan-name" style="font-family:'Outfit',sans-serif;font-weight:700;font-size:20px;color:rgba(255,255,255,0.92);">Free</h3>
+      <button onclick="closePlanInfoModal()" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:22px;line-height:1;">&#215;</button>
+    </div>
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Capturas</div>
+      <div id="pim-captures" style="font-family:'Outfit',sans-serif;font-size:15px;color:rgba(255,255,255,0.85);">--</div>
+      <div id="pim-reset" style="font-family:'Outfit',sans-serif;font-size:12px;color:rgba(255,255,255,0.35);margin-top:4px;"></div>
+    </div>
+    <div style="margin-bottom:20px;">
+      <div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Esta sessão</div>
+      <div id="pim-history"></div>
+    </div>
+    <button id="pim-upgrade-btn" onclick="closePlanInfoModal();openUpgradeModal('starter','')" style="width:100%;height:44px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-family:'Outfit',sans-serif;font-size:14px;color:rgba(255,255,255,0.7);cursor:pointer;">Fazer upgrade →</button>
+  </div>
+</div>
+
+<!-- ── Template Sheet Lateral ── -->
+<div id="tmpl-sheet-overlay" onclick="closeTemplateSheet()"></div>
+<div id="tmpl-sheet">
+  <div class="sheet-header">
+    <div class="sheet-preview-wrap">
+      <div id="sheet-tmpl-preview" class="sheet-preview"></div>
+    </div>
+    <div class="sheet-header-info">
+      <div id="sheet-tmpl-name" class="sheet-tmpl-name"></div>
+      <div class="sheet-subtitle">Escolha como aplicar este template</div>
+    </div>
+    <button class="sheet-close" onclick="closeTemplateSheet()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="sheet-section-title">Aplicar em quais páginas?</div>
+  <div class="sheet-mode-cards">
+    <div id="sheet-card-all" class="sheet-mode-card sel" onclick="setSheetMode('all')">
+      <div class="smc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+      <div>
+        <div class="smc-title">Todas as páginas</div>
+        <div id="sheet-all-label" class="smc-sub">Template padrão para todas as páginas</div>
+      </div>
+      <div class="smc-chk"><svg viewBox="0 0 10 10" fill="none" width="10" height="10"><path d="M1.5 5l2.5 2.5 4.5-5" stroke="#0a0a0a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div id="sheet-card-specific" class="sheet-mode-card" onclick="setSheetMode('specific')">
+      <div class="smc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+      <div>
+        <div class="smc-title">Páginas específicas</div>
+        <div class="smc-sub">Escolha em quais páginas aplicar</div>
+      </div>
+      <div class="smc-chk"><svg viewBox="0 0 10 10" fill="none" width="10" height="10"><path d="M1.5 5l2.5 2.5 4.5-5" stroke="#0a0a0a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+  </div>
+
+  <div id="sheet-page-list" style="display:none;"></div>
+
+  <div class="sheet-footer">
+    <button class="sheet-btn-reset" onclick="resetSheetToGlobal()" title="Remove este template de todas as páginas e volta ao modelo global">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Resetar
+    </button>
+    <div style="flex:1"></div>
+    <button class="sheet-btn-cancel" onclick="closeTemplateSheet()">Cancelar</button>
+    <button class="sheet-btn-apply" onclick="applyTemplateSheet()">Aplicar</button>
+  </div>
+</div>
 </body>
 </html>

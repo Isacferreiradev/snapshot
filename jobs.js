@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const jobs = new Map();
 const shareIndex = new Map(); // shareToken → jobId
 
-const TWO_HOURS_MS    = 2  * 60 * 60 * 1000;
+const TWO_HOURS_MS    = 4  * 60 * 60 * 1000; // 4h TTL para dar tempo de re-render pós-compra
 const FORTY_EIGHT_H   = 48 * 60 * 60 * 1000;
 const CLEANUP_MS      = 30 * 60 * 1000;
 const COUNTER_FILE    = path.join(__dirname, 'counter.json');
@@ -33,20 +33,33 @@ function createJob(jobId, options) {
     paid: false,
     paidAt: null,
     downloaded: false,
-    accessCode: opts.accessCode || null,        // legacy compat
-    subscriptionCode: opts.subscriptionCode || null,  // SNAP-XXXX-XXXX-XXXX
-    pkg: opts.pkg || null,                 // 'starter' | 'pro' | 'agency'
+    accessCode: opts.accessCode || null,
+    subscriptionCode: opts.subscriptionCode || null,
+    pkg: opts.pkg || null,
     // Crawl results
     pages: [],
     selectedPages: [],
     // Render
     renderConfig: {
-      template: 'obsidian',
+      template: 'void',
       smartCrop: false,
       socialExport: false,
       scheduleEmail: null,
     },
     captureProgress: { total: 0, completed: 0, current: '', percent: 0 },
+    // Page-level status for SSE (url → { status, duration })
+    pageStatuses: {},
+    // Capture plan tracking
+    capturedWithPlan:  null,
+    watermarkApplied:  null,
+    // Per-page template assignments { url: templateId }
+    pageTemplates: {},
+    // User-defined page order (array of URLs)
+    pageOrder: [],
+    // Per-page settings { url: { aboveFoldOnly: boolean } }
+    pageSettings: {},
+    // Manual pages added count
+    manualPagesAdded: 0,
     // Compare mode
     compareMode: false,
     compareUrls: null,
@@ -122,12 +135,68 @@ function setCompareMode(jobId, compareUrls) {
   if (job) { job.compareMode = true; job.compareUrls = compareUrls; job.status = 'configuring'; }
 }
 
+function setJobCaptureInfo(jobId, capturedWithPlan, watermarkApplied) {
+  const job = jobs.get(jobId);
+  if (!job) return;
+  job.capturedWithPlan = capturedWithPlan || null;
+  job.watermarkApplied = !!watermarkApplied;
+}
+
 function updateCaptureProgress(jobId, updates) {
   const job = jobs.get(jobId);
   if (!job) return;
   Object.assign(job.captureProgress, updates);
   const { completed, total } = job.captureProgress;
   if (total > 0) job.captureProgress.percent = Math.floor((completed / total) * 100);
+}
+
+function updatePageStatus(jobId, pageUrl, status, duration) {
+  const job = jobs.get(jobId);
+  if (!job) return;
+  job.pageStatuses[pageUrl] = { status, duration: duration || null, ts: Date.now() };
+}
+
+// ── Per-page template ──────────────────────────────────────────────────────────
+function setPageTemplate(jobId, pageUrl, templateId) {
+  const job = jobs.get(jobId);
+  if (!job) return;
+  if (!job.pageTemplates) job.pageTemplates = {};
+  job.pageTemplates[pageUrl] = templateId;
+}
+
+function getPageTemplate(jobId, pageUrl) {
+  const job = jobs.get(jobId);
+  if (!job) return null;
+  return (job.pageTemplates && job.pageTemplates[pageUrl]) || null;
+}
+
+// ── Page order ────────────────────────────────────────────────────────────────
+function setPageOrder(jobId, urlsOrdered) {
+  const job = jobs.get(jobId);
+  if (!job) return;
+  job.pageOrder = urlsOrdered || [];
+}
+
+// ── Per-page settings ─────────────────────────────────────────────────────────
+function setPageSetting(jobId, pageUrl, key, value) {
+  const job = jobs.get(jobId);
+  if (!job) return;
+  if (!job.pageSettings) job.pageSettings = {};
+  if (!job.pageSettings[pageUrl]) job.pageSettings[pageUrl] = {};
+  job.pageSettings[pageUrl][key] = value;
+}
+
+// ── Manual pages counter ───────────────────────────────────────────────────────
+function incrementManualPages(jobId) {
+  const job = jobs.get(jobId);
+  if (!job) return 0;
+  job.manualPagesAdded = (job.manualPagesAdded || 0) + 1;
+  return job.manualPagesAdded;
+}
+
+function getManualPagesCount(jobId) {
+  const job = jobs.get(jobId);
+  return job ? (job.manualPagesAdded || 0) : 0;
 }
 
 function isPaid(jobId) { const j = jobs.get(jobId); return j ? j.paid : false; }
@@ -156,7 +225,11 @@ setInterval(() => {
 module.exports = {
   createJob, markPaid, markDownloaded, markReady, markFailed,
   updateCrawlResult, updateSelectedPages, updateRenderConfig,
-  updateCaptureProgress, setCompareMode,
+  updateCaptureProgress, updatePageStatus,
+  setCompareMode, setJobCaptureInfo,
+  setPageTemplate, getPageTemplate,
+  setPageOrder, setPageSetting,
+  incrementManualPages, getManualPagesCount,
   appendCrawlLog, addGalleryItem,
   isPaid, jobExists, getJob, getJobByShareToken,
   incrementCounter, getCounter,

@@ -1,417 +1,635 @@
-# SnapShot.pro — Manifesto do MVP
+# SnapShot.pro — Manifesto Completo do Produto
+
+> Documento gerado em 2026-03-22. Descreve exatamente o que existe no código — não o que deveria existir.
+> Para análise estratégica: leia tudo antes de sugerir qualquer mudança.
 
 ---
 
-## O que é
+## 1. O QUE É O PRODUTO
 
-SnapShot.pro é uma ferramenta de utilidade pura. O usuário chega com um problema específico — precisa de screenshots profissionais de um site — e sai com o problema resolvido em menos de dois minutos, sem criar conta, sem assinar plano, sem instalar nada.
+**SnapShot.pro** é um micro-SaaS B2B que gera screenshots profissionais de sites, envolve a imagem num template visual e entrega um ZIP com PNGs prontos para usar em apresentações, portfólios, propostas e decks.
 
-O produto captura dois formatos simultaneamente: desktop em resolução de monitor moderno e mobile emulando um iPhone atual. Entrega ambos num arquivo ZIP organizado, prontos para usar em portfólio, pitch deck, documentação técnica ou proposta comercial.
-
-Não há cadastro porque cadastro é atrito. Não há dashboard porque não há nada para gerenciar. O modelo pay-per-use é o produto. A ausência de fricção é a feature.
-
----
-
-## Por que existe
-
-Screenshots profissionais são difíceis de tirar manualmente:
-
-- Navegadores não capturam o pixel exato certo
-- Resolução varia por monitor
-- Mobile exige emulação ou dispositivo físico
-- Ferramentas gratuitas têm marca d'água, limite de uso ou exigem cadastro
-- O resultado raramente está pronto para uso profissional
-
-SnapShot.pro resolve isso com um único clique e $4,99. A alternativa custa 20 minutos de trabalho manual e ainda assim fica ruim.
-
----
-
-## Fluxo completo do produto
-
+**Fluxo completo do usuário:**
 ```
-Usuário cola URL
-       ↓
-POST /api/capture
-       ↓
-Puppeteer abre Chrome headless
-       ↓
-Captura desktop (1440×900 @2x)
-Captura mobile (390×844 iPhone)
-Gera preview com blur + marca d'água
-       ↓
-Frontend exibe preview borrado
-       ↓
-Usuário clica em "Pagar"
-       ↓
-POST /api/create-checkout
-       ↓
-[Stripe Checkout — desativado no MVP atual]
-       ↓
-Job marcado como "pago"
-Redirect para /?success=true&jobId=...
-       ↓
-Frontend detecta params na URL
-Aguarda 1,5 segundo
-Dispara download automático
-       ↓
-GET /api/download/:jobId
-       ↓
-Server monta ZIP via streaming
-Envia desktop.png + mobile.png
-Deleta arquivos temporários
-       ↓
-Usuário recebe ZIP com 2 PNGs
+URL input → Crawl → Seleção de páginas → Escolha de template → Captura → Download ZIP
 ```
 
+**Stack:**
+- Backend: Node.js 18 + Express 4 (CommonJS, sem TypeScript)
+- Screenshots: Puppeteer com pool de 2 browsers persistentes
+- Frontend: SPA vanilla JS (index.html ~56 KB, sem framework)
+- Pagamento: AbacatePay (PIX QR code transparente)
+- Erros: Sentry
+- Alertas: Telegram Bot
+- Persistência: JSON files em disco (sem banco de dados)
+
 ---
 
-## Arquitetura
+## 2. ARQUITETURA — MÓDULOS E RESPONSABILIDADES
 
-O projeto tem **zero dependências externas além do Stripe** (desativado agora). Sem banco de dados, sem fila, sem cloud storage, sem serviço de terceiros. Tudo roda num único processo Node.js.
+### server.js — Servidor principal
+Orquestra tudo. Express na porta 3001.
 
+**Middleware crítico:**
+- Rate limiter: 10 req/60s por IP (cleanup a cada 5 min)
+- Plan middleware: lê header `X-Access-Code`, valida via `resolveAccessCode()`, injeta `req.plan`, `req.planKey`, `req.planName`, `req.accessCode` em TODAS as rotas
+
+**`resolveAccessCode(code)`:** distingue dois formatos de código:
+- `SNAP-XXXX-XXXX-XXXX` → chama `validateSubscription()` de subscriptions.js (mensal, com limite de capturas)
+- Hex 16 chars → chama `validateCode()` de codes.js (pré-pago, créditos por captura)
+
+**Rotas existentes:**
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | /api/webhook/abacatepay | Webhook PIX pago → gera código SNAP- |
+| POST | /api/webhook | Legado vazio (compat) |
+| GET | /health | `{ok:true, ts}` |
+| GET | /api/stats | `{total: N}` contador de capturas |
+| GET | /api/plans | Array com info dos 3 planos pagos |
+| GET | /api/packages | Alias de /api/plans |
+| POST | /api/validate-code | Verifica código SNAP- ou hex |
+| POST | /api/create-pix | Gera QR Code PIX via AbacatePay |
+| GET | /api/pix-status | Polling: está pago? retorna accessCode |
+| POST | /api/simulate-pix | Dev only — simula pagamento |
+| POST | /api/validate-url | HEAD request p/ verificar se URL existe |
+| POST | /api/crawl | Inicia crawl (assíncrono) → retorna jobId |
+| GET | /api/crawl-status/:jobId | Estado atual do job de crawl |
+| GET | /api/crawl-stream/:jobId | SSE — logs do crawl em tempo real |
+| POST | /api/select-pages | Confirma URLs selecionadas pelo usuário |
+| POST | /api/start-capture | Inicia captura assíncrona |
+| GET | /api/capture-progress/:jobId | Progresso da captura (percent, gallery) |
+| POST | /api/compare | Modo A/B (Pro+) |
+| POST | /api/create-checkout | Libera download (só marca como paid) |
+| GET | /api/download/:jobId | Serve ZIP e deleta pasta |
+| GET | /api/templates | Lista templates com flag `locked` baseado no plano |
+| GET | /api/plan-status | Estado completo do plano do requester |
+| GET | /api/share-token/:jobId | Retorna share token |
+| GET | /share/:token | Página HTML pública de preview (expira em 48h) |
+
+**Lógica de watermark (server.js linha 468):**
+```js
+applyWatermark = !(subValid && subValid.valid)
+// Regra: watermark SE não tem código OU código inválido
+// Sem código = free tier = watermark queimada no PNG
 ```
-readyscreen/
-├── server.js          ← Ponto de entrada. Todas as rotas e middlewares.
-├── screenshotter.js   ← Lógica do Puppeteer. Captura e preview.
-├── stripe.js          ← Integração Stripe (inativa no momento).
-├── jobs.js            ← Estado em memória. Controle dos jobs.
-├── public/
-│   └── index.html     ← Frontend inteiro. HTML + CSS + JS num único arquivo.
-├── screenshots/       ← Pasta temporária. Arquivos vivem por minutos.
-│   └── .gitkeep
-├── .env               ← Variáveis de ambiente (não vai pro git).
-├── .env.example       ← Template documentado do .env.
-├── .gitignore
-├── package.json
-└── README.md
+
+**Lógica de crédito (linha 527):**
+```js
+// UMA captura por job (independente de quantas páginas)
+consumeAccessCredit(subCode);
+// SNAP-: incrementCaptures() (conta capturas mensais)
+// hex: decrementCode() (conta créditos pré-pagos)
 ```
 
-### Por que essa estrutura
-
-Cada arquivo tem uma responsabilidade única e não mistura contextos. `server.js` sabe de rotas. `screenshotter.js` sabe de Puppeteer. `jobs.js` sabe de estado. `stripe.js` sabe de pagamento. Nenhum deles sabe do negócio do outro além do mínimo necessário.
-
 ---
 
-## Cada arquivo explicado
+### jobs.js — Estado de jobs em memória
 
----
+Armazena todos os jobs em `Map<jobId, job>`.
 
-### `jobs.js` — O cérebro de estado
-
-O coração do sistema. Mantém um `Map` JavaScript em memória com o estado de cada job.
-
-**Estrutura de um job:**
+**Estrutura completa de um job:**
 ```js
 {
-  jobId: 'uuid-v4',
-  createdAt: 1710000000000,  // timestamp em ms
-  paid: false,               // true após pagamento confirmado
-  paidAt: null,              // timestamp do pagamento
-  downloaded: false          // true após ZIP entregue
+  jobId,            // UUID
+  createdAt,        // timestamp
+  status,           // 'crawling' | 'selecting' | 'configuring' | 'capturing' | 'ready' | 'paid' | 'downloaded' | 'failed'
+  failReason,
+  paid,             // boolean
+  paidAt,
+  downloaded,
+
+  // Acesso
+  accessCode,       // código original submetido
+  subscriptionCode, // código validado (SNAP- ou hex)
+  pkg,              // pacote (starter/pro/agency)
+
+  // Crawl
+  pages[],          // [{url, title, pageType, thumbnail, recommended, score}]
+  crawlLog[],       // linhas de texto para SSE
+  totalFound,       // total de URLs descobertas antes do limite
+  planLimit,        // limite de páginas do plano
+
+  // Seleção
+  selectedPages[],  // URLs escolhidas pelo usuário
+
+  // Render
+  renderConfig,     // {template, mobile, deviceScaleFactor, planName, ...}
+  applyWatermark,
+  capturedWithPlan,
+
+  // Progresso de captura
+  captureProgress,  // {total, completed, current, percent}
+  pageStatuses,     // {url → {status, duration}}
+
+  // Por-página
+  pageTemplates,    // {url → templateId} — EXISTE MAS NÃO É APLICADO NO RENDER
+  pageOrder,        // [url, url, ...] ordenação manual
+  pageSettings,     // {url → {aboveFoldOnly, captureStrategy}}
+  manualPagesAdded, // contador de páginas adicionadas manualmente
+
+  // Comparação
+  compareMode,
+  compareUrls[],
+
+  // Galeria
+  gallery[],        // [{index, url, title, previewUrl}]
+
+  // Compartilhamento
+  shareToken,       // UUID
+  shareExpiry,      // timestamp +48h
 }
 ```
 
-**Funções exportadas:**
-
-| Função | O que faz |
-|---|---|
-| `createJob(jobId)` | Cria entrada no Map com estado inicial |
-| `markPaid(jobId)` | Seta `paid: true` e registra `paidAt` |
-| `markDownloaded(jobId)` | Seta `downloaded: true` |
-| `isPaid(jobId)` | Retorna boolean — job está pago? |
-| `jobExists(jobId)` | Retorna boolean — job existe? |
-| `getJob(jobId)` | Retorna o objeto completo do job |
-
-**Limpeza automática:**
-A cada 30 minutos, um `setInterval` varre o Map e deleta jobs com mais de 2 horas de vida. Isso evita vazamento de memória em produção. O intervalo começa quando o módulo é importado — sem necessidade de chamada explícita.
-
-**Por que não banco de dados:**
-Jobs são efêmeros por design. Existem por minutos, não horas. Um banco adicionaria latência, complexidade de setup e um ponto de falha sem nenhum benefício real. Se o servidor reiniciar, jobs em andamento são perdidos — isso é aceitável no MVP porque o fluxo é rápido e o usuário está ativo na sessão.
+**Cleanup automático:** a cada 30 min, deleta jobs com `createdAt` > 2h atrás.
 
 ---
 
-### `screenshotter.js` — O motor de captura
+### crawler.js — Descoberta de páginas
 
-Controla o Puppeteer (Chrome headless) e produz três arquivos para cada job.
+**`crawlSite(url, jobId, maxPages)`:**
+1. Abre browser do pool
+2. Navega para a URL seed (`domcontentloaded`, timeout 10s)
+3. Extrai todos os `<a href>` + links de nav (prioridade)
+4. Filtra: mesmo domínio, sem extensões de arquivo, sem fragmentos
+5. Rankeia por pageType score
+6. Captura thumbnail (800x500 JPEG q50) para as top N páginas
+7. Retorna `{pages[], totalFound}`
 
-**Função principal:** `captureScreenshots(url, jobId)`
+**`rankPages(pages)`:** adiciona flag `recommended` nas top 4.
 
-**Etapa 1 — Validação:**
-Antes de abrir qualquer browser, valida a URL. Verifica se existe, se é string, se começa com `http://` ou `https://`, e se é uma URL válida (`new URL()`). Erros aqui são rápidos e não consomem recursos.
-
-**Etapa 2 — Desktop:**
-- Viewport: 1440×900 pixels
-- Device scale factor: 2 (equivale a uma tela Retina)
-- Screenshot final: 2880×1800px
-- Arquivo: `screenshots/{jobId}/desktop.png`
-- Tenta `networkidle2` primeiro (aguarda a rede estabilizar), cai para `domcontentloaded` se timeout
-
-**Etapa 3 — Mobile:**
-- Viewport: 390×844 pixels (iPhone 14)
-- Device scale factor: 3 (Retina do iPhone)
-- Screenshot final: 1170×2532px
-- User-Agent real de iPhone com iOS 17
-- Touch e mobile mode habilitados
-- Arquivo: `screenshots/{jobId}/mobile.png`
-
-**Etapa 4 — Preview:**
-O preview não é gerado com CSS no navegador — é um novo page do Puppeteer que renderiza um HTML completo com:
-- A imagem desktop embutida em base64 (sem depender de URL)
-- Filtro `blur(6px)` via CSS
-- Overlay semitransparente escuro
-- Texto "SnapShot.pro Preview" em diagonal com `transform: rotate(-18deg)`
-- Viewport fixo de 800×500px @2x
-
-Esse approach garante que o preview seja pixel-perfect e independente de qualquer estado externo.
-
-**Cleanup de erros:**
-Se qualquer etapa falhar, os arquivos parciais são deletados e o erro é relançado com mensagem legível para o usuário. O browser é sempre fechado no bloco `finally` — sem vazamento de processos.
-
-**Timeout:** 30 segundos por navegação. Sites lentos ou inacessíveis recebem uma mensagem descritiva, não um erro genérico.
+**`groupPages(pages)`:** agrupa por categoria: `homepage`, `produto`, `blog`, `legal`, `outros`.
 
 ---
 
-### `stripe.js` — O módulo de pagamento
+### screenshotter.js — Captura e renderização
 
-Atualmente inativo no fluxo principal, mas completamente implementado.
+**`captureJobPages(urls, jobId, cfg, onProgress, applyWatermark, pageOptions)`:**
+- Captura até 3 páginas em paralelo (semáforo)
+- Para cada página: captura desktop + mobile
+- Aplica template via `renderProfessional()`
+- Salva em `screenshots/{jobId}/page-NN/desktop-professional.png` e `mobile-professional.png`
+- Gera `preview.png` (thumbnail 400x250 JPEG q60)
+- Chama `onProgress(i, result, err)` após cada página
 
-**`createCheckoutSession(jobId)`:**
-Cria uma sessão de pagamento único no Stripe com:
-- Produto: "Screenshot Pack — Desktop + Mobile"
-- Preço: lido de `PRICE_CENTS` no `.env` (padrão: 499 = $4,99)
-- Moeda: USD
-- `success_url`: redireciona de volta com `?success=true&jobId={jobId}`
-- `cancel_url`: volta para a raiz sem parâmetros
-- `metadata.jobId`: armazenado na sessão para recuperação no webhook
+**Viewport desktop:** 1440x900, DSF=2
+**Viewport mobile:** 390x844, DSF=3, isMobile=true
 
-**`handleWebhook(rawBody, signature)`:**
-Verifica a assinatura criptográfica do Stripe para garantir que o evento é legítimo (não pode ser forjado). Extrai o `jobId` dos metadados do evento `checkout.session.completed` e retorna para o `server.js` marcar o job como pago.
+**6 estratégias de captura em cascata:**
+1. networkidle0 (mais pesada, mais completa)
+2. networkidle2
+3. domcontentloaded
+4. load
+5. Full render com scroll
+6. Fallback: screenshot direto
 
-**Por que a verificação de assinatura importa:**
-Sem ela, qualquer pessoa poderia fazer um POST para `/api/webhook` fingindo que um pagamento foi feito e baixar os arquivos de graça.
+**Stealth features:**
+- Remove `navigator.webdriver`
+- Bloqueia: tracking scripts (GA, Facebook, HotJar, Intercom, etc.), vídeos, fontes de terceiros
+- Permite: CSS, imagens, recursos do mesmo domínio
 
 ---
 
-### `server.js` — O centro de controle
+### browser-pool.js — Pool de browsers Puppeteer
 
-Express rodando na porta 3001 (configurável via `PORT` no `.env`).
+- 2 browsers persistentes pré-iniciados
+- Keep-alive a cada 60s (cria e fecha page em branco)
+- Se um browser cair, recria automaticamente
+- Overflow: cria browser temporário, fecha após uso
+- Flags: `--no-sandbox`, `--disable-dev-shm-usage`, `--disable-gpu`, `--disable-blink-features=AutomationControlled`, `--disable-web-security`
 
-**Ordem dos middlewares — isso é crítico:**
+---
+
+### renderer.js — 12 templates
+
+**`renderTemplate(templateId, screenshotPath, deviceType, options)`** → retorna `Buffer` (PNG)
+
+Cada template é uma função async que retorna `{html, renderConfig}`:
+- Lê o PNG como base64 e embute diretamente no HTML (`data:image/png;base64,...`)
+- HTML completo sem dependências externas
+- renderConfig = `{width, height, deviceScaleFactor}`
+
+**Os 12 templates:**
+
+| ID | Dimensões (CSS px) | Plano | Categoria | Descrição |
+|----|-------------------|-------|-----------|-----------|
+| void | 2400×1600 | free | device | Screenshot flutuando no preto absoluto |
+| chrome | 2400×1720 | free | professional | Janela macOS com dots coloridos e URL bar |
+| float | 2400×1600 | free | device | Card elevado em gradiente escuro profundo |
+| macbook | 2400×1700 | starter | device | MacBook Pro realista com base e stand |
+| iphone-pro | 900×1900 | starter | device | iPhone 15 Pro com Dynamic Island e botões |
+| browser-dark | 2400×1720 | starter | device | Browser dark com glow violeta sutil |
+| terminal | 2400×1720 | starter | device | Janela zsh com prompt verde |
+| paper | 2400×1800 | starter | professional | Folha branca sobre fundo bege |
+| presentation-slide | 1920×1080 | starter | professional | Editorial 16:9, texto à esq, screenshot à dir |
+| cinematic | 2520×1080 | starter | creative | Barras pretas 2.35:1, crédito no rodapé |
+| gradient-mesh | 2400×1600 | starter | creative | 4 gradientes radiais nos cantos |
+| noir | 2400×1600 | starter | creative | B&W com grain cinematográfico e vinheta |
+
+Todos renderizados em `deviceScaleFactor: 2`, então o PNG de saída tem o dobro de pixels.
+
+**Wrappers para backward compat com screenshotter.js:**
+- `renderProfessional({...})` → escreve arquivo no disco, retorna path
+- `renderSocialExport({...})` → retorna Buffer
+- `renderComparison({...})` → side-by-side 2800×1600
+
+---
+
+### billing.js — Pagamento PIX (AbacatePay)
+
+**`createPixPayment(plan, customer)`:** chama AbacatePay API, salva em `data/billing.json`, retorna QR.
+
+**`checkPixStatus(pixId)`:** polling — verifica local, depois API se pending.
+
+**`activatePayment(pixId, plan)`:** idempotente — gera `SNAP-XXXX-XXXX-XXXX` se ainda não existe.
+
+**`verifyWebhookSignature(rawBody, sig)`:** HMAC-SHA256 com `ABACATEPAY_WEBHOOK_SECRET`.
+
+**Preços:** Starter R$19,90 / Pro R$49,90 / Agency R$129,90 /mês
+
+---
+
+### subscriptions.js — Códigos SNAP- (assinaturas mensais)
+
+- Formato: `SNAP-XXXX-XXXX-XXXX`
+- Limites mensais: starter=100, pro=ilimitado, agency=ilimitado
+- Reset automático a cada hora (verifica `monthResetAt`)
+- Limite diário free por IP: **in-memory** (perdido no restart)
+- Validade: 30 dias (renovável via webhook)
+
+---
+
+### codes.js — Códigos hex (pré-pagos)
+
+- Formato: hex 16 chars
+- N créditos por código, 1 crédito = 1 job (independente de páginas)
+- TTL: 1 ano
+- Sem API de geração via admin no server.js
+
+---
+
+### config.js — Planos
+
+Lê `data/config.json`. Expõe `getPlanConfig()`, `isTemplateUnlocked()`, `getLimit()`.
+
+---
+
+### telegram.js — Alertas
+
+`sendAlert(message)` → Telegram Bot API. Falha silenciosamente se não configurado.
+
+Dispara em: pagamento confirmado, 3 falhas consecutivas de captura, simulação de pagamento.
+
+---
+
+### instrument.js — Sentry
+
+Inicializa Sentry com DSN hardcoded. `sendDefaultPii: true` (problema LGPD).
+
+---
+
+## 3. DADOS E CONFIGURAÇÃO
+
+### data/config.json — Planos completos
 
 ```
-1. express.raw() — APENAS para /api/webhook
-2. express.json() — para todas as outras rotas
-3. express.static('public') — serve o index.html
-4. express.static('screenshots') — serve os previews
+free:
+  watermark: true
+  templatesUnlocked: ["void", "chrome", "float"]
+  crawlLimit: 4
+  capturesPerDay: 3         ← verificado em /api/crawl, in-memory
+  capturesPerMonth: -1      ← ilimitado (nunca checado)
+  mobileCapture: false      ← sem captura mobile
+  deviceScaleFactor: 1      ← resolução 1x (qualidade menor)
+  manualPagesPerJob: 0
+  compareMode: false
+  cssSelector: false
+  shareLink: false
+
+starter:
+  watermark: false
+  templatesUnlocked: "all"
+  crawlLimit: 10
+  capturesPerDay: -1
+  capturesPerMonth: 60
+  mobileCapture: true
+  deviceScaleFactor: 2
+  manualPagesPerJob: 2
+  compareMode: false
+  cssSelector: false
+  shareLink: false
+
+pro:
+  watermark: false
+  templatesUnlocked: "all"
+  crawlLimit: 20
+  capturesPerMonth: -1
+  mobileCapture: true
+  deviceScaleFactor: 2
+  manualPagesPerJob: 8
+  compareMode: true
+  cssSelector: true
+  socialExport: true
+  shareLink: true (7 dias)
+  smartCrop: true
+  templatePresets: true
+
+agency:
+  watermark: false
+  templatesUnlocked: "all"
+  crawlLimit: 999
+  capturesPerMonth: -1
+  mobileCapture: true
+  deviceScaleFactor: 2
+  manualPagesPerJob: -1 (ilimitado)
+  compareMode: true
+  cssSelector: true
+  apiAccess: true
+  shareLink: true (30 dias)
+  maxCodes: 3
 ```
 
-A ordem importa porque o Stripe precisa do body **cru** (raw bytes) para verificar a assinatura. Se `express.json()` processar primeiro, os bytes mudam e a verificação falha. Por isso o webhook é registrado antes do parser global.
+### data/billing.json
 
-**Rotas:**
-
----
-
-**`POST /api/capture`**
-
-Recebe `{ url }`, valida, gera um `jobId` via UUID v4, chama o Puppeteer e retorna o caminho do preview.
-
-Validações:
-- `url` deve existir e ser string
-- Deve começar com `http://` ou `https://`
-- Deve ter no máximo 500 caracteres
-
-Retorna `{ jobId, previewUrl }` em caso de sucesso, `422` se o Puppeteer falhar.
+Registros de pagamento PIX. Campos: `pixId, plan, status, accessCode, createdAt, paidAt, expiresAt, customer`. Cleanup automático a cada 6h (remove expirados).
 
 ---
 
-**`POST /api/create-checkout`**
-
-Recebe `{ jobId }`, verifica se o job existe e:
-
-- **Modo atual (sem Stripe):** marca o job como pago imediatamente e retorna a URL de sucesso diretamente
-- **Modo produção (com Stripe):** cria sessão no Stripe e retorna a URL do Checkout
-
-O frontend não precisa saber qual modo está ativo — ele sempre recebe `{ checkoutUrl }` e redireciona.
-
----
-
-**`POST /api/webhook`**
-
-Endpoint para o Stripe notificar que um pagamento foi concluído.
-
-- Atualmente: retorna `200 {}` sem fazer nada (o bypass já cuida do `markPaid`)
-- Em produção: verifica assinatura, extrai `jobId`, chama `markPaid`
-
-Nunca retorna 5xx para o Stripe — isso causaria retentativas infinitas.
-
----
-
-**`GET /api/download/:jobId`**
-
-A rota mais importante. Verificações em sequência:
-
-1. Job existe? → 404 se não
-2. Job está pago? → 402 se não
-3. Arquivos existem no disco? → 410 se já foram deletados
-
-Se tudo ok:
-- Configura headers de ZIP com nome do arquivo
-- Cria um archive com `archiver`
-- Adiciona `desktop.png` e `mobile.png` com nomes descritivos
-- Faz pipe do archive direto para o response (streaming — sem salvar ZIP em disco)
-- Quando o archive termina: deleta a pasta do job e marca como downloaded
-
-**Por que streaming:**
-Um ZIP de dois screenshots em alta resolução pode ter 5-15 MB. Streaming evita acumular tudo em memória antes de enviar.
-
----
-
-**Handler de erro global:**
-Qualquer exceção não tratada em rotas async cai aqui. Retorna `500` com mensagem genérica — nunca expõe stack traces para o usuário.
-
----
-
-### `public/index.html` — O frontend inteiro
-
-Um único arquivo com HTML, CSS e JavaScript. Sem framework, sem bundler, sem transpilação. O que você vê é o que o browser executa.
-
-**Identidade visual:**
-- Fonte: Outfit (Google Fonts) — moderna, geométrica, caráter próprio
-- Fundo: `#0a0a0f` — quase preto, não preto puro
-- Acento: `#6c47ff` — índigo-violeta
-- Texto: `rgba(255,255,255,0.92)` — branco com leve transparência para não estourar
-- Texto secundário: `rgba(255,255,255,0.45)` — hierarquia visual sem mudar a cor
-- Bordas: `rgba(255,255,255,0.08)` — sutis, quase invisíveis
-
-Todas as cores em variáveis CSS no `:root`. Mudar o tema é trocar 8 linhas.
-
-**Seções da página:**
-
-`#hero` — estado inicial. Título, subtítulo, campo de URL e botão de captura. Visível quando a página carrega sem parâmetros na URL.
-
-`#preview-section` — aparece após captura. Mostra o preview borrado com watermark, as dimensões dos dois formatos, e o card de pagamento com o CTA.
-
-`#success-section` — aparece quando a URL tem `?success=true&jobId=...`. Animação de check, mensagem de confirmação e disparo automático do download.
-
-**Máquina de estados em JavaScript:**
-
-O JS não usa frameworks — controla a visibilidade das seções manipulando a classe `.hidden` diretamente no DOM. As transições são via CSS `opacity + visibility` para não ocupar espaço quando invisível.
-
-Estados:
-1. **Inicial** — hero visível, resto oculto
-2. **Capturando** — botão desabilitado com spinner, input bloqueado
-3. **Erro de captura** — mensagem vermelha abaixo do input, some quando o usuário digita
-4. **Preview** — hero some, seção de preview aparece com fade
-5. **Redirecionando para pagamento** — botão de pagamento com spinner
-6. **Sucesso** — seção de sucesso visível, download automático após 1,5s
-
-**Por que 1,5 segundo de delay no download:**
-O Stripe precisa de tempo para processar o webhook depois de redirecionar o usuário. O delay dá margem para o servidor receber e processar o `checkout.session.completed` antes de tentar o download. No modo atual (sem Stripe), o delay é irrelevante mas não prejudica nada.
-
-**O preview borrado:**
-O blur existe por razão de negócio: mostrar que a captura funcionou sem entregar o produto. O usuário vê o suficiente para confirmar que está certo antes de pagar. A watermark é gerada no servidor via Puppeteer — não é CSS que o usuário pode remover inspecionando o elemento.
-
----
-
-## Decisões de arquitetura
-
-### Sem banco de dados
-
-O estado do job (pago ou não, baixado ou não) vive em memória no `Map` do `jobs.js`. Isso funciona porque:
-
-- Jobs são criados e consumidos em minutos
-- Um restart de servidor invalida jobs antigos — aceitável porque o usuário está ativo
-- Sem banco = sem latência, sem conexão, sem schema, sem migration
-- Em escala real, um Redis com TTL seria o próximo passo natural
-
-### Sem autenticação
-
-O produto não sabe quem é o usuário e não precisa. O `jobId` é um UUID v4 aleatório — 122 bits de entropia. É impossível adivinhar o UUID de outro usuário. A "autenticação" é o próprio ID.
-
-### Sem framework de frontend
-
-React, Vue e similares adicionam um build step, um node_modules no cliente, um bundle que precisa ser servido. Para uma página com três seções e uma API, isso é overhead puro. JavaScript vanilla roda direto no browser sem compilação, sem dependência, sem nada para quebrar.
-
-### Sem TypeScript
-
-TypeScript requer compilação. A regra do projeto é zero build steps. JS puro com CommonJS (`require/module.exports`) é consistente em todo o codebase e compatível com todas as versões do Node 18+.
-
-### Sem CSS framework
-
-Tailwind, Bootstrap e afins são abstrações. O CSS desse projeto cabe em 350 linhas e faz exatamente o que precisa. Mais rápido de carregar, mais simples de depurar, mais fácil de entender.
-
-### Streaming do ZIP
-
-O `archiver` faz pipe do arquivo comprimido diretamente para o response HTTP sem materializar o ZIP em disco. O servidor nunca tem que armazenar o arquivo comprimido — ele vai do disco de origem direto para o cliente.
-
----
-
-## Variáveis de ambiente
-
-| Variável | Obrigatória | Padrão | Descrição |
-|---|---|---|---|
-| `PORT` | Não | `3000` | Porta HTTP do servidor |
-| `BASE_URL` | Sim | — | URL base sem barra final. Ex: `http://localhost:3001` |
-| `STRIPE_SECRET_KEY` | Não* | — | Chave secreta do Stripe |
-| `STRIPE_PUBLISHABLE_KEY` | Não* | — | Chave pública do Stripe |
-| `STRIPE_WEBHOOK_SECRET` | Não* | — | Segredo de verificação de webhook |
-| `PRICE_CENTS` | Não | `499` | Preço em centavos (499 = $4,99) |
-
-*Não obrigatórias enquanto o pagamento estiver bypassed.
-
----
-
-## Estado atual do MVP
-
-| Funcionalidade | Status |
-|---|---|
-| Captura de screenshot desktop | ✅ Funcionando |
-| Captura de screenshot mobile | ✅ Funcionando |
-| Preview com blur e watermark | ✅ Funcionando |
-| Download do ZIP | ✅ Funcionando |
-| Interface visual completa | ✅ Funcionando |
-| Limpeza automática de jobs | ✅ Funcionando |
-| Pagamento via Stripe | ⏸ Desativado (bypass ativo) |
-| Webhook do Stripe | ⏸ Desativado |
-
-O produto está funcional end-to-end. O único componente inativo é o pagamento real — que está mockado para facilitar desenvolvimento e testes.
-
----
-
-## Próximos passos quando o pagamento for ativado
-
-1. Preencher `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` e `STRIPE_WEBHOOK_SECRET` no `.env`
-2. Reverter o `/api/create-checkout` para chamar `createCheckoutSession(jobId)` do `stripe.js`
-3. Reativar o handler real do `/api/webhook` com verificação de assinatura
-4. Em produção: configurar o endpoint de webhook no painel do Stripe apontando para a URL pública
-
----
-
-## Limites conhecidos do MVP
-
-**Sem fila de processamento:** se 50 usuários capturarem ao mesmo tempo, o servidor abre 50 instâncias do Chromium simultâneas. Isso consome ~150 MB de RAM por instância. Em escala, o próximo passo é uma fila simples com processamento sequencial ou com limite de concorrência.
-
-**Sem persistência:** restart do servidor perde todos os jobs em andamento. Usuários que estejam no meio do fluxo precisam começar de novo.
-
-**Sem rate limiting:** qualquer IP pode fazer quantas capturas quiser. Em produção, adicionar rate limiting por IP na rota `/api/capture` é essencial.
-
-**Timeout de 30 segundos:** sites extremamente lentos ou pesados podem não carregar completamente. O produto captura o que estiver disponível no timeout.
-
-**Sites com proteção anti-bot:** alguns sites detectam o Chromium headless e bloqueiam ou mostram conteúdo diferente. Isso é uma limitação do Puppeteer, não do produto.
-
----
-
-## Como rodar
-
-```bash
-# Instalar dependências (inclui download do Chromium ~170MB)
-npm install
-
-# Iniciar servidor
-npm start
-
-# Abrir no browser
-http://localhost:3001
+## 4. FRONTEND — public/index.html
+
+SPA vanilla JS com máquina de estados. Seções mostradas/escondidas por JS.
+
+### Seções (estados da UI)
+
+| Seção | Estado | Descrição |
+|-------|--------|-----------|
+| s1 | Hero | Input de URL, botão de crawl, validação inline |
+| s2 | Crawling | Log em tempo real via SSE + EventSource |
+| s3 | Page Selection | Grid de páginas descobertas com thumbnails |
+| s4 | Template + Config | Seleção de template, opções de captura |
+| s5 | Capturing | Barra de progresso, galeria em tempo real |
+| s6 | Ready | Download ZIP, galeria completa, share link |
+| s7 | Compare | Modo A/B (Pro+) |
+
+### Fluxo de estado frontend
+
+```
+s1 → POST /api/crawl → s2
+s2 → SSE crawl-stream + polling crawl-status → s3 (status=selecting)
+s3 → POST /api/select-pages → s4
+s4 → POST /api/start-capture → s5
+s5 → polling capture-progress → s6 (status=ready)
+s6 → GET /api/download/:jobId
 ```
 
-Não é necessário configurar nenhuma variável de ambiente para testar localmente no estado atual (pagamento bypassed).
+### Seção s4 — Template e Configurações
+
+**Tabs de templates (3 categorias):**
+- Dispositivo: void, float, macbook, iphone-pro, browser-dark, terminal
+- Profissional: chrome, paper, presentation-slide
+- Criativo: cinematic, gradient-mesh, noir
+
+**Panes dinâmicos** preenchidos por `loadTemplates()` → `GET /api/templates`.
+
+**Quando template está `locked`:** clique abre modal de upgrade.
+
+**Seção "Modelo por página" (BUGADA):** div `#per-page-tmpl-section` aparece fixo abaixo da grade de templates. Deveria aparecer APENAS ao clicar num card de template específico, e APENAS para planos pagos.
+
+### Modais existentes
+
+| ID | Propósito |
+|----|-----------|
+| #modal-pix | Checkout PIX — QR code + polling de status |
+| #modal-code | Input de código de acesso |
+| #modal-upgrade | Upgrade de plano |
+| #modal-share | Link de compartilhamento (48h) |
+| #modal-preview | Preview de template em tamanho maior |
+
+### Autenticação/plano no frontend
+
+- `X-Access-Code` header enviado em todas as chamadas de API quando tem código salvo
+- `loadPlanStatus()` chama `GET /api/plan-status` → atualiza badge no header
+- Badge mostra: nome do plano, capturas restantes (se SNAP-), watermark status
+- Código salvo em `localStorage`
+
+---
+
+## 5. FEATURES — STATUS REAL
+
+### Funcionando de ponta a ponta
+
+| Feature | Observação |
+|---------|-----------|
+| Crawl com SSE em tempo real | Funciona |
+| Captura Puppeteer com 6 estratégias | Funciona |
+| 12 templates gerando PNGs de alta qualidade | Testado, 12/12 OK |
+| Download ZIP com PNGs | Funciona |
+| Pagamento PIX QR (AbacatePay) | Integração real |
+| Webhook AbacatePay → gera código SNAP- | Implementado |
+| Polling de status PIX | Funciona |
+| Validação de código SNAP- e hex | Funciona |
+| Watermark queimada no PNG | Funciona |
+| Rate limiter por IP (10 req/60s) | Funciona |
+| Pool de 2 browsers com keep-alive | Funciona |
+| Galeria em tempo real durante captura | Funciona |
+| Share link temporário (48h) | Implementado |
+| Alertas Telegram | Funciona se configurado |
+| Sentry error tracking | Funciona |
+| Modo compare A/B (Pro+) | Implementado |
+| Landing page | Existe |
+| Admin panel (admin.html) | Existe, sem auth real |
+
+### Implementado mas quebrado / inconsistente
+
+| Feature | Problema detalhado |
+|---------|-------------------|
+| **Limite diário free (3/dia)** | Verificado em /api/crawl (não em /api/start-capture). Perdido no restart (in-memory). |
+| **Template por página** | State existe (`pageTemplates`), UI existe, mas screenshotter usa só o template global. Não funciona. |
+| **Re-renderização após compra** | Usuário compra depois de ver resultado com watermark → PNG não é re-renderizado. Precisa recomeçar tudo. |
+| **Endpoint admin generate-code** | admin.html tem botão, mas rota `/admin/generate-code` não existe no server.js. |
+| **Códigos hex sem geração por API** | codes.js funciona, mas não há rota REST para criar códigos. |
+| **Above fold only** | Flag em `pageSettings`, mas screenshotter ignora. |
+| **Manual pages** | jobs.js tem `incrementManualPages()`, mas UI não tem campo para o usuário adicionar URL manual. |
+
+### Flags no config sem nenhuma implementação
+
+| Flag | Config | Código |
+|------|--------|--------|
+| cssSelector | ✅ | ❌ Nenhum input de seletor CSS na UI, nenhum uso no screenshotter |
+| socialExport | ✅ | ❌ `renderSocialExport()` existe no renderer mas nunca é chamado pelo fluxo |
+| priorityQueue | ✅ | ❌ Nenhuma fila de prioridade implementada |
+| templatePresets | ✅ | ❌ Sem UI e sem implementação |
+| smartCrop | ✅ | ❌ Sem implementação |
+| apiAccess | ✅ | ❌ Sem endpoints de API pública |
+| multipleUrls | ✅ | ❌ Sem UI para múltiplas URLs no mesmo job |
+
+---
+
+## 6. INCONSISTÊNCIAS LÓGICAS CRÍTICAS
+
+### 6.1 — Watermark: quem paga depois não consegue remover
+
+Usuário usa free → vê resultado com watermark → compra plano → recebe código. Os PNGs já foram gerados com watermark queimada. Não existe endpoint de re-renderização. Precisa refazer do zero.
+
+### 6.2 — Onde fica o limite de 3/dia do free?
+
+O limite é verificado em `POST /api/crawl`, não em `POST /api/start-capture`. Um usuário free pode fazer 3 crawls mas capturar 0 vezes e "gastar" o limite. Ou fazer 1 crawl e capturar 10 vezes (se conseguir reusar o jobId).
+
+### 6.3 — Template por página: existe na UI e no state, não funciona no render
+
+A seção "Modelo por página" (`#per-page-tmpl-section`) aparece SEMPRE no HTML da s4. Deveria aparecer só ao clicar num template específico. E mesmo que o usuário configure templates por página, o screenshotter usa apenas `renderConfig.template` (global). `getPageTemplate()` nunca é chamado.
+
+### 6.4 — Dois sistemas de código sem separação na UI
+
+- SNAP-XXXX-XXXX-XXXX: gerado pelo webhook de pagamento, mensal
+- hex 16 chars: gerado manualmente (sem rota no server), créditos absolutos
+
+O frontend trata os dois da mesma forma ao validar. O badge de capturas restantes só funciona para SNAP-. Para hex, `capturesRemaining` existe mas a UI pode não exibir corretamente.
+
+### 6.5 — 1 job = 1 crédito independente de quantas páginas
+
+Um job com 10 páginas custa o mesmo que 1 página: 1 crédito de captura mensal. Starter tem 100 capturas/mês — na prática isso é 100 jobs, cada um podendo ter até 12 páginas. É generoso demais ou proposital?
+
+### 6.6 — DSF=1 para free, DSF=2 para starter (sem comunicar ao usuário)
+
+Free tier captura em resolução 1x. Starter em 2x. O usuário free não sabe que a qualidade é menor.
+
+### 6.7 — Admin panel sem autenticação no servidor
+
+admin.html usa MD5 do password no frontend para "verificar". Quem abrir o HTML pode ver o hash e acessar. Não existem rotas `/admin/*` no server.js. O admin chama as mesmas rotas `/api/*` abertas a todos.
+
+### 6.8 — Webhook: plano default é 'starter' se não encontrar no metadata
+
+```js
+// server.js linha 160
+if (!plan) plan = 'starter';
+```
+
+Se o webhook chegar sem metadata de plano, gera código starter. Isso pode acontecer se o AbacatePay não enviar o metadata corretamente.
+
+### 6.9 — Share link sem expiração visível na UI
+
+Token expira em 48h mas nenhum lugar na UI exibe isso. Usuário pode enviar o link e ele expirar sem aviso.
+
+---
+
+## 7. FLUXO DE PAGAMENTO COMPLETO (como existe hoje)
+
+```
+1. Usuário clica "Ativar plano" no frontend
+2. Modal PIX abre → POST /api/create-pix {plan, customer?}
+3. AbacatePay API cria cobrança → retorna brCode + QR base64
+4. billing.js salva em data/billing.json com status=pending
+5. Frontend exibe QR code + código copia-cola
+6. Frontend polling: GET /api/pix-status?pixId=...
+7a. Webhook AbacatePay chega em POST /api/webhook/abacatepay
+    → verifica HMAC (se secret configurado)
+    → extrai plan do metadata
+    → activatePayment(pixId, plan) → gera SNAP-XXXX-XXXX-XXXX
+    → sendAlert() Telegram
+7b. (OU) polling detecta pago → checkPixStatus → activatePayment
+8. /api/pix-status retorna {status:'paid', accessCode:'SNAP-...'}
+9. Frontend exibe o código → usuário copia
+10. Usuário insere no campo de código
+11. POST /api/validate-code → {valid:true, info:{plan, remaining}}
+12. Frontend salva em localStorage, próximas requests incluem X-Access-Code
+```
+
+---
+
+## 8. ESTRUTURA DE ARQUIVOS
+
+```
+snapshot/
+├── server.js              # Express + todas as rotas (~800 linhas)
+├── jobs.js                # Estado de jobs in-memory
+├── crawler.js             # Puppeteer crawl
+├── screenshotter.js       # Puppeteer screenshots + renderização
+├── renderer.js            # 12 templates HTML → PNG Buffer (~350 linhas)
+├── browser-pool.js        # Pool de browsers Puppeteer
+├── billing.js             # AbacatePay PIX one-shot
+├── abacatepay.js          # AbacatePay billing recorrente (não usado no fluxo)
+├── codes.js               # Códigos hex pré-pagos
+├── subscriptions.js       # Códigos SNAP- mensais
+├── config.js              # Loader do config.json
+├── telegram.js            # Alertas
+├── instrument.js          # Sentry
+├── qa-reviewer.js         # Dev: Claude API code review
+├── test-templates.js      # Dev: testa os 12 templates
+├── package.json
+├── .env.example
+├── data/
+│   ├── config.json        # Configuração dos 4 planos
+│   ├── templates.json     # 12 templates (id, name, category, plan, previewSvg)
+│   ├── billing.json       # Registros de pagamento PIX
+│   ├── subscriptions.json # Códigos SNAP- ativos
+│   └── codes.json         # Códigos hex ativos
+├── public/
+│   ├── index.html         # App principal SPA (~56KB)
+│   ├── landing.html       # Landing page marketing (~11KB)
+│   └── admin.html         # Admin panel (~14KB, sem auth real)
+└── screenshots/           # Deletado após download
+    └── {jobId}/page-NN/
+        ├── desktop-professional.png
+        ├── mobile-professional.png
+        └── preview.png
+```
+
+---
+
+## 9. VARIÁVEIS DE AMBIENTE
+
+```env
+PORT=3001
+NODE_ENV=development
+BASE_URL=http://localhost:3001
+ABACATEPAY_API_KEY=abc_dev_...
+ABACATEPAY_WEBHOOK_SECRET=     # obrigatório em produção
+ADMIN_PASSWORD=changeme        # usado no admin.html
+SENTRY_DSN=https://...
+TELEGRAM_BOT_TOKEN=            # opcional
+TELEGRAM_CHAT_ID=              # opcional
+ANTHROPIC_API_KEY=             # só para qa-reviewer.js
+```
+
+---
+
+## 10. DEPENDÊNCIAS
+
+```json
+"@sentry/node":  "^10.45.0",
+"archiver":      "^5.3.2",     (ZIP)
+"dotenv":        "^16.4.5",
+"express":       "^4.18.2",
+"puppeteer":     "^21.11.0",
+"stripe":        "^14.21.0",   ← instalado MAS NÃO USADO
+"uuid":          "^9.0.1"
+```
+
+---
+
+## 11. RESUMO EXECUTIVO
+
+### O que funciona de verdade
+O fluxo principal funciona: crawl → selecionar → capturar → baixar ZIP. Os 12 templates geram PNGs de alta qualidade. O pagamento PIX funciona. Watermark queimada funciona.
+
+### O que está implementado pela metade
+- Template por página: existe no state e na UI, não é aplicado no render
+- Limite diário free: verificado no lugar errado, perdido no restart
+- Re-renderização pós-compra: não existe
+- Admin panel: sem autenticação real no servidor
+- Geração de códigos hex: sem rota REST
+
+### O que não existe (só flags no config)
+CSS selector, social export automático, priority queue, template presets, smart crop, API pública, múltiplas URLs por job, above-fold-only capture.
+
+### Dívida técnica estrutural
+- Sem banco de dados: tudo em JSON files (race conditions, sem backup)
+- State em memória: jobs e limite diário perdidos no restart
+- Browser pool fixo em 2: sem auto-scaling
+- Sem testes automatizados
+- Admin sem auth real
+
+---
+
+*Manifesto gerado em 2026-03-22. Reflete o estado exato do código nesta data.*

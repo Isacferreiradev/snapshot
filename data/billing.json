@@ -1,0 +1,228 @@
+{
+  "bill_LpQtjdFQj0DPFh6FkXBcRXUe": {
+    "billingId": "bill_LpQtjdFQj0DPFh6FkXBcRXUe",
+    "billingUrl": "https://app.abacatepay.com/pay/bill_LpQtjdFQj0DPFh6FkXBcRXUe",
+    "plan": "starter",
+    "status": "PENDING",
+    "accessCode": null,
+    "createdAt": 1774103673129
+  },
+  "bill_ePhkaqQSX5qrmYfJqDxNxQNu": {
+    "billingId": "bill_ePhkaqQSX5qrmYfJqDxNxQNu",
+    "billingUrl": "https://app.abacatepay.com/pay/bill_ePhkaqQSX5qrmYfJqDxNxQNu",
+    "plan": "starter",
+    "status": "PENDING",
+    "accessCode": null,
+    "createdAt": 1774103784260
+  },
+  "pix_char_1aHCft5eL0bnqMBGFp01JX0X": {
+    "pixId": "pix_char_1aHCft5eL0bnqMBGFp01JX0X",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-8657-D2DC-AF15",
+    "createdAt": 1774106685998,
+    "paidAt": 1774106713913,
+    "expiresAt": "2026-03-21T16:24:44.952Z",
+    "customer": {
+      "name": "ISAC REIS FERREIRA",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_NyTfKNbQwARMb4re2FrRRkp5": {
+    "pixId": "pix_char_NyTfKNbQwARMb4re2FrRRkp5",
+    "plan": "pro",
+    "status": "paid",
+    "accessCode": "SNAP-E32B-C378-72EB",
+    "createdAt": 1774107250592,
+    "paidAt": 1774107268392,
+    "expiresAt": "2026-03-21T16:34:09.617Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_y3YazQcaDpD6DfSbPKEF0zee": {
+    "pixId": "pix_char_y3YazQcaDpD6DfSbPKEF0zee",
+    "plan": "pro",
+    "status": "paid",
+    "accessCode": "SNAP-92A3-48A8-0C62",
+    "createdAt": 1774112225622,
+    "paidAt": 1774112242377,
+    "expiresAt": "2026-03-21T17:57:04.705Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_UWpUYBmbTYDZmkfXa6Reu6zp": {
+    "pixId": "pix_char_UWpUYBmbTYDZmkfXa6Reu6zp",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-C413-5400-6A4A",
+    "createdAt": 1774125825256,
+    "paidAt": 1774125849439,
+    "expiresAt": "2026-03-21T21:43:44.469Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_W5s1PZ0CGhzCFkxwmSKhPsqp": {
+    "pixId": "pix_char_W5s1PZ0CGhzCFkxwmSKhPsqp",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-7BF2-6F4D-0044",
+    "createdAt": 1774129446405,
+    "paidAt": 1774129458422,
+    "expiresAt": "2026-03-21T22:44:05.644Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_u0BsKNHfCrmQrpPDx0m53dpL": {
+    "pixId": "pix_char_u0BsKNHfCrmQrpPDx0m53dpL",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-0236-E105-80E2",
+    "createdAt": 1774138349535,
+    "paidAt": 1774138366424,
+    "expiresAt": "2026-03-22T01:12:28.579Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_A3qpXarujsuHpY1T6beRqUQa": {
+    "pixId": "pix_char_A3qpXarujsuHpY1T6beRqUQa",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-F922-FF93-2C8D",
+    "createdAt": 1774190052992,
+    "paidAt": 1774194285582,
+    "expiresAt": "2026-03-22T15:34:11.614Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_ScCQZRUBYWaQjfRA1RDLkARk": {
+    "pixId": "pix_char_ScCQZRUBYWaQjfRA1RDLkARk",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-1536-4C8B-767B",
+    "createdAt": 1774197285197,
+    "paidAt": 1774197329730,
+    "expiresAt": "2026-03-22T17:34:44.284Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_mbc5TUXLmJbMnPeRZWgsUqUs": {
+    "pixId": "pix_char_mbc5TUXLmJbMnPeRZWgsUqUs",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-7B4A-A057-A24E",
+    "createdAt": 1774203732055,
+    "paidAt": 1774203744637,
+    "expiresAt": "2026-03-22T19:22:11.174Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_qyLGw5Bsfmn5wma5UbfsgF5U": {
+    "pixId": "pix_char_qyLGw5Bsfmn5wma5UbfsgF5U",
+    "plan": "pro",
+    "status": "paid",
+    "accessCode": "SNAP-DAC8-270F-577B",
+    "createdAt": 1774284181787,
+    "paidAt": 1774284226135,
+    "expiresAt": "2026-03-23T17:43:00.917Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_G5cRjTbsHTpueHYmdy5bQw3f": {
+    "pixId": "pix_char_G5cRjTbsHTpueHYmdy5bQw3f",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-5022-8375-E86B",
+    "createdAt": 1774293290798,
+    "paidAt": 1774293307009,
+    "expiresAt": "2026-03-23T20:14:49.774Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_YjcTDA0QByGHFQZx5HQ2rPL6": {
+    "pixId": "pix_char_YjcTDA0QByGHFQZx5HQ2rPL6",
+    "plan": "pro",
+    "status": "paid",
+    "accessCode": "SNAP-DAFB-B71E-A1CF",
+    "createdAt": 1774293350930,
+    "paidAt": 1774293370792,
+    "expiresAt": "2026-03-23T20:15:50.084Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_YpKxy4LHNKTp4NGBJhfjYaWH": {
+    "pixId": "pix_char_YpKxy4LHNKTp4NGBJhfjYaWH",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-436D-CA2D-A894",
+    "createdAt": 1774302780633,
+    "paidAt": 1774302800636,
+    "expiresAt": "2026-03-23T22:52:59.637Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  },
+  "pix_char_GLfYs1CgzDjzHtqWuzxfs4TB": {
+    "pixId": "pix_char_GLfYs1CgzDjzHtqWuzxfs4TB",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-A57F-9C43-2DB5",
+    "createdAt": 1774305196907,
+    "paidAt": 1774305212599,
+    "expiresAt": "2026-03-23T23:33:16.018Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(55) 73982-5498"
+    }
+  }
+}

@@ -1,120 +1,148 @@
 'use strict';
 
-require('dotenv').config();
+const crypto = require('crypto');
 
-const ABACATEPAY_API  = 'https://api.abacatepay.com/v1';
-const API_KEY         = process.env.ABACATEPAY_API_KEY || '';
+const API_BASE = 'https://api.abacatepay.com';
 
-// ── Packages ──────────────────────────────────────────────────────────────────
-const PACKAGES = {
-  starter: { captures: 5,  priceCents: 990,  name: 'Starter — 5 capturas',  description: 'Pacote inicial: 5 capturas profissionais desktop + mobile.' },
-  pro:     { captures: 15, priceCents: 2490, name: 'Pro — 15 capturas',      description: '15 capturas com todas as opções de template e exportação social.' },
-  agency:  { captures: 50, priceCents: 5990, name: 'Agência — 50 capturas',  description: '50 capturas em alta resolução, ideal para agências e freelas.' },
+const PLAN_PRICES = {
+  starter: parseInt(process.env.PRICE_STARTER_CENTS || '1990', 10),
+  pro:     parseInt(process.env.PRICE_PRO_CENTS     || '4990', 10),
+  agency:  parseInt(process.env.PRICE_AGENCY_CENTS  || '12990', 10),
 };
 
-const DEFAULT_PKG = 'starter';
+const PLAN_NAMES = {
+  starter: 'Plano Starter SnapShot.pro',
+  pro:     'Plano Pro SnapShot.pro',
+  agency:  'Plano Agency SnapShot.pro',
+};
 
-// Track billingId → { jobId, pkg, ip } so we can resolve webhooks
-const billingIndex = new Map();
+const PLAN_DESCS = {
+  starter: 'Screenshots profissionais sem marca d\'água — R$ 19,90/mês',
+  pro:     'Capturas ilimitadas com todos os templates — R$ 49,90/mês',
+  agency:  'Para agências com volume alto — R$ 129,90/mês',
+};
 
-// ── Helper: call AbacatePay API ──────────────────────────────────────────────
-async function abacatePost(endpoint, body) {
-  const res = await fetch(`${ABACATEPAY_API}${endpoint}`, {
+/**
+ * Cria uma cobrança recorrente mensal no AbacatePay.
+ * @param {string} plan — 'starter' | 'pro' | 'agency'
+ * @param {object|null} customerData — { name, email, cellphone, taxId } (todos opcionais)
+ * @returns {{ id: string, url: string }}
+ */
+async function createBilling(plan, customerData) {
+  const price = PLAN_PRICES[plan];
+  if (!price) throw new Error(`Plano inválido: ${plan}`);
+
+  const base = process.env.BASE_URL || 'http://localhost:3001';
+
+  const body = {
+    frequency:     'MULTIPLE_PAYMENTS',
+    methods:       ['PIX', 'CARD'],
+    products:      [{
+      externalId:  `snapshot-${plan}`,
+      name:        PLAN_NAMES[plan],
+      description: PLAN_DESCS[plan],
+      quantity:    1,
+      price,
+    }],
+    returnUrl:     `${base}/planos`,
+    completionUrl: `${base}/pagamento-confirmado?plan=${plan}`,
+  };
+
+  // AbacatePay sempre exige customer com name, email, cellphone e taxId.
+  // Se o usuário não preencheu, usa placeholder — o billing é criado mesmo assim.
+  body.customer = {
+    name:      (customerData && customerData.name)      || 'Assinante',
+    email:     (customerData && customerData.email)     || 'pagamento@snapshot.pro',
+    cellphone: (customerData && customerData.cellphone) || '00000000000',
+    taxId:     (customerData && customerData.taxId)     || '94378754568',
+  };
+
+  const res  = await fetch(`${API_BASE}/v1/billing/create`, {
     method:  'POST',
     headers: {
-      'Authorization': `Bearer ${API_KEY}`,
+      'Authorization': `Bearer ${process.env.ABACATEPAY_API_KEY}`,
       'Content-Type':  'application/json',
-      'Accept':        'application/json',
     },
     body: JSON.stringify(body),
   });
-  const json = await res.json();
-  if (!res.ok || json.error) {
-    const msg = json.error || `AbacatePay ${res.status}`;
-    throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
-  }
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.error) throw new Error(json.error || `AbacatePay HTTP ${res.status}`);
+
+  // Reavaliar preços em runtime (dotenv carrega antes do main process)
+  PLAN_PRICES.starter = parseInt(process.env.PRICE_STARTER_CENTS || '1990', 10);
+  PLAN_PRICES.pro     = parseInt(process.env.PRICE_PRO_CENTS     || '4990', 10);
+  PLAN_PRICES.agency  = parseInt(process.env.PRICE_AGENCY_CENTS  || '12990', 10);
+
+  return { id: json.data.id, url: json.data.url };
+}
+
+/**
+ * Consulta o status de uma cobrança pelo ID.
+ * @param {string} billingId
+ * @returns {{ id, status, amount, customer }}
+ */
+async function getBillingStatus(billingId) {
+  const res  = await fetch(`${API_BASE}/v1/billing/get?id=${encodeURIComponent(billingId)}`, {
+    headers: { 'Authorization': `Bearer ${process.env.ABACATEPAY_API_KEY}` },
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.error) throw new Error(json.error || `AbacatePay HTTP ${res.status}`);
   return json.data;
 }
 
-// ── Create Billing (checkout) ────────────────────────────────────────────────
-async function createBilling(jobId, pkg, ip) {
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3001';
-  const pkgKey  = (pkg && PACKAGES[pkg]) ? pkg : DEFAULT_PKG;
-  const pkgData = PACKAGES[pkgKey];
-
-  // For credit purchases, completionUrl goes to homepage with credits flag
-  const completionUrl = jobId
-    ? `${baseUrl}/?success=true&jobId=${jobId}`
-    : `${baseUrl}/?credits=purchased`;
-
-  const data = await abacatePost('/billing/create', {
-    frequency:     'ONE_TIME',
-    methods:       ['PIX'],
-    products:      [{
-      externalId:  `snapshot-${pkgKey}`,
-      name:        pkgData.name,
-      description: pkgData.description,
-      quantity:    1,
-      price:       pkgData.priceCents,
-    }],
-    returnUrl:     `${baseUrl}/`,
-    completionUrl,
-    metadata:      { pkg: pkgKey },
-  });
-
-  const billingId   = data.id;
-  const checkoutUrl = data.url;
-
-  billingIndex.set(billingId, { jobId: jobId || null, pkg: pkgKey, ip: ip || null });
-  console.log(`[abacatepay] billing created: ${billingId} (${pkgKey}) for IP ${ip}`);
-
-  return { billingId, checkoutUrl };
+/**
+ * Verifica assinatura HMAC SHA256 do webhook AbacatePay.
+ * @param {Buffer|string} rawBody
+ * @param {string} signatureFromHeader
+ * @returns {boolean}
+ */
+function verifyWebhookSignature(rawBody, signatureFromHeader) {
+  try {
+    const secret = process.env.ABACATEPAY_WEBHOOK_SECRET;
+    if (!secret || !signatureFromHeader) return false;
+    const buf      = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody, 'utf8');
+    const computed = crypto.createHmac('sha256', secret).update(buf).digest('base64');
+    const a        = Buffer.from(computed, 'utf8');
+    const b        = Buffer.from(signatureFromHeader, 'utf8');
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch { return false; }
 }
 
-// ── Handle Webhook ───────────────────────────────────────────────────────────
-function handleWebhook(body) {
-  if (!body || !body.event) return null;
+/**
+ * Processa evento de webhook já parseado.
+ * @param {object} event
+ * @returns {{ plan: string, billingId: string }|null}
+ */
+function processWebhookEvent(event) {
+  if (!event || event.event !== 'billing.paid') return null;
 
-  console.log(`[abacatepay] webhook event: ${body.event}`);
+  const billingId = event.data && event.data.id;
+  let   plan      = null;
 
-  if (body.event !== 'billing.paid') return null;
+  // Tentar extrair plano do externalId do produto
+  try {
+    const products = event.data.products || event.data.billing?.products || [];
+    for (const p of products) {
+      const ext = (p.externalId || p.external_id || '').toLowerCase();
+      if (ext.includes('starter')) { plan = 'starter'; break; }
+      if (ext.includes('agency'))  { plan = 'agency';  break; }
+      if (ext.includes('pro'))     { plan = 'pro';     break; }
+    }
+  } catch {}
 
-  const billingId = body.data && body.data.id;
-  if (!billingId) {
-    console.log('[abacatepay] webhook billing.paid without data.id');
-    return null;
+  // Fallback: extrair do completionUrl
+  if (!plan) {
+    try {
+      const url = event.data.completionUrl || event.data.completion_url || '';
+      const m   = url.match(/[?&]plan=([^&]+)/);
+      if (m) plan = m[1].toLowerCase();
+    } catch {}
   }
 
-  const entry = billingIndex.get(billingId);
-  if (!entry) {
-    console.log(`[abacatepay] webhook billing.paid for unknown billingId: ${billingId}`);
-    return null;
-  }
-
-  console.log(`[abacatepay] payment confirmed: billing ${billingId} → job ${entry.jobId}`);
-  billingIndex.delete(billingId);
-
-  return { jobId: entry.jobId, pkg: entry.pkg, ip: entry.ip };
+  if (!plan || !billingId) return null;
+  return { plan, billingId };
 }
 
-// ── Lookup billing by jobId (for polling fallback) ───────────────────────────
-function getBillingByJobId(jobId) {
-  for (const [billingId, entry] of billingIndex) {
-    if (entry.jobId === jobId) return { billingId, ...entry };
-  }
-  return null;
-}
-
-// ── Package info (for frontend) ──────────────────────────────────────────────
-function getPackages() {
-  return Object.entries(PACKAGES).map(([key, p]) => ({
-    key,
-    name:        p.name,
-    description: p.description,
-    captures:    p.captures,
-    priceCents:  p.priceCents,
-    priceLabel:  `R$${(p.priceCents / 100).toFixed(2).replace('.', ',')}`,
-  }));
-}
-
-module.exports = { createBilling, handleWebhook, getPackages, getBillingByJobId, PACKAGES };
+module.exports = { createBilling, getBillingStatus, verifyWebhookSignature, processWebhookEvent };

@@ -8,7 +8,7 @@ const DATA_FILE = path.join(__dirname, 'data', 'subscriptions.json');
 
 // ── Limites por plano ─────────────────────────────────────────────────────────
 const PLAN_LIMITS = {
-  starter: 50,
+  starter: 100,
   pro:     null, // ilimitado
   agency:  null, // ilimitado
 };
@@ -109,13 +109,32 @@ function validateSubscription(code) {
   return { valid: true, plan: sub.plan, capturesRemaining: null, isWatermarked: false };
 }
 
+// ── Verificar se pode capturar ────────────────────────────────────────────────
+/**
+ * @param {string|null} code — código SNAP- (ou null para free)
+ * @param {{ monthlyCaptures: number }} planObj — objeto do plano do config.json
+ * @returns {{ allowed: boolean, used?: number, limit?: number }}
+ */
+function canCapture(code, planObj) {
+  const limit = planObj && (planObj.capturesPerMonth !== undefined ? planObj.capturesPerMonth : planObj.monthlyCaptures);
+  // Ilimitado (pro/agency/free) ou sem código
+  if (!code || limit === undefined || limit === null || limit === -1) return { allowed: true };
+  const norm = code.trim().toUpperCase();
+  const data = load();
+  const sub  = data[norm];
+  if (!sub) return { allowed: true };
+  const used = sub.capturesThisMonth || 0;
+  if (used >= limit) return { allowed: false, used, limit };
+  return { allowed: true, used, limit };
+}
+
 // ── Incrementar uso ───────────────────────────────────────────────────────────
-function incrementCaptures(code) {
+function incrementCaptures(code, count = 1) {
   if (!code) return;
   const norm = code.trim().toUpperCase();
   const data = load();
   if (!data[norm]) return;
-  data[norm].capturesThisMonth = (data[norm].capturesThisMonth || 0) + 1;
+  data[norm].capturesThisMonth = (data[norm].capturesThisMonth || 0) + count;
   save(data);
 }
 
@@ -175,14 +194,56 @@ function resetMonthlyCounters() {
 // Verificar reset a cada hora
 setInterval(resetMonthlyCounters, 60 * 60 * 1000);
 
+// ── Limite diário free (por IP, em memória) ───────────────────────────────────
+const _dailyFreeUsage = new Map(); // ip → { count, resetAt }
+
+function _midnightUTC() {
+  const d = new Date();
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1)).getTime();
+}
+
+/**
+ * Verifica se o IP pode fazer mais capturas free hoje.
+ * @param {string} ip
+ * @param {number} limit — capturesPerDay do plano free (ex: 3)
+ * @returns {{ allowed: boolean, used: number, limit: number }}
+ */
+function checkDailyFreeLimit(ip, limit) {
+  const now    = Date.now();
+  const entry  = _dailyFreeUsage.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    return { allowed: true, used: 0, limit };
+  }
+  const allowed = entry.count < limit;
+  return { allowed, used: entry.count, limit };
+}
+
+/**
+ * Incrementa o contador diário free para o IP.
+ * @param {string} ip
+ * @param {number} count — número de páginas capturadas
+ */
+function incrementDailyFreeUsage(ip, count = 1) {
+  const now   = Date.now();
+  const entry = _dailyFreeUsage.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    _dailyFreeUsage.set(ip, { count, resetAt: _midnightUTC() });
+  } else {
+    entry.count += count;
+  }
+}
+
 module.exports = {
   generateSubscriptionCode,
   linkSessionToCode,
   getCodeBySession,
   validateSubscription,
+  canCapture,
   incrementCaptures,
   isSubscriptionActive,
   cancelSubscription,
   renewSubscription,
   resetMonthlyCounters,
+  checkDailyFreeLimit,
+  incrementDailyFreeUsage,
 };

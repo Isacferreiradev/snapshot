@@ -1,0 +1,72 @@
+{
+  "plans": {
+    "free": {
+      "name": "Free",
+      "price": 0,
+      "watermark": true,
+      "templatesUnlocked": ["void", "chrome", "float", "annotation"],
+      "crawlLimit": 4,
+      "capturesPerDay": 3,
+      "capturesPerMonth": -1,
+      "mobileCapture": false,
+      "deviceScaleFactor": 1,
+      "maxCodes": 0,
+      "manualPagesPerJob": 0,
+      "maxUrlsPerJob": 1,
+      "socialExport": false,
+      "shareLink": false,
+      "shareLinkDays": 0
+    },
+    "starter": {
+      "name": "Starter",
+      "price": 1990,
+      "watermark": false,
+      "templatesUnlocked": "all",
+      "crawlLimit": 10,
+      "capturesPerDay": -1,
+      "capturesPerMonth": 60,
+      "mobileCapture": true,
+      "deviceScaleFactor": 2,
+      "maxCodes": 1,
+      "manualPagesPerJob": 2,
+      "maxUrlsPerJob": 1,
+      "socialExport": false,
+      "shareLink": false,
+      "shareLinkDays": 0
+    },
+    "pro": {
+      "name": "Pro",
+      "price": 4990,
+      "watermark": false,
+      "templatesUnlocked": "all",
+      "crawlLimit": 20,
+      "capturesPerDay": -1,
+      "capturesPerMonth": -1,
+      "mobileCapture": true,
+      "deviceScaleFactor": 2,
+      "maxCodes": 1,
+      "manualPagesPerJob": 8,
+      "maxUrlsPerJob": 3,
+      "socialExport": true,
+      "shareLink": true,
+      "shareLinkDays": 7
+    },
+    "agency": {
+      "name": "Agency",
+      "price": 12990,
+      "watermark": false,
+      "templatesUnlocked": "all",
+      "crawlLimit": 999,
+      "capturesPerDay": -1,
+      "capturesPerMonth": -1,
+      "mobileCapture": true,
+      "deviceScaleFactor": 2,
+      "maxCodes": 3,
+      "manualPagesPerJob": -1,
+      "maxUrlsPerJob": 5,
+      "socialExport": true,
+      "shareLink": true,
+      "shareLinkDays": 30
+    }
+  }
+}
