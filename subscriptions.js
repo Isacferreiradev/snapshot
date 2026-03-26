@@ -97,16 +97,16 @@ function validateSubscription(code) {
   if (Date.now() > sub.validUntil) return { valid: false, isWatermarked: true, reason: 'Assinatura expirada. Renove em snapshot.pro.' };
 
   const limit = sub.capturesLimit; // null = unlimited
+  const used  = sub.capturesThisMonth || 0;
   if (limit !== null) {
-    const used      = sub.capturesThisMonth || 0;
     const remaining = Math.max(0, limit - used);
     if (remaining === 0) {
-      return { valid: false, isWatermarked: true, reason: `Limite mensal de ${limit} capturas atingido. Renova em ${new Date(sub.monthResetAt).toLocaleDateString('pt-BR')}.` };
+      return { valid: false, isWatermarked: true, reason: `Limite mensal de ${limit} capturas atingido. Renova em ${new Date(sub.monthResetAt).toLocaleDateString('pt-BR')}.`, capturesThisMonth: used };
     }
-    return { valid: true, plan: sub.plan, capturesRemaining: remaining, isWatermarked: false };
+    return { valid: true, plan: sub.plan, capturesRemaining: remaining, capturesThisMonth: used, isWatermarked: false };
   }
 
-  return { valid: true, plan: sub.plan, capturesRemaining: null, isWatermarked: false };
+  return { valid: true, plan: sub.plan, capturesRemaining: null, capturesThisMonth: used, isWatermarked: false };
 }
 
 // ── Verificar se pode capturar ────────────────────────────────────────────────
@@ -194,12 +194,20 @@ function resetMonthlyCounters() {
 // Verificar reset a cada hora
 setInterval(resetMonthlyCounters, 60 * 60 * 1000);
 
-// ── Limite diário free (por IP, em memória) ───────────────────────────────────
-const _dailyFreeUsage = new Map(); // ip → { count, resetAt }
+// ── Limite diário free (por IP, persistido em disco) ─────────────────────────
+const DAILY_FILE = path.join(__dirname, 'data', 'daily-usage.json');
 
 function _midnightUTC() {
   const d = new Date();
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1)).getTime();
+}
+
+function _loadDaily() {
+  try { return JSON.parse(fs.readFileSync(DAILY_FILE, 'utf8')); } catch { return {}; }
+}
+function _saveDaily(data) {
+  fs.mkdirSync(path.dirname(DAILY_FILE), { recursive: true });
+  fs.writeFileSync(DAILY_FILE, JSON.stringify(data));
 }
 
 /**
@@ -209,11 +217,10 @@ function _midnightUTC() {
  * @returns {{ allowed: boolean, used: number, limit: number }}
  */
 function checkDailyFreeLimit(ip, limit) {
-  const now    = Date.now();
-  const entry  = _dailyFreeUsage.get(ip);
-  if (!entry || now >= entry.resetAt) {
-    return { allowed: true, used: 0, limit };
-  }
+  const now   = Date.now();
+  const data  = _loadDaily();
+  const entry = data[ip];
+  if (!entry || now >= entry.resetAt) return { allowed: true, used: 0, limit };
   const allowed = entry.count < limit;
   return { allowed, used: entry.count, limit };
 }
@@ -224,14 +231,27 @@ function checkDailyFreeLimit(ip, limit) {
  * @param {number} count — número de páginas capturadas
  */
 function incrementDailyFreeUsage(ip, count = 1) {
-  const now   = Date.now();
-  const entry = _dailyFreeUsage.get(ip);
+  const now  = Date.now();
+  const data = _loadDaily();
+  const entry = data[ip];
   if (!entry || now >= entry.resetAt) {
-    _dailyFreeUsage.set(ip, { count, resetAt: _midnightUTC() });
+    data[ip] = { count, resetAt: _midnightUTC() };
   } else {
-    entry.count += count;
+    data[ip].count += count;
   }
+  _saveDaily(data);
 }
+
+// Prune expired entries once an hour to keep the file small
+setInterval(() => {
+  const now  = Date.now();
+  const data = _loadDaily();
+  let changed = false;
+  for (const ip of Object.keys(data)) {
+    if (now >= data[ip].resetAt) { delete data[ip]; changed = true; }
+  }
+  if (changed) _saveDaily(data);
+}, 60 * 60 * 1000);
 
 module.exports = {
   generateSubscriptionCode,

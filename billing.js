@@ -251,6 +251,44 @@ function cleanupOldBillings() {
 
 setInterval(cleanupOldBillings, 6 * 60 * 60 * 1000);
 
+/**
+ * Marca que o lembrete PIX foi enviado. Retorna true se era a primeira vez.
+ * @param {string} pixId
+ */
+function claimPixReminder(pixId) {
+  const state = load();
+  const entry = state[pixId];
+  if (!entry || entry.reminderSent) return false;
+  state[pixId] = { ...entry, reminderSent: true };
+  save(state);
+  return true;
+}
+
+/**
+ * Retorna a entrada de billing para um pixId (inclui customer data).
+ * @param {string} pixId
+ */
+function getBillingEntry(pixId) {
+  const state = load();
+  return state[pixId] || null;
+}
+
+/**
+ * Marca que o email de confirmação já foi enviado para este pixId.
+ * Retorna true se era a primeira vez (email deve ser enviado),
+ * false se já havia sido marcado (evita duplicata).
+ * @param {string} pixId
+ */
+function claimConfirmationEmail(pixId) {
+  const state = load();
+  const entry = state[pixId];
+  if (!entry) return false;
+  if (entry.confirmationEmailSent) return false; // já enviado
+  state[pixId] = { ...entry, confirmationEmailSent: true };
+  save(state);
+  return true;
+}
+
 module.exports = {
   createPixPayment,
   checkPixStatus,
@@ -258,4 +296,7 @@ module.exports = {
   simulatePayment,
   verifyWebhookSignature,
   cleanupOldBillings,
+  getBillingEntry,
+  claimConfirmationEmail,
+  claimPixReminder,
 };

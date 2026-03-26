@@ -28,6 +28,7 @@ function createJob(jobId, options) {
   jobs.set(jobId, {
     jobId,
     createdAt: Date.now(),
+    creatorIp: opts.creatorIp || null,
     status: 'crawling',
     // Payment / access
     paid: false,
@@ -202,6 +203,16 @@ function getManualPagesCount(jobId) {
 function isPaid(jobId) { const j = jobs.get(jobId); return j ? j.paid : false; }
 function jobExists(jobId) { return jobs.has(jobId); }
 function getJob(jobId) { return jobs.get(jobId) || null; }
+function getAllJobIds() { return [...jobs.keys()]; }
+
+const ACTIVE_STATUSES = new Set(['crawling', 'selecting', 'configuring', 'capturing']);
+function countActiveJobsByIp(ip) {
+  let n = 0;
+  for (const job of jobs.values()) {
+    if (job.creatorIp === ip && ACTIVE_STATUSES.has(job.status)) n++;
+  }
+  return n;
+}
 
 function getJobByShareToken(token) {
   const jobId = shareIndex.get(token);
@@ -224,6 +235,7 @@ setInterval(() => {
 
 module.exports = {
   createJob, markPaid, markDownloaded, markReady, markFailed,
+  countActiveJobsByIp,
   updateCrawlResult, updateSelectedPages, updateRenderConfig,
   updateCaptureProgress, updatePageStatus,
   setCompareMode, setJobCaptureInfo,
@@ -231,6 +243,6 @@ module.exports = {
   setPageOrder, setPageSetting,
   incrementManualPages, getManualPagesCount,
   appendCrawlLog, addGalleryItem,
-  isPaid, jobExists, getJob, getJobByShareToken,
+  isPaid, jobExists, getJob, getJobByShareToken, getAllJobIds,
   incrementCounter, getCounter,
 };

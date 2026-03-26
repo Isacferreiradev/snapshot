@@ -14,7 +14,12 @@ function launchArgs() {
     args: [
       '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
       '--disable-gpu', '--disable-blink-features=AutomationControlled',
-      '--disable-web-security', '--allow-running-insecure-content',
+      // REMOVIDO: --disable-web-security e --allow-running-insecure-content
+      // Essas flags desabilitam CORS e permitiam SSRF via XHR dentro das páginas
+      '--disable-extensions',
+      '--disable-background-networking',
+      '--disable-sync',
+      '--no-first-run',
       '--disable-features=VizDisplayCompositor',
       '--window-size=1440,900', '--lang=pt-BR,pt,en-US',
     ],

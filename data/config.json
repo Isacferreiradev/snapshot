@@ -4,7 +4,14 @@
       "name": "Free",
       "price": 0,
       "watermark": true,
-      "templatesUnlocked": ["void", "chrome", "float", "annotation"],
+      "templatesUnlocked": [
+        "browser-clean",
+        "minimal-clean",
+        "social-basic",
+        "mobile-simple",
+        "gradient-basic",
+        "default-dark"
+      ],
       "crawlLimit": 4,
       "capturesPerDay": 3,
       "capturesPerMonth": -1,
@@ -68,5 +75,6 @@
       "shareLink": true,
       "shareLinkDays": 30
     }
-  }
+  },
+  "resetCounter": true
 }

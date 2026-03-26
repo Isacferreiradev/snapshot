@@ -4,6 +4,7 @@ const fs   = require('fs');
 const path = require('path');
 const { appendCrawlLog }                    = require('./jobs');
 const { getBrowserFromPool, releaseBrowserToPool } = require('./screenshotter');
+const { validateUrl, installSsrfInterceptor } = require('./security');
 
 const MAX_PAGES    = 12;
 const THUMB_TIMEOUT = 5000;
@@ -89,9 +90,7 @@ async function captureThumbnail(browser, url, outputPath) {
     pg = await browser.newPage();
     pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
     await pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 });
-    // Bloquear mídias e scripts pesados no crawl
-    await pg.setRequestInterception(true);
-    pg.on('request', req => {
+    await installSsrfInterceptor(pg, req => {
       const rt = req.resourceType();
       if (rt === 'media' || rt === 'font') { req.abort(); return; }
       req.continue();
@@ -117,6 +116,11 @@ async function captureThumbnail(browser, url, outputPath) {
 }
 
 async function _doCrawl(rawUrl, jobId, maxPages) {
+  // Validar URL antes de abrir qualquer browser (SSRF protection)
+  const urlCheck = await validateUrl(rawUrl);
+  if (!urlCheck.valid) throw new Error(urlCheck.reason || 'URL não permitida.');
+  rawUrl = urlCheck.url; // URL normalizada e segura
+
   const pageLimit = (maxPages && maxPages > 0) ? maxPages : MAX_PAGES;
   let origin;
   try { origin = new URL(rawUrl).origin; }
@@ -201,8 +205,7 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
           pg = await browser.newPage();
           pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
           await pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 });
-          await pg.setRequestInterception(true);
-          pg.on('request', req => {
+          await installSsrfInterceptor(pg, req => {
             const rt = req.resourceType();
             if (rt === 'media' || rt === 'font') { req.abort(); return; }
             req.continue();

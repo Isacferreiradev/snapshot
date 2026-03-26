@@ -12,22 +12,31 @@ const http     = require('http');
 const https    = require('https');
 const { v4: uuidv4 } = require('uuid');
 const archiver = require('archiver');
+const helmet   = require('helmet');
+const { validateUrl: secValidateUrl, validateJobId, sanitizeFilename, hasPrototypePollution, sanitizeBody } = require('./security');
 
 const {
   createJob, markPaid, markDownloaded, markReady, markFailed,
   updateCrawlResult, updateSelectedPages, updateRenderConfig,
   updateCaptureProgress, appendCrawlLog, addGalleryItem,
-  getJob, getJobByShareToken,
+  getJob, getJobByShareToken, getAllJobIds, countActiveJobsByIp,
   incrementCounter, getCounter, setJobCaptureInfo,
   updatePageStatus, setPageTemplate, setPageOrder, setPageSetting, incrementManualPages, getManualPagesCount,
 } = require('./jobs');
+
+const storage = require('./storage');
 
 const { crawlSite, groupPages, rankPages }                                       = require('./crawler');
 const { captureJobPages, initBrowserPool }                                        = require('./screenshotter');
 const { renderProfessional }                                                     = require('./renderer');
 const { createPixPayment, checkPixStatus,
         activatePayment, simulatePayment,
-        verifyWebhookSignature }                                                  = require('./billing');
+        verifyWebhookSignature, getBillingEntry,
+        claimConfirmationEmail }                                                  = require('./billing');
+const { sendPaymentConfirmed, sendSnapCode, sendInternalPaymentAlert,
+        sendFreeLimitReached, sendFirstCapture,
+        sendPixReminder }                                                         = require('./mailer');
+const { storeIpEmail, getIpEmail, claimFirstCaptureEmail }                       = require('./ip-email-store');
 const { generateCode, validateCode, decrementCode }                              = require('./codes');
 const { validateSubscription, canCapture, incrementCaptures,
         checkDailyFreeLimit, incrementDailyFreeUsage }                           = require('./subscriptions');
@@ -35,6 +44,22 @@ const { sendAlert }                                                             
 const { getPlanConfig, getConfig, reloadConfig }                                 = require('./config');
 
 const app  = express();
+app.set('trust proxy', 1); // trust first proxy (nginx/caddy) — makes req.ip reliable
+
+// ── Security headers ──────────────────────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: false, // CSP desabilitado: app usa inline scripts/styles
+  crossOriginEmbedderPolicy: false,
+  hsts: { maxAge: 31536000, includeSubDomains: true },
+}));
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.removeHeader('X-Powered-By');
+  next();
+});
+
 const PORT = process.env.PORT || 3001;
 const SS   = path.join(__dirname, 'screenshots');
 
@@ -74,9 +99,46 @@ const rlCrawl            = makeRateLimiter(5);
 const rlStartCapture     = makeRateLimiter(3);
 const rlCreatePix        = makeRateLimiter(5);
 const rlValidateCode     = makeRateLimiter(10);
+const rlDownloadSample   = makeRateLimiter(10);
+
+// ── Progressive blocking for validate-code ────────────────────────────────────
+// After 5 failed attempts, block the IP with exponential back-off (up to 1 hour)
+const _validateFailures = new Map(); // ip → { count, blockedUntil }
+function validateCodeBlocker(req, res, next) {
+  const ip  = clientIp(req);
+  const now = Date.now();
+  const rec = _validateFailures.get(ip);
+  if (rec && rec.blockedUntil && now < rec.blockedUntil) {
+    const secs = Math.ceil((rec.blockedUntil - now) / 1000);
+    return res.status(429).json({ error: `Muitas tentativas inválidas. Aguarde ${secs}s.` });
+  }
+  next();
+}
+function recordValidateFailure(ip) {
+  const rec   = _validateFailures.get(ip) || { count: 0, blockedUntil: 0 };
+  rec.count  += 1;
+  if (rec.count >= 5) {
+    // 30s, 60s, 2min, 5min, 10min, 30min, 60min cap
+    const step    = Math.min(rec.count - 5, 6);
+    const delays  = [30, 60, 120, 300, 600, 1800, 3600];
+    rec.blockedUntil = Date.now() + delays[step] * 1000;
+  }
+  _validateFailures.set(ip, rec);
+}
+function resetValidateFailures(ip) {
+  _validateFailures.delete(ip);
+}
+// Prune old records every 2 hours
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of _validateFailures) {
+    if (rec.blockedUntil < now - 2 * 60 * 60 * 1000) _validateFailures.delete(ip);
+  }
+}, 2 * 60 * 60 * 1000);
 
 function clientIp(req) {
-  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  // req.ip is resolved correctly by Express when trust proxy is set
+  return req.ip || req.socket.remoteAddress || 'unknown';
 }
 
 // ── URL normalization (mirrors frontend normalizeUrlInput) ────────────────────
@@ -115,6 +177,67 @@ function consumeAccessCredit(code) {
   }
 }
 
+// ── Envio de emails de confirmação de pagamento (idempotente) ────────────────
+// Chamado tanto pelo webhook quanto pelo polling de pix-status.
+// claimConfirmationEmail garante que apenas UM dos dois disparará o email.
+async function dispatchPaymentEmails(pixId, plan, webhookEventData) {
+  if (!claimConfirmationEmail(pixId)) return; // já enviado por outro caminho
+
+  try {
+    const entry    = getBillingEntry(pixId);
+    const cust     = (entry && entry.customer) || {};
+    // Fallback: AbacatePay às vezes inclui customer no payload do webhook
+    const evCust   = (webhookEventData && webhookEventData.customer) || {};
+    const emailTo  = cust.email  || evCust.email  || evCust.email_address || null;
+    const custName = cust.name   || evCust.name   || evCust.full_name    || null;
+
+    const amountCents = webhookEventData && webhookEventData.amount;
+    const amountFmt   = amountCents ? `R$ ${(amountCents / 100).toFixed(2).replace('.', ',')}` : null;
+
+    console.log(`[mailer] dispatchPaymentEmails — pixId:${pixId} emailTo:${emailTo || '(nenhum)'} plano:${plan} valor:${amountFmt}`);
+
+    if (emailTo) {
+      const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+
+      // Email 1: confirmação de pagamento
+      const r1 = await sendPaymentConfirmed({
+        to:     emailTo,
+        name:   custName || undefined,
+        plan:   planLabel,
+        amount: amountFmt,
+      });
+      console.log(`[mailer] sendPaymentConfirmed result:`, JSON.stringify(r1));
+
+      // Email 2: código SNAP — aguarda 4s para garantir entrega após o email 1
+      const accessCode = entry && entry.accessCode;
+      if (accessCode) {
+        await new Promise(r => setTimeout(r, 800));
+        const r2 = await sendSnapCode({
+          to:   emailTo,
+          name: custName || undefined,
+          code: accessCode,
+          plan: planLabel,
+        });
+        console.log(`[mailer] sendSnapCode result:`, JSON.stringify(r2));
+      } else {
+        console.warn(`[mailer] sendSnapCode ignorado — accessCode nao encontrado para pixId:${pixId}`);
+      }
+    } else {
+      console.warn('[mailer] emails de confirmação ignorados — nenhum email encontrado para pixId:', pixId);
+    }
+
+    await sendInternalPaymentAlert({
+      customerEmail: emailTo,
+      plan,
+      amount:      amountFmt,
+      pixTxId:     pixId,
+      activatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[mailer] erro em dispatchPaymentEmails:', err.message);
+  }
+}
+
 // ── Webhook AbacatePay (raw body + HMAC verification) ────────────────────────
 app.post('/api/webhook/abacatepay', express.raw({ type: 'application/json' }), async (req, res) => {
   // Logar todos os headers no primeiro webhook recebido
@@ -127,12 +250,10 @@ app.post('/api/webhook/abacatepay', express.raw({ type: 'application/json' }), a
   try {
     const sig = req.headers['x-webhook-signature'] || req.headers['x-abacatepay-signature'] || '';
 
-    // Verificar assinatura somente se ABACATEPAY_WEBHOOK_SECRET estiver configurado
-    if (process.env.ABACATEPAY_WEBHOOK_SECRET) {
-      if (!verifyWebhookSignature(req.body, sig)) {
-        console.error('[webhook] assinatura inválida — sig recebida:', sig.slice(0, 40));
-        return res.status(401).json({ error: 'Assinatura inválida.' });
-      }
+    // Verificar assinatura sempre (fail-closed): rejeita se secret não configurado ou HMAC inválido
+    if (!verifyWebhookSignature(req.body, sig)) {
+      console.error('[webhook] assinatura inválida ou secret não configurado — sig recebida:', sig.slice(0, 40));
+      return res.status(401).json({ error: 'Assinatura inválida.' });
     }
 
     let event;
@@ -173,6 +294,9 @@ app.post('/api/webhook/abacatepay', express.raw({ type: 'application/json' }), a
     console.log(`[webhook] pagamento confirmado — plano: ${plan}, pixId: ${pixId}, código: ${code}`);
     sendAlert(`💰 Novo pagamento!\nPlano: ${plan}\nCódigo: ${code}`);
 
+    // fire-and-forget — nunca bloquear o webhook
+    setImmediate(() => dispatchPaymentEmails(pixId, plan, event.data));
+
     return res.status(200).end();
   } catch (err) {
     console.error('[webhook] erro interno:', err.message);
@@ -183,9 +307,33 @@ app.post('/api/webhook/abacatepay', express.raw({ type: 'application/json' }), a
 // Compat: rota legada sem assinatura (aceita mas não verifica)
 app.post('/api/webhook', express.json(), (_req, res) => res.status(200).json({ ok: true }));
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb', strict: true }));
+
+// Bloquear prototype pollution em todos os bodies JSON
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    if (hasPrototypePollution(req.body)) {
+      console.warn(`[Security] Prototype pollution attempt de ${clientIp(req)}`);
+      return res.status(400).json({ error: 'Input inválido.' });
+    }
+    req.body = sanitizeBody(req.body);
+  }
+  next();
+});
+
+app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'landing.html')));
+app.get('/app', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/screenshots', express.static(SS));
+// Serve screenshot assets only for jobs that exist in memory (prevents orphan file enumeration)
+app.get('/screenshots/:jobId/*', (req, res) => {
+  const { jobId } = req.params;
+  if (!getJob(jobId)) return res.status(404).end();
+  // Prevent path traversal: resolve and ensure it stays inside SS/jobId
+  const jobBase = path.resolve(SS, jobId);
+  const reqPath = path.resolve(SS, jobId, req.params[0]);
+  if (!reqPath.startsWith(jobBase + path.sep) && reqPath !== jobBase) return res.status(403).end();
+  res.sendFile(reqPath, err => { if (err && !res.headersSent) res.status(404).end(); });
+});
 
 // ── Plan middleware — enriquece req com plano completo do config.json ─────────
 app.use((req, _res, next) => {
@@ -218,7 +366,7 @@ app.get('/api/stats', (_req, res) => res.json({ total: getCounter() }));
 
 // ── Planos ────────────────────────────────────────────────────────────────────
 const PLAN_INFO = [
-  { key: 'starter', name: 'Starter', priceCents: 1990,  priceLabel: 'R$ 19,90/mês',  monthlyCaptures: 100,  crawlLimit: 12,  cssSelector: false, manualPagesLimit: 3,   description: 'Screenshots sem marca d\'água, até 100 capturas/mês' },
+  { key: 'starter', name: 'Starter', priceCents: 1990,  priceLabel: 'R$ 19,90/mês',  monthlyCaptures: 60,   crawlLimit: 10,  cssSelector: false, manualPagesLimit: 2,   description: 'Screenshots sem marca d\'água, até 60 capturas/mês' },
   { key: 'pro',     name: 'Pro',     priceCents: 4990,  priceLabel: 'R$ 49,90/mês',  monthlyCaptures: -1,   crawlLimit: 20,  cssSelector: true,  manualPagesLimit: 10,  description: 'Capturas ilimitadas, templates exclusivos e exportação social' },
   { key: 'agency',  name: 'Agency',  priceCents: 12990, priceLabel: 'R$ 129,90/mês', monthlyCaptures: -1,   crawlLimit: 999, cssSelector: true,  manualPagesLimit: -1,  description: 'Tudo do Pro + 3 códigos de acesso e crawl ilimitado' },
 ];
@@ -226,13 +374,15 @@ app.get('/api/plans',    (_req, res) => res.json({ plans:    PLAN_INFO }));
 app.get('/api/packages', (_req, res) => res.json({ packages: PLAN_INFO }));
 
 // ── Validar código de acesso ──────────────────────────────────────────────────
-app.post('/api/validate-code', rlValidateCode, (req, res) => {
+app.post('/api/validate-code', rlValidateCode, validateCodeBlocker, (req, res) => {
   const { code } = req.body || {};
   if (!code) return res.status(400).json({ valid: false, reason: 'Código obrigatório.' });
   const norm = code.trim().toUpperCase();
+  const ip   = clientIp(req);
   if (norm.startsWith('SNAP-')) {
     const result = validateSubscription(norm);
-    if (!result.valid) return res.status(400).json(result);
+    if (!result.valid) { recordValidateFailure(ip); return res.status(400).json(result); }
+    resetValidateFailures(ip);
     return res.json({
       valid: true,
       info:  { plan: result.plan, remaining: result.capturesRemaining, isWatermarked: false },
@@ -240,7 +390,8 @@ app.post('/api/validate-code', rlValidateCode, (req, res) => {
   }
   // Legado: códigos hex (codes.js)
   const result = validateCode(norm);
-  if (!result.valid) return res.status(400).json(result);
+  if (!result.valid) { recordValidateFailure(ip); return res.status(400).json(result); }
+  resetValidateFailures(ip);
   return res.json({
     valid: true,
     info:  { plan: result.info.pkg, remaining: result.info.remaining, isWatermarked: false },
@@ -251,16 +402,100 @@ app.post('/api/validate-code', rlValidateCode, (req, res) => {
 app.post('/api/create-pix', rlCreatePix, async (req, res) => {
   const { plan, customer } = req.body || {};
   const VALID = ['starter', 'pro', 'agency'];
+
+  // Validação 1: plano
   if (!plan || !VALID.includes(plan))
     return res.status(400).json({ error: `Plano inválido. Use: ${VALID.join(', ')}` });
+
+  const cust = customer || {};
+
+  // Validação 2: taxId (CPF/CNPJ)
+  const taxIdRaw = typeof cust.taxId === 'string' ? cust.taxId : (typeof cust.cpf === 'string' ? cust.cpf : '');
+  if (!taxIdRaw || !taxIdRaw.trim()) {
+    return res.status(400).json({ error: 'CPF ou CNPJ é obrigatório.', field: 'taxId' });
+  }
+  const taxIdDigits = taxIdRaw.replace(/\D/g, '');
+  if (taxIdDigits.length !== 11 && taxIdDigits.length !== 14) {
+    return res.status(400).json({ error: 'CPF ou CNPJ inválido. Verifique e tente novamente.', field: 'taxId' });
+  }
+
+  // Validação 3: cellphone
+  const phoneRaw = typeof cust.cellphone === 'string' ? cust.cellphone : (typeof cust.phone === 'string' ? cust.phone : '');
+  if (!phoneRaw || !phoneRaw.trim()) {
+    return res.status(400).json({ error: 'Número de telefone é obrigatório.', field: 'cellphone' });
+  }
+  const phoneDigits = phoneRaw.replace(/\D/g, '');
+  if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+    return res.status(400).json({ error: 'Número de telefone inválido.', field: 'cellphone' });
+  }
+
+  // Validação 4: API key configurada
+  const apiKey = process.env.ABACATEPAY_API_KEY || '';
+  if (!apiKey || apiKey.includes('YOUR_') || apiKey.includes('PLACEHOLDER') || apiKey.length < 10) {
+    return res.status(503).json({ error: 'Pagamento temporariamente indisponível. Entre em contato com o suporte.' });
+  }
+
+  // Normalizar customer para o formato que o billing espera
+  const normalizedCustomer = {
+    name:      cust.name  || '',
+    email:     cust.email || '',
+    cpf:       taxIdRaw,
+    phone:     phoneRaw,
+    taxId:     taxIdDigits,
+    cellphone: phoneDigits,
+  };
+
   try {
-    const result = await createPixPayment(plan, customer || null);
+    const result = await createPixPayment(plan, normalizedCustomer);
     const config = readJsonFile(CONFIG_FILE, { plans: {} });
     const planName = (config.plans && config.plans[plan] && config.plans[plan].name) || plan;
+
+    // Store IP→email for first-capture email lookup
+    if (normalizedCustomer.email) {
+      storeIpEmail(clientIp(req), normalizedCustomer.email, normalizedCustomer.name || null);
+    }
+
+    // Schedule PIX reminder (15 min) — fire-and-forget
+    const _reminderPixId   = result.pixId;
+    const _reminderEmail   = normalizedCustomer.email;
+    const _reminderName    = normalizedCustomer.name || null;
+    const _reminderPlan    = plan;
+    const _reminderAmount  = result.amount ? `R$ ${(result.amount / 100).toFixed(2).replace('.', ',')}` : null;
+    if (_reminderEmail) {
+      setTimeout(async () => {
+        try {
+          const { getBillingEntry: _getBE, claimPixReminder } = require('./billing');
+          const entry = _getBE(_reminderPixId);
+          if (entry && entry.status === 'paid') return; // já pagou
+          if (!claimPixReminder(_reminderPixId)) return; // já enviado
+          await sendPixReminder({
+            to:     _reminderEmail,
+            name:   _reminderName,
+            pixId:  _reminderPixId,
+            plan:   _reminderPlan,
+            amount: _reminderAmount,
+          });
+        } catch (e) {
+          console.error('[pix-reminder] erro:', e.message);
+        }
+      }, 15 * 60 * 1000); // 15 minutos
+    }
+
     return res.json({ ...result, planName });
   } catch (err) {
     console.error('[create-pix] erro:', err.message);
-    return res.status(500).json({ error: `Erro ao gerar PIX: ${err.message}` });
+    const msg = err.message || '';
+    // Traduzir erros técnicos para mensagens amigáveis
+    if (/invalid.*api.*key|inactive.*api|api.*key.*invalid/i.test(msg) || /unauthorized/i.test(msg)) {
+      return res.status(503).json({ error: 'Pagamento temporariamente indisponível. Entre em contato com o suporte.' });
+    }
+    if (/taxid|tax_id|cpf|cnpj/i.test(msg)) {
+      return res.status(400).json({ error: 'CPF ou CNPJ inválido. Verifique e tente novamente.', field: 'taxId' });
+    }
+    if (/cellphone|phone|telefone/i.test(msg)) {
+      return res.status(400).json({ error: 'Número de telefone inválido.', field: 'cellphone' });
+    }
+    return res.status(500).json({ error: `Erro ao gerar PIX: ${msg}` });
   }
 });
 
@@ -270,14 +505,18 @@ app.get('/api/pix-status', async (req, res) => {
   if (!pixId) return res.json({ status: 'pending', accessCode: null });
   try {
     const result = await checkPixStatus(pixId);
+    // Disparar emails ao detectar pagamento via polling (idempotente via claimConfirmationEmail)
+    if (result.status === 'paid') {
+      setImmediate(() => dispatchPaymentEmails(pixId, result.plan || 'starter', null));
+    }
     return res.json(result);
   } catch {
     return res.json({ status: 'pending', accessCode: null });
   }
 });
 
-// ── POST /api/simulate-pix — simula pagamento PIX (dev only) ─────────────────
-app.post('/api/simulate-pix', async (req, res) => {
+// ── POST /api/simulate-pix — simula pagamento PIX (dev/admin only) ───────────
+app.post('/api/simulate-pix', requireAdmin, async (req, res) => {
   if (process.env.NODE_ENV === 'production')
     return res.status(403).json({ error: 'Indisponível em produção.' });
   const { pixId } = req.body || {};
@@ -333,7 +572,7 @@ app.post('/api/crawl', rlCrawl, (req, res) => {
   // Crawl é sempre gratuito e ilimitado — o limite diário é cobrado na captura (/api/start-capture)
 
   const jobId = uuidv4();
-  createJob(jobId, { subscriptionCode: validatedCode });
+  createJob(jobId, { subscriptionCode: validatedCode, creatorIp: clientIp(req) });
 
   const planCrawlLimit = req.plan ? req.plan.crawlLimit : 4;
 
@@ -420,7 +659,7 @@ app.post('/api/select-pages', (req, res) => {
 
 // ── POST /api/start-capture ───────────────────────────────────────────────────
 app.post('/api/start-capture', rlStartCapture, (req, res) => {
-  const { jobId, renderConfig } = req.body || {};
+  const { jobId, renderConfig, notifyEmail } = req.body || {};
   if (!jobId) return res.status(400).json({ error: 'jobId obrigatório.' });
   const job = getJob(jobId);
   if (!job) return res.status(404).json({ error: 'Job não encontrado.' });
@@ -432,6 +671,12 @@ app.post('/api/start-capture', rlStartCapture, (req, res) => {
     const dayLimit = req.plan.capturesPerDay || 3;
     const dayCheck = checkDailyFreeLimit(reqIp, dayLimit);
     if (!dayCheck.allowed) {
+      if (notifyEmail && notifyEmail.includes('@')) {
+        setImmediate(() => {
+          sendFreeLimitReached({ to: notifyEmail, limit: dayLimit })
+            .catch(e => console.error('[start-capture] erro email limite:', e.message));
+        });
+      }
       return res.status(429).json({
         error:   `Limite diário de ${dayLimit} capturas atingido. Volte amanhã ou ative um plano.`,
         used:    dayCheck.used,
@@ -551,6 +796,19 @@ app.post('/api/start-capture', rlStartCapture, (req, res) => {
     }
     console.log(`[capture] job ${jobId} concluído — ${completedCount}/${pages.length}`);
     markReady(jobId);
+
+    // Email de primeira captura (fire-and-forget, enviado apenas uma vez por usuário)
+    setImmediate(async () => {
+      try {
+        const identifier = subCode || `ip:${reqIp}`;
+        if (!claimFirstCaptureEmail(identifier)) return;
+        const ipData = getIpEmail(reqIp);
+        if (!ipData || !ipData.email) return;
+        await sendFirstCapture({ to: ipData.email, name: ipData.name || undefined });
+      } catch (e) {
+        console.error('[first-capture-email] erro:', e.message);
+      }
+    });
   })();
 
   return res.status(202).json({ jobId, status: 'capturing' });
@@ -592,13 +850,35 @@ app.get('/api/share-token/:jobId', (req, res) => {
   return res.json({ token: job.shareToken });
 });
 
+// ── HEAD /api/download/:jobId — preflight check (frontend usa antes do GET) ───
+app.head('/api/download/:jobId', (req, res) => {
+  const { jobId } = req.params;
+  if (!validateJobId(jobId)) return res.status(400).end();
+  const job = getJob(jobId);
+  if (!job) return res.status(404).end();
+  if (job.status !== 'ready' && job.status !== 'paid')
+    return res.status(409).end();
+  const jobDir = path.join(SS, jobId);
+  if (!fs.existsSync(jobDir)) return res.status(410).end();
+  const dlMode = (req.query.mode === 'desktop' || req.query.mode === 'mobile') ? req.query.mode : 'full';
+  if (dlMode === 'mobile') {
+    const anyMobile = (job.selectedPages || []).some((_, i) =>
+      fs.existsSync(path.join(jobDir, `page-${String(i).padStart(2,'0')}`, 'mobile-professional.png'))
+    );
+    if (!anyMobile) return res.status(400).end();
+  }
+  res.status(200).end();
+});
+
 // ── GET /api/download/:jobId ──────────────────────────────────────────────────
 // Sem paywall — imagens já têm ou não têm watermark queimada pelo renderer
 app.get('/api/download/:jobId', (req, res) => {
   const { jobId } = req.params;
+  if (!validateJobId(jobId)) return res.status(400).json({ error: 'ID de job inválido.' });
   const job = getJob(jobId);
   if (!job)   return res.status(404).json({ error: 'Job não encontrado.' });
-  if (job.status !== 'ready' && job.status !== 'paid' && job.status !== 'downloaded')
+  if (job.status === 'downloaded') return res.status(410).json({ error: 'Arquivo já baixado anteriormente.' });
+  if (job.status !== 'ready' && job.status !== 'paid')
     return res.status(409).json({ error: 'Captura ainda em andamento.' });
 
   const jobDir = path.join(SS, jobId);
@@ -613,7 +893,7 @@ app.get('/api/download/:jobId', (req, res) => {
   })();
   const dateTag = new Date().toISOString().slice(0, 10);
   const tmpl    = (job.renderConfig && job.renderConfig.template) || 'void';
-  const rootDir = `${domainName}-${dateTag}-${tmpl}`;
+  const rootDir = sanitizeFilename(`${domainName}-${dateTag}-${tmpl}`);
 
   res.setHeader('Content-Type',        'application/zip');
   res.setHeader('Content-Disposition', `attachment; filename="${rootDir}.zip"`);
@@ -628,47 +908,56 @@ app.get('/api/download/:jobId', (req, res) => {
   // BUGFIX: usar 'close' (não 'finish') para cleanup após o stream fechar
   archive.on('close', () => {
     console.log(`[zip] concluído — ${archive.pointer()} bytes`);
-    try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch {}
     markDownloaded(jobId);
+    storage.deleteJobDirAsync(jobId);
   });
 
   archive.pipe(res);
 
-  // PRÉ-VERIFICAÇÃO: logar arquivos faltando antes de construir o ZIP
-  for (let i = 0; i < job.selectedPages.length; i++) {
-    const pDir    = path.join(jobDir, `page-${String(i).padStart(2, '0')}`);
-    const desktop = path.join(pDir, 'desktop-professional.png');
-    const mobile  = path.join(pDir, 'mobile-professional.png');
-    if (!fs.existsSync(desktop)) console.error(`[zip] FALTANDO: ${desktop}`);
-    if (!fs.existsSync(mobile))  console.error(`[zip] FALTANDO: ${mobile}`);
+  // ── Determinar modo e construir ZIP ──────────────────────────────────────────
+  console.log(`[Download] jobId=${jobId} | mode=${dlMode} | pages=${(job.selectedPages||[]).length}`);
+
+  const DESKTOP_NAMES = ['desktop-professional.png', 'desktop.png'];
+  const MOBILE_NAMES  = ['mobile-professional.png',  'mobile.png'];
+
+  function findFile(dir, names) {
+    for (const n of names) {
+      const p = path.join(dir, n);
+      if (fs.existsSync(p)) return p;
+    }
+    return null;
   }
 
-  // Se NENHUM arquivo existe, algo falhou no render — não servir ZIP vazio
-  const anyFileExists = job.selectedPages.some((_, i) => {
-    const pDir = path.join(jobDir, `page-${String(i).padStart(2, '0')}`);
-    return fs.existsSync(path.join(pDir, 'desktop-professional.png'));
-  });
-  if (!anyFileExists) {
-    return res.status(500).json({ error: 'Falha na renderização das imagens. Tente novamente ou contate o suporte.' });
-  }
+  const includeDesktop = dlMode === 'full' || dlMode === 'desktop';
+  const includeMobile  = dlMode === 'full' || dlMode === 'mobile';
 
-  for (let i = 0; i < job.selectedPages.length; i++) {
+  let filesAdded = 0;
+
+  for (let i = 0; i < (job.selectedPages || []).length; i++) {
     const pageUrl = job.selectedPages[i];
-    const slug    = (() => {
+    const pDir    = path.join(jobDir, `page-${String(i).padStart(2, '0')}`);
+
+    const slug = (() => {
       try {
         const p = new URL(pageUrl).pathname;
         return (p === '/' || !p) ? 'homepage' : p.replace(/^\//, '').replace(/\//g, '-').slice(0, 40) || 'page';
       } catch { return `page-${i + 1}`; }
     })();
     const folder = `${rootDir}/${String(i + 1).padStart(2, '0')}-${slug}`;
-    const pDir   = path.join(jobDir, `page-${String(i).padStart(2, '0')}`);
-    const addIf  = (f, n) => {
-      if (fs.existsSync(f)) { archive.file(f, { name: n }); }
-      else { console.error(`[zip] FALTANDO: ${f}`); }
-    };
 
-    if (dlMode !== 'mobile') addIf(path.join(pDir, 'desktop-professional.png'), `${folder}/desktop-full.png`);
-    if (dlMode !== 'desktop') addIf(path.join(pDir, 'mobile-professional.png'), `${folder}/mobile-full.png`);
+    const desktopFile = findFile(pDir, DESKTOP_NAMES);
+    const mobileFile  = findFile(pDir, MOBILE_NAMES);
+
+    console.log(`[Download] page-${String(i).padStart(2,'0')}: desktop=${desktopFile ? path.basename(desktopFile) : 'AUSENTE'} | mobile=${mobileFile ? path.basename(mobileFile) : 'AUSENTE'}`);
+
+    if (includeDesktop && desktopFile) {
+      archive.file(desktopFile, { name: `${folder}/desktop.png` });
+      filesAdded++;
+    }
+    if (includeMobile && mobileFile) {
+      archive.file(mobileFile, { name: `${folder}/mobile.png` });
+      filesAdded++;
+    }
 
     const sectDir = path.join(pDir, 'sections');
     if (fs.existsSync(sectDir)) {
@@ -683,6 +972,16 @@ app.get('/api/download/:jobId', (req, res) => {
         archive.file(path.join(socialDir, f), { name: `${folder}/social/${f}` });
       });
     }
+  }
+
+  console.log(`[Download] Total arquivos no ZIP: ${filesAdded}`);
+
+  if (filesAdded === 0) {
+    return res.status(404).json({
+      error: dlMode === 'mobile'
+        ? 'Capturas mobile não disponíveis. Seu plano pode não incluir mobile.'
+        : 'Nenhum arquivo encontrado. Tente fazer uma nova captura.'
+    });
   }
 
   // Manifest — adicionado ANTES de finalize()
@@ -727,28 +1026,54 @@ app.get('/api/templates', (req, res) => {
 app.get('/api/plan-status', (req, res) => {
   const planCfg = req.plan || getPlanConfig('free');
   const planKey = req.planKey || 'free';
-  // Capturas usadas (para SNAP- codes)
+
+  // Capturas usadas este mês (para SNAP- codes)
   let capturesUsed = 0;
+  let capturesRemaining = -1; // -1 = unlimited
+  const _monthly = planCfg.capturesPerMonth !== undefined ? planCfg.capturesPerMonth : (planCfg.monthlyCaptures !== undefined ? planCfg.monthlyCaptures : -1);
+  let capturesPerMonth = _monthly;
+
   if (req.accessCode && req.accessCode.startsWith('SNAP-')) {
     try {
       const r = validateSubscription(req.accessCode);
-      if (r.valid && r.capturesRemaining !== null && r.capturesRemaining !== undefined) {
-        const limit = planCfg.monthlyCaptures;
-        capturesUsed = (limit !== null && limit !== -1) ? Math.max(0, limit - r.capturesRemaining) : 0;
+      if (r.valid) {
+        // Usar capturesThisMonth real vs limite do config.json (não o limite gravado na assinatura)
+        capturesUsed = r.capturesThisMonth || 0;
+        if (_monthly !== null && _monthly !== -1) {
+          capturesRemaining = Math.max(0, _monthly - capturesUsed);
+        }
+        // se _monthly === -1 (ilimitado), capturesRemaining permanece -1
       }
     } catch {}
   }
+
+  // Capturas diárias usadas (para plano free — rastreadas por IP)
+  let capturesUsedToday = 0;
+  let capturesPerDay    = planCfg.capturesPerDay || 3;
+  if (planKey === 'free') {
+    const reqIp   = clientIp(req);
+    const dayCheck = checkDailyFreeLimit(reqIp, capturesPerDay);
+    capturesUsedToday = dayCheck.used;
+    capturesRemaining = Math.max(0, capturesPerDay - capturesUsedToday);
+  }
+
   res.json({
     plan:              planKey,
     planName:          planCfg.name || planKey,
     watermark:         planCfg.watermark !== false,
     templatesUnlocked: planCfg.templatesUnlocked || [],
     crawlLimit:        planCfg.crawlLimit || 6,
-    monthlyCaptures:   planCfg.monthlyCaptures !== undefined ? planCfg.monthlyCaptures : -1,
+    monthlyCaptures:   capturesPerMonth,
+    capturesPerMonth,
+    capturesPerDay:    planKey === 'free' ? capturesPerDay : -1,
     capturesUsed,
+    capturesUsedToday,
+    capturesRemaining,
     cssSelector:       !!planCfg.cssSelector,
     apiAccess:         !!planCfg.apiAccess,
     manualPagesLimit:  planCfg.manualPagesLimit !== undefined ? planCfg.manualPagesLimit : 0,
+    mobileCapture:     planCfg.mobileCapture !== false,
+    deviceScaleFactor: planCfg.deviceScaleFactor || 1,
   });
 });
 
@@ -873,6 +1198,49 @@ function writeJsonFile(filePath, data) {
 
 // ── GET /admin ────────────────────────────────────────────────────────────────
 app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+
+// ── GET /admin/storage ────────────────────────────────────────────────────────
+app.get('/admin/storage', requireAdmin, (_req, res) => {
+  const onDisk     = storage.listJobDirsOnDisk();
+  const totalBytes = storage.getTotalStorageSize();
+  const activeJobs = getAllJobIds();
+
+  const details = onDisk.map(jobId => {
+    const sizeBytes = storage.getJobDirSize(jobId);
+    const dir = path.join(storage.SCREENSHOTS_BASE, jobId);
+    let ageMin = null;
+    try {
+      const stat = fs.statSync(dir);
+      ageMin = Math.round((Date.now() - stat.mtimeMs) / 60000);
+    } catch {}
+    return {
+      jobId,
+      sizeMB:       (sizeBytes / 1024 / 1024).toFixed(2),
+      ageMinutes:   ageMin,
+      inMemory:     activeJobs.includes(jobId),
+      willExpireIn: ageMin !== null
+        ? Math.max(0, Math.round(storage.MAX_AGE_MS / 60000) - ageMin)
+        : null,
+    };
+  });
+
+  res.json({
+    summary: {
+      jobsOnDisk:   onDisk.length,
+      jobsInMemory: activeJobs.length,
+      orphans:      onDisk.filter(id => !activeJobs.includes(id)).length,
+      totalMB:      (totalBytes / 1024 / 1024).toFixed(2),
+      maxAgeMinutes: storage.MAX_AGE_MS / 60000,
+    },
+    jobs: details,
+  });
+});
+
+// ── POST /admin/storage/cleanup ───────────────────────────────────────────────
+app.post('/admin/storage/cleanup', requireAdmin, (_req, res) => {
+  storage.runCleanup(() => getAllJobIds());
+  res.json({ ok: true, message: 'Cleanup executado.' });
+});
 
 // ── GET /admin/data ───────────────────────────────────────────────────────────
 app.get('/admin/data', requireAdmin, (_req, res) => {
@@ -1226,7 +1594,7 @@ app.post('/api/rerender', async (req, res) => {
 });
 
 // ── GET /api/download-sample/:jobId — Free sample download ───────────────────
-app.get('/api/download-sample/:jobId', async (req, res) => {
+app.get('/api/download-sample/:jobId', rlDownloadSample, async (req, res) => {
   const { jobId } = req.params;
   const job = getJob(jobId);
   if (!job) return res.status(404).json({ error: 'Job não encontrado.' });
@@ -1287,42 +1655,48 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Algo deu errado. Por favor, tente novamente.' });
 });
 
-// ── syncTemplates — garante que todo template do renderer existe no JSON ───────
+// ── syncTemplates — garante que somente os 32 templates autorizados existem no JSON ───────
 function syncTemplates() {
   let templates;
   try { templates = JSON.parse(fs.readFileSync(TEMPLATES_FILE, 'utf8')); }
   catch { templates = []; }
 
-  // IDs que o renderer conhece (48 novos IDs — 4 categorias)
-  const RENDERER_IDS = [
-    // device — free (6)
-    'void', 'chrome', 'paper', 'float', 'annotation', 'story',
-    // device — starter (6)
-    'macbook', 'iphone-pro', 'tablet', 'duo-split', 'device-glow', 'browser-dark',
-    // editorial — starter (6)
-    'magazine-cover', 'spread', 'poster-a4', 'zine', 'newspaper', 'film-frame',
-    // editorial — pro (6)
-    'white-space', 'minimal-dark', 'grid-lines', 'ruled', 'dot-matrix', 'mono-line',
-    // creative — pro (12)
-    'gradient-mesh', 'neon-border', 'duotone', 'color-block', 'retro-wave', 'aurora',
-    'blueprint', 'terminal', 'schematic', 'isometric', 'code-review', 'dashboard-panel',
-    // social — agency (12)
-    'cinematic', 'polaroid', 'diorama', 'glitch', 'vaporwave', 'noir',
-    'linkedin-banner', 'twitter-card', 'instagram-post', 'og-image', 'presentation-slide', 'whatsapp-preview',
+  // Lista autoritativa dos 32 IDs permitidos
+  const TEMPLATE_IDS_AUTORIZADOS = [
+    // BÁSICO — free
+    'browser-clean', 'minimal-clean', 'social-basic', 'mobile-simple', 'gradient-basic', 'default-dark',
+    // SOCIAL — starter
+    'instagram-post', 'instagram-story', 'twitter-post', 'linkedin-post', 'whatsapp-share', 'carousel-post', 'ad-style', 'viral-frame',
+    // PROFISSIONAL — starter
+    'presentation-slide', 'pitch-deck', 'proposal-clean', 'case-study', 'portfolio-showcase', 'corporate-clean',
+    // DISPOSITIVOS — starter
+    'macbook-realistic', 'macbook-clean', 'iphone-pro', 'iphone-dark', 'multi-device', 'browser-premium',
+    // MARKETING — starter
+    'hero-section', 'landing-highlight', 'feature-showcase', 'comparison-before-after', 'gradient-premium', 'spotlight-product',
   ];
 
-  const existingIds = new Set(templates.map(t => t.id));
-  let changed = false;
+  const whitelist = new Set(TEMPLATE_IDS_AUTORIZADOS);
 
-  const FREE_IDS = new Set(['void', 'chrome', 'paper', 'float', 'annotation', 'story']);
-  RENDERER_IDS.forEach((id, idx) => {
+  // Remover templates que não estão na whitelist
+  const before = templates.length;
+  templates = templates.filter(t => whitelist.has(t.id));
+  if (templates.length !== before) {
+    console.log(`[syncTemplates] removidos ${before - templates.length} templates não autorizados`);
+  }
+
+  const existingIds = new Set(templates.map(t => t.id));
+  let changed = (templates.length !== before);
+
+  const FREE_IDS = new Set(['browser-clean', 'minimal-clean', 'social-basic', 'mobile-simple', 'gradient-basic', 'default-dark']);
+
+  TEMPLATE_IDS_AUTORIZADOS.forEach((id, idx) => {
     if (!existingIds.has(id)) {
       templates.push({
-        id, name: id.charAt(0).toUpperCase() + id.slice(1).replace(/([0-9])/g, ' $1'),
-        key: id, category: 'professional',
+        id, name: id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' '),
+        key: id, category: FREE_IDS.has(id) ? 'basico' : 'starter',
         plan: FREE_IDS.has(id) ? 'free' : 'starter',
         description: `Template ${id}`,
-        active: true, order: FREE_IDS.has(id) ? idx : 100 + idx,
+        active: true, order: idx,
       });
       changed = true;
       console.log(`[syncTemplates] adicionado template ausente: ${id}`);
@@ -1337,31 +1711,9 @@ function syncTemplates() {
   if (changed) fs.writeFileSync(TEMPLATES_FILE, JSON.stringify(templates, null, 2));
 }
 
-// ── Limpeza de screenshots orphan (a cada 1h) ─────────────────────────────────
-setInterval(() => {
-  try {
-    if (!fs.existsSync(SS)) return;
-    const dirs = fs.readdirSync(SS);
-    for (const dir of dirs) {
-      const full = path.join(SS, dir);
-      try {
-        const stat = fs.statSync(full);
-        if (!stat.isDirectory()) continue;
-        // Remover se o jobId não existe mais no Map de jobs
-        const { getJob } = require('./jobs');
-        if (!getJob(dir)) {
-          fs.rmSync(full, { recursive: true, force: true });
-          console.log(`[cleanup] removido orphan: ${dir}`);
-        }
-      } catch {}
-    }
-  } catch (err) {
-    console.error('[cleanup] erro ao limpar orphans:', err.message);
-  }
-}, 60 * 60 * 1000);
-
 app.listen(PORT, async () => {
   console.log(`SnapShot.pro rodando em http://localhost:${PORT}`);
   syncTemplates();
   await initBrowserPool();
+  storage.startCleanupScheduler(() => getAllJobIds());
 });

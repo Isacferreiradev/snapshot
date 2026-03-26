@@ -1,9 +1,11 @@
 'use strict';
 
-const fs   = require('fs');
-const path = require('path');
+const fs      = require('fs');
+const path    = require('path');
+const storage = require('./storage');
 const { renderProfessional, renderSocialExport, renderComparison } = require('./renderer');
 const { getBrowserFromPool, releaseBrowserToPool, initBrowserPool } = require('./browser-pool');
+const { validateUrl, installSsrfInterceptor } = require('./security');
 
 // ── Viewport / UA ─────────────────────────────────────────────────────────────
 const DESKTOP_VP = { width: 1440, height: 900, deviceScaleFactor: 2 };
@@ -44,8 +46,8 @@ async function applyStealthPatch(page) {
 }
 
 async function enableResourceBlocking(page, pageHostname) {
-  await page.setRequestInterception(true);
-  page.on('request', req => {
+  // SSRF interceptor wraps the original resource-blocking logic
+  await installSsrfInterceptor(page, req => {
     const url = req.url();
     const rt  = req.resourceType();
     // Block media (video/audio) entirely
@@ -160,7 +162,7 @@ async function setupPage(browser, vp, ua, hostname) {
   return page;
 }
 
-function validateUrl(url) {
+function assertHttpUrl(url) {
   if (!url || typeof url !== 'string') throw new Error('URL válida é obrigatória.');
   const t = url.trim();
   if (!t.startsWith('http://') && !t.startsWith('https://')) throw new Error('URL deve começar com http:// ou https://');
@@ -285,14 +287,13 @@ async function captureJobPages(urls, jobId, cfg, onProgress, applyWatermark, pag
   return Promise.race([
     (async () => {
       await Promise.allSettled(urls.map(async (url, i) => {
-        const validated = (() => { try { return validateUrl(url); } catch { return null; } })();
+        const validated = (() => { try { return assertHttpUrl(url); } catch { return null; } })();
         if (!validated) {
           if (onProgress) onProgress(i, null, new Error('URL inválida'));
           return;
         }
 
-        const dir = path.join(__dirname, 'screenshots', jobId, `page-${String(i).padStart(2, '0')}`);
-        fs.mkdirSync(dir, { recursive: true });
+        const dir = storage.getPageDir(jobId, i);
 
         const opts = (pageOptions && pageOptions[i]) || {};
         const captureStrategy = opts.captureStrategy || null;
@@ -324,9 +325,8 @@ async function captureJobPages(urls, jobId, cfg, onProgress, applyWatermark, pag
 
 // ── capturePageProfessional (compat — compare e single) ───────────────────────
 async function capturePageProfessional(url, jobId, pageIndex, renderConfig, applyWatermark) {
-  const validated = validateUrl(url);
-  const dir = path.join(__dirname, 'screenshots', jobId, `page-${String(pageIndex).padStart(2, '0')}`);
-  fs.mkdirSync(dir, { recursive: true });
+  const validated = assertHttpUrl(url);
+  const dir = storage.getPageDir(jobId, pageIndex);
 
   let poolEntry;
   try {
@@ -349,9 +349,10 @@ async function capturePageProfessional(url, jobId, pageIndex, renderConfig, appl
 
 // ── captureComparison ─────────────────────────────────────────────────────────
 async function captureComparison(url1, url2, jobId, renderConfig) {
-  const v1  = validateUrl(url1);
-  const v2  = validateUrl(url2);
-  const dir = path.join(__dirname, 'screenshots', jobId, 'compare');
+  const v1  = assertHttpUrl(url1);
+  const v2  = assertHttpUrl(url2);
+  const jobBase = storage.getJobDir(jobId);
+  const dir     = path.join(jobBase, 'compare');
   fs.mkdirSync(dir, { recursive: true });
 
   const raw1 = path.join(dir, 'screenshot-1.png');

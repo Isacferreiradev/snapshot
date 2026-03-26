@@ -63,18 +63,6 @@
     .logo { font-size:17px; font-weight:700; color:rgba(255,255,255,0.9); text-decoration:none; cursor:pointer; letter-spacing:-0.01em; font-family:var(--font); }
     .hdr-right { display:flex; align-items:center; gap:12px; }
 
-    /* ── Quota badge ── */
-    #sub-badge {
-      display:inline-flex; align-items:center; gap:5px;
-      font-size:12px; font-weight:600;
-      padding:4px 10px; border-radius:var(--radius-badge);
-      background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1);
-      color:var(--text-secondary); cursor:pointer;
-      transition:all var(--transition); user-select:none;
-    }
-    #sub-badge:hover { background:rgba(255,255,255,0.1); }
-    #sub-badge.active { background:rgba(74,222,128,0.08); border-color:rgba(74,222,128,0.2); color:#4ade80; }
-
     /* ── Buttons ── */
     .btn {
       display:inline-flex; align-items:center; justify-content:center; gap:9px;
@@ -639,14 +627,37 @@
     #crawl-limit-msg:not(.shown) { display:none; }
     .crawl-limit-link { color:rgba(255,255,255,0.7); text-decoration:underline; cursor:pointer; }
 
-    /* ── Sub-badge plan styles ── */
-    #sub-badge.plan-starter { background:rgba(74,222,128,0.08); border-color:rgba(74,222,128,0.2); color:#4ade80; }
-    #sub-badge.plan-pro     { background:rgba(139,92,246,0.12); border-color:rgba(139,92,246,0.3); color:#a78bfa; }
-    #sub-badge.plan-agency  { background:rgba(251,191,36,0.1); border-color:rgba(251,191,36,0.25); color:#fbbf24; }
-    .badge-counter-warn  { color:#fbbf24; }
-    .badge-counter-urgent { color:#f87171; }
-    @keyframes pulse-badge { 0%,100%{opacity:1} 50%{opacity:0.5} }
-    .badge-counter-urgent { animation: pulse-badge 1.5s ease-in-out infinite; }
+    /* ── Modal de plano ── */
+    .modal-plano-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.5);
+      backdrop-filter:blur(4px); z-index:900; animation:fadeIn 150ms ease;
+    }
+    .modal-plano {
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      width:320px;
+      background:#161616; border:1px solid rgba(255,255,255,0.1);
+      border-radius:16px; box-shadow:0 24px 60px rgba(0,0,0,0.6);
+      z-index:901; overflow:hidden; animation:mpSlideDown 200ms ease;
+    }
+    @keyframes mpSlideDown { from{opacity:0;transform:translate(-50%,-54%)} to{opacity:1;transform:translate(-50%,-50%)} }
+    .modal-plano-header { display:flex; align-items:center; justify-content:space-between; padding:20px 20px 16px; border-bottom:1px solid rgba(255,255,255,0.07); }
+    .modal-plano-name { font-family:'Outfit',system-ui,sans-serif; font-size:18px; font-weight:700; color:rgba(255,255,255,0.95); }
+    .modal-plano-sub { font-size:12px; color:rgba(255,255,255,0.35); margin-top:2px; }
+    .modal-close-btn { width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,0.06); border:none; color:rgba(255,255,255,0.5); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 150ms; }
+    .modal-close-btn:hover { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); }
+    .modal-plano-body { padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
+    .modal-uso-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:14px; }
+    .modal-uso-label { font-size:11px; font-weight:500; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }
+    .modal-uso-valor { font-family:'Outfit',system-ui,sans-serif; font-size:22px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom:10px; }
+    .modal-uso-bar-track { height:4px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden; }
+    .modal-uso-bar-fill { height:100%; background:#22c55e; border-radius:999px; transition:width 600ms ease; }
+    .modal-uso-reset { font-size:11px; color:rgba(255,255,255,0.3); margin-top:8px; }
+    .modal-features { display:flex; flex-direction:column; gap:6px; }
+    .feature-row { display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(255,255,255,0.6); padding:2px 0; }
+    .feature-row svg { flex-shrink:0; color:#22c55e; }
+    .modal-plano-footer { padding:0 20px 20px; }
+    .btn-upgrade-modal { width:100%; height:42px; display:flex; align-items:center; justify-content:center; gap:8px; background:#ffffff; color:#0a0a0a; font-family:'Outfit',system-ui,sans-serif; font-size:14px; font-weight:600; border:none; border-radius:8px; cursor:pointer; transition:all 150ms; }
+    .btn-upgrade-modal:hover { background:#f0f0f0; transform:translateY(-1px); }
 
 
     /* Tela 3 — QR Code PIX */
@@ -701,6 +712,106 @@
 
     /* ── Body bottom padding for history bar ── */
     body { padding-bottom: 60px; }
+
+    /* ── PIX field errors ── */
+    .pix-field-error { font-size: 12px; color: #ef4444; display: none; margin-top: 4px; }
+
+    /* ── Assinar Pro button ── */
+    @keyframes assinar-shimmer {
+      0%   { transform: skewX(-20deg) translateX(-120%); }
+      100% { transform: skewX(-20deg) translateX(500%); }
+    }
+    @keyframes assinar-glow {
+      0%,100% { box-shadow: 0 0 10px rgba(139,92,246,0.35), 0 2px 8px rgba(0,0,0,0.5); }
+      50%      { box-shadow: 0 0 22px rgba(139,92,246,0.55), 0 2px 8px rgba(0,0,0,0.5); }
+    }
+    .btn-assinar {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px 7px 10px;
+      border-radius: 9px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
+      color: #ffffff;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.012em;
+      cursor: pointer;
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
+      transition: transform 200ms cubic-bezier(0.34,1.56,0.64,1), filter 180ms ease;
+      animation: assinar-glow 2.8s ease-in-out infinite;
+    }
+    /* top highlight */
+    .btn-assinar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.14) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    /* shimmer sweep — fires every ~4s */
+    .btn-assinar::after {
+      content: '';
+      position: absolute;
+      top: -10%; left: 0;
+      width: 22%;
+      height: 120%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+      pointer-events: none;
+      animation: assinar-shimmer 4s ease 1s infinite;
+    }
+    .btn-assinar:hover {
+      transform: translateY(-1.5px) scale(1.025);
+      filter: brightness(1.12) saturate(1.1);
+      animation: none;
+      box-shadow: 0 6px 22px rgba(139,92,246,0.55), 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .btn-assinar:active {
+      transform: scale(0.97);
+      filter: brightness(0.95);
+      animation: none;
+    }
+    .btn-assinar .btn-icon {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .pill-plano {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      padding: 4px 10px 4px 7px;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.45);
+      cursor: pointer;
+      transition: all 150ms ease;
+      letter-spacing: -0.01em;
+    }
+    .pill-plano:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.13);
+      color: rgba(255,255,255,0.72);
+    }
+    .pill-plano .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      flex-shrink: 0;
+      animation: pulse-dot 2s ease infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
 
     /* ── Platform badge ── */
     #platform-badge { display:none; align-items:center; gap:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:999px; padding:4px 12px; font-size:12px; color:rgba(255,255,255,0.65); margin-top:8px; width:fit-content; animation:fadeIn 0.2s ease; }
@@ -793,23 +904,29 @@
 <!-- Header -->
 <header>
   <div class="hdr">
-    <a class="logo" onclick="resetAll(event)" href="/">SnapShot<span style="color:rgba(255,255,255,0.35)">.</span>pro</a>
+    <a class="logo" onclick="resetAll(event)" href="/app">SnapShot<span style="color:rgba(255,255,255,0.35)">.</span>pro</a>
     <div class="hdr-right" style="position:relative;">
       <div id="history-btn" title="Histórico desta sessão" onclick="toggleHistoryDropdown(event)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      </div>
-      <div id="capture-badge" style="display:none;font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);color:#fbbf24;cursor:pointer;" title="Limite diário de capturas" onclick="openUpgradeModal('starter','Aumente seu limite diário')">
-        <span id="capture-badge-text"></span>
-      </div>
-      <!-- [COR-7] Pill de plano abre modal de info -->
-      <div id="sub-badge" title="Ver detalhes do plano" onclick="openPlanInfoModal()">
-        <span id="sub-badge-text">Grátis</span>
       </div>
       <div id="history-dropdown">
         <div id="history-dropdown-title">Capturas desta sessão</div>
         <div id="history-dropdown-list"></div>
       </div>
-      <button style="background:#ffffff;color:#0a0a0a;font-weight:600;font-size:13px;padding:7px 16px;border-radius:7px;border:none;cursor:pointer;height:auto;" id="assinar-btn" onclick="openPkgModal()">Assinar</button>
+      <div class="header-right" style="display:flex;align-items:center;gap:10px;">
+        <div class="pill-plano" id="pill-plano" onclick="abrirModalPlano()">
+          <span class="dot" id="pill-dot"></span>
+          <span id="pill-plano-texto">Free · 3/3 hoje</span>
+        </div>
+        <button class="btn-assinar" id="btn-assinar" onclick="abrirModalUpgrade()">
+          <span class="btn-icon">
+            <svg width="11" height="13" viewBox="0 0 11 13" fill="none" aria-hidden="true">
+              <path d="M6.5 1L1 7h4.5L4 12 10 6H5.5L6.5 1Z" fill="rgba(255,255,255,0.95)" stroke="rgba(255,255,255,0.4)" stroke-width="0.5" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          Assinar Pro
+        </button>
+      </div>
     </div>
   </div>
 </header>
@@ -825,7 +942,7 @@
     <div style="padding:72px 0 120px;">
       <div class="hero-badge">
         <span class="hero-badge-dot"></span>
-        12 templates profissionais incluídos →
+        32 templates profissionais incluídos →
       </div>
       <h1>Screenshots que<br>impressionam.</h1>
       <p class="hero-sub">Cole qualquer URL, escolha as páginas e baixe um ZIP com capturas profissionais — desktop <b>+</b> mobile em alta resolução.</p>
@@ -839,7 +956,7 @@
         <div>
           <div class="input-label">Site a capturar</div>
           <div class="url-row" id="url-input-wrap" style="position:relative;">
-            <input id="url1" type="url" placeholder="https://exemplo.com" autocomplete="off" spellcheck="false">
+            <input id="url1" type="url" placeholder="Cole a URL — ex: stripe.com" autocomplete="off" spellcheck="false">
           </div>
           <div id="url-normalize-hint"></div>
           <div id="platform-badge"><span class="url-loading-dot"></span></div>
@@ -852,7 +969,7 @@
 
       <div class="hero-actions">
         <button class="btn btn-p" id="explore-btn" onclick="handleExplore()" style="height:50px;font-size:15px;padding:0 28px;">
-          <span id="explore-btn-text">Capturar Screenshots</span>
+          <span id="explore-btn-text">Explorar site →</span>
         </button>
       </div>
 
@@ -862,7 +979,7 @@
           <span class="stat-lbl">capturas realizadas</span>
         </div>
         <div class="stat-item">
-          <span class="stat-num">12</span>
+          <span class="stat-num">32</span>
           <span class="stat-lbl">templates profissionais</span>
         </div>
         <div class="stat-item">
@@ -962,18 +1079,27 @@
 
       <!-- Template tabs with live counts -->
       <div class="tmpl-tabs" id="tmpl-tabs-bar">
-        <button class="tmpl-tab active" data-tab="free"         onclick="switchTemplateTab('free',this)">Gratuitos<span class="tmpl-tab-count" id="tab-count-free"></span></button>
-        <button class="tmpl-tab"        data-tab="device"       onclick="switchTemplateTab('device',this)">Dispositivos<span class="tmpl-tab-count" id="tab-count-device"></span></button>
-        <button class="tmpl-tab"        data-tab="professional" onclick="switchTemplateTab('professional',this)">Profissional<span class="tmpl-tab-count" id="tab-count-professional"></span></button>
-        <button class="tmpl-tab"        data-tab="creative"     onclick="switchTemplateTab('creative',this)">Criativo<span class="tmpl-tab-count" id="tab-count-creative"></span></button>
+        <button class="tmpl-tab active" data-tab="basico"        onclick="switchTemplateTab('basico',this)">Básico<span class="tmpl-tab-count" id="tab-count-basico"></span></button>
+        <button class="tmpl-tab"        data-tab="social"        onclick="switchTemplateTab('social',this)">Social Media<span class="tmpl-tab-count" id="tab-count-social"></span></button>
+        <button class="tmpl-tab"        data-tab="profissional"  onclick="switchTemplateTab('profissional',this)">Profissional<span class="tmpl-tab-count" id="tab-count-profissional"></span></button>
+        <button class="tmpl-tab"        data-tab="dispositivos"  onclick="switchTemplateTab('dispositivos',this)">Dispositivos<span class="tmpl-tab-count" id="tab-count-dispositivos"></span></button>
+        <button class="tmpl-tab"        data-tab="marketing"     onclick="switchTemplateTab('marketing',this)">Marketing<span class="tmpl-tab-count" id="tab-count-marketing"></span></button>
       </div>
 
       <!-- Dynamic template panes — rendered by loadTemplates() -->
       <div id="tmpl-panes-wrap">
-        <div class="tmpl-pane active" id="tmpl-pane-free"></div>
-        <div class="tmpl-pane"        id="tmpl-pane-device"></div>
-        <div class="tmpl-pane"        id="tmpl-pane-professional"></div>
-        <div class="tmpl-pane"        id="tmpl-pane-creative"></div>
+        <div class="tmpl-pane active" id="tmpl-pane-basico"></div>
+        <div class="tmpl-pane"        id="tmpl-pane-social"></div>
+        <div class="tmpl-pane"        id="tmpl-pane-profissional"></div>
+        <div class="tmpl-pane"        id="tmpl-pane-dispositivos"></div>
+        <div class="tmpl-pane"        id="tmpl-pane-marketing"></div>
+      </div>
+
+      <!-- Personalizar por página link (shown when >1 page is selected) -->
+      <div id="per-page-customize-row" style="display:none;margin-top:12px;text-align:right;">
+        <button id="per-page-customize-btn" onclick="openPerPageSheet()" style="background:none;border:none;padding:0;color:rgba(255,255,255,0.45);font-size:12px;cursor:pointer;text-decoration:underline;font-family:inherit;">
+          Personalizar por página →
+        </button>
       </div>
 
       <!-- Per-page template summary (shown when overrides exist) -->
@@ -1090,10 +1216,10 @@
         <button id="wm-download-btn" onclick="handleWatermarkDownload()" style="display:none;width:100%;height:52px;background:#ffffff;color:#0a0a0a;font-family:Outfit,sans-serif;font-weight:700;font-size:15px;border-radius:10px;border:none;cursor:pointer;margin-bottom:10px;">
           Baixar com marca d'água
         </button>
-        <div id="upgrade-card" style="display:none;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;margin-bottom:10px;">
-          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:3px;">Remover marca d'água</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:10px;">Imagens limpas, HD 2× e todos os templates</div>
-          <button class="btn btn-p btn-full" onclick="openPkgModal()" style="height:36px;font-size:13px;">Ver planos</button>
+        <div id="upgrade-card" style="display:none;background:linear-gradient(135deg,#1a1a1a,#161616);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 18px;margin-bottom:10px;">
+          <div style="font-size:15px;font-weight:700;color:rgba(255,255,255,0.95);margin-bottom:4px;">Essas imagens são suas. Sem a marca d'água.</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:12px;">Assine o Starter por R$19,90/mês e baixe em HD 2× sem restrições.</div>
+          <button class="btn btn-p btn-full" onclick="openPkgModal()" style="height:40px;font-size:13px;">Remover marca d'água →</button>
         </div>
         <!-- Paid: clean download button -->
         <button class="btn btn-p btn-full" id="pay-btn" onclick="handlePayment()" style="display:none;">
@@ -1144,7 +1270,7 @@
 <div class="wrap">
   <footer>
     <div class="ftr">
-      <a href="/" class="ftr-logo" onclick="resetAll(event)">snapshot.pro</a>
+      <a href="/app" class="ftr-logo" onclick="resetAll(event)">snapshot.pro</a>
       <span class="ftr-copy">&copy; 2026 SnapShot.pro</span>
     </div>
   </footer>
@@ -1192,6 +1318,7 @@
         <div class="co-summary-price" id="co-plan-price">R$ —,—</div>
       </div>
       <form class="co-form" id="co-form" onsubmit="return false;">
+        <div id="pix-general-error" class="co-err" style="display:none;margin-bottom:4px;"></div>
         <div class="co-field">
           <label class="co-label">Nome completo</label>
           <input class="co-input" id="co-name" type="text" placeholder="Seu nome completo" autocomplete="name" required>
@@ -1202,12 +1329,14 @@
         </div>
         <div class="co-row">
           <div class="co-field">
-            <label class="co-label">CPF</label>
-            <input class="co-input" id="co-cpf" type="text" placeholder="000.000.000-00" maxlength="14" autocomplete="off">
+            <label class="co-label">CPF ou CNPJ</label>
+            <input class="co-input" id="co-cpf" type="text" placeholder="000.000.000-00" maxlength="18" autocomplete="off">
+            <span class="pix-field-error" id="pix-taxid-error"></span>
           </div>
           <div class="co-field">
             <label class="co-label">Telefone</label>
             <input class="co-input" id="co-phone" type="tel" placeholder="(11) 99999-9999" maxlength="15" autocomplete="tel">
+            <span class="pix-field-error" id="pix-cellphone-error"></span>
           </div>
         </div>
         <div class="co-err" id="co-err"></div>
@@ -1296,6 +1425,10 @@
   // ── Section management ────────────────────────────────────────────────────
   let currentSection = 's1';
   function show(id) {
+    // Hide tech badge when leaving the hero section
+    if (id !== 's1' && currentSection === 's1') {
+      hideTechBadge();
+    }
     currentSection = id;
     ['s1','s2','s3','s4','s5','s6','s7'].forEach(s => {
       const el = document.getElementById(s);
@@ -1360,59 +1493,46 @@
     el.textContent = msg; el.classList.add('on');
   }
 
-  // ── Subscription badge ────────────────────────────────────────────────────
-  function updateSubBadge() {
-    const badge   = document.getElementById('sub-badge');
-    const txt     = document.getElementById('sub-badge-text');
-    const btn     = document.getElementById('assinar-btn');
-    const planKey = currentPlan && currentPlan.plan || 'free';
-    const planCfg = currentPlan || {};
+  // ── abrirModalUpgrade — alias que preserva o comportamento existente ─────
+  window.abrirModalUpgrade = function() { openPkgModal(); };
 
-    badge.classList.remove('active','plan-starter','plan-pro','plan-agency');
-
-    const capBadge = document.getElementById('capture-badge');
-    const capTxt   = document.getElementById('capture-badge-text');
+  // ── updatePlanPill — única fonte da verdade para o header ────────────────
+  function updatePlanPill(planData) {
+    const dot    = document.getElementById('pill-dot');
+    const texto  = document.getElementById('pill-plano-texto');
+    const btn    = document.getElementById('btn-assinar');
     const freeNotice = document.getElementById('free-plan-notice');
+    if (!dot || !texto) return;
 
-    if (activeCode && planKey !== 'free') {
-      badge.classList.add(`plan-${planKey}`);
-      if (btn) btn.style.display = 'none';
-      if (capBadge) capBadge.style.display = 'none';
-      if (freeNotice) freeNotice.style.display = 'none';
+    const { plan, planName, capturesRemaining, capturesUsedToday,
+            capturesPerMonth, capturesPerDay } = planData;
 
-      if (planKey === 'starter') {
-        const limit = planCfg.capturesPerMonth || planCfg.monthlyCaptures || 60;
-        const used  = planCfg.capturesUsed || 0;
-        const rem   = Math.max(0, limit - used);
-        let counterClass = '';
-        if (rem <= 5)  counterClass = 'badge-counter-urgent';
-        else if (rem <= 20) counterClass = 'badge-counter-warn';
-        const icon = rem <= 5 ? '!' : '●';
-        txt.innerHTML = `${icon} Starter <span class="${counterClass}">${rem}/${limit}</span>`;
-      } else if (planKey === 'pro') {
-        txt.textContent = 'Pro';
-      } else if (planKey === 'agency') {
-        txt.textContent = 'Agency';
-      } else {
-        txt.textContent = `● ${planCfg.name || planKey}`;
-      }
+    const dotColors = { free:'#6b7280', starter:'#22c55e', pro:'#3b82f6', agency:'#8b5cf6' };
+    dot.style.background = dotColors[plan] || '#22c55e';
+
+    let label = '';
+    if (plan === 'free') {
+      const limit     = capturesPerDay || 3;
+      const remaining = capturesRemaining !== undefined ? Math.max(0, capturesRemaining) : Math.max(0, limit - (capturesUsedToday || 0));
+      label = `Free · ${limit - remaining}/${limit} hoje`;
+      if (remaining === 0) dot.style.background = '#ef4444';
+    } else if (capturesPerMonth === -1) {
+      label = `${planName || plan} · ∞`;
     } else {
-      txt.innerHTML = '<span title="Imagens com marca d\'água — Faça upgrade">Grátis</span>';
-      if (btn) btn.style.display = '';
-      if (freeNotice) freeNotice.style.display = '';
-
-      // Mostrar badge de limite diário se disponível
-      const dayLimit = planCfg.capturesPerDay || 3;
-      const dayUsed  = planCfg.dailyUsed || 0;
-      if (capBadge && capTxt && dayUsed > 0) {
-        capTxt.textContent = `${dayUsed}/${dayLimit} hoje`;
-        capBadge.style.display = '';
-      } else if (capBadge) {
-        capBadge.style.display = 'none';
-      }
+      const remaining = capturesRemaining !== undefined ? Math.max(0, capturesRemaining) : 0;
+      label = `${planName || plan} · ${remaining}/${capturesPerMonth}`;
+      if (capturesPerMonth > 0 && remaining <= capturesPerMonth * 0.2) dot.style.background = '#f59e0b';
     }
+    texto.textContent = label;
 
+    // Botão Assinar: visível somente no free
+    if (btn) btn.style.display = plan === 'free' ? '' : 'none';
+    if (freeNotice) freeNotice.style.display = plan === 'free' ? '' : 'none';
+  }
 
+  // ── updateSubBadge — mantido por compatibilidade, agora delega ao pill ───
+  function updateSubBadge() {
+    updatePlanPill(currentPlan || { plan: 'free', capturesPerDay: 3, capturesUsedToday: 0 });
     updateQuotaDisplay();
   }
 
@@ -1421,7 +1541,7 @@
     const planKey    = currentPlan && currentPlan.plan || 'free';
     const planCfg    = currentPlan || {};
     applyWatermark   = planCfg.watermark !== false;
-    const unlockedTpls = planCfg.templatesUnlocked || ['void','chrome','float','annotation'];
+    const unlockedTpls = planCfg.templatesUnlocked || ['browser-clean','minimal-clean','social-basic','mobile-simple','gradient-basic','default-dark'];
 
     // Resolution badge
     const resBadge = document.getElementById('resolution-badge');
@@ -1454,7 +1574,7 @@
         card.onclick = () => openUpgradeModal('starter', `Desbloqueie "${tmplId}"`);
       } else {
         const tid = tmplId;
-        card.onclick = () => openTemplateSheet(tid, card);
+        card.onclick = () => selectTemplate(tid, card);
       }
     });
 
@@ -1483,6 +1603,16 @@
     const extrasGroup = document.getElementById('extras-group');
     if (extrasGroup) {
       extrasGroup.style.display = (planKey === 'pro' || planKey === 'agency') ? 'block' : 'none';
+    }
+
+    // [BUG-4] Atualizar contador "Capturas Restantes" sempre que o plano for aplicado
+    updateQuotaDisplay();
+
+    // Atualizar visibilidade do botão Assinar (novo #btn-assinar) e pill
+    const btnAssinar = document.getElementById('btn-assinar');
+    const planKeyNow = currentPlan && currentPlan.plan || 'free';
+    if (btnAssinar) {
+      btnAssinar.style.display = (planKeyNow !== 'free') ? 'none' : '';
     }
   }
 
@@ -1513,29 +1643,60 @@
   }
 
   function updateQuotaDisplay() {
+    if (currentPlan) atualizarMetricaCapturas(currentPlan);
+  }
+
+  // ── refreshCapturesRemaining — busca /api/plan-status e atualiza tudo ─────
+  async function refreshCapturesRemaining() {
+    const code    = activeCode || localStorage.getItem('snapshot_access_code') || '';
+    const headers = {};
+    if (code) headers['x-access-code'] = code;
+    try {
+      const r = await fetch('/api/plan-status', { headers });
+      if (!r.ok) return;
+      const d = await r.json();
+      currentPlan = Object.assign({}, currentPlan, d);
+      // Atualizar pill do header
+      updatePlanPill(d);
+      // Atualizar métrica da homepage
+      atualizarMetricaCapturas(d);
+    } catch {}
+  }
+
+  // ── atualizarMetricaCapturas — atualiza #quota-num e #quota-lbl ──────────
+  function atualizarMetricaCapturas(d) {
     const numEl = document.getElementById('quota-num');
     const lblEl = document.getElementById('quota-lbl');
-    if (!numEl || !lblEl) return;
-    const planKey = currentPlan && currentPlan.plan || 'free';
-    const planCfg = currentPlan || {};
+    if (!numEl) return;
 
-    if (planKey === 'pro' || planKey === 'agency') {
-      numEl.textContent = '∞';
-      lblEl.textContent = 'capturas ilimitadas';
-    } else if (planKey === 'starter') {
-      const limit = planCfg.capturesPerMonth || 60;
-      const used  = planCfg.capturesUsed || 0;
-      const rem   = Math.max(0, limit - used);
-      numEl.textContent = rem;
-      lblEl.textContent = 'capturas restantes';
+    const { plan, capturesRemaining, capturesPerMonth, capturesPerDay, capturesUsedToday } = d;
+
+    let valor = '', label = '', cor = '';
+    if (plan === 'pro' || plan === 'agency') {
+      valor = '∞'; label = 'capturas ilimitadas'; cor = '#22c55e';
+    } else if (plan === 'starter') {
+      const rem = capturesRemaining !== undefined ? Math.max(0, capturesRemaining) : 0;
+      valor = String(rem);
+      label = 'capturas restantes este mês';
+      if (capturesPerMonth > 0 && rem <= capturesPerMonth * 0.2) cor = '#f59e0b';
     } else {
-      // free plan — daily limit
-      const limit = planCfg.capturesPerDay || 3;
-      const used  = planCfg.dailyUsed || 0;
-      const rem   = Math.max(0, limit - used);
-      numEl.textContent = rem;
-      lblEl.textContent = 'capturas restantes hoje';
+      const limit = capturesPerDay || 3;
+      const rem   = capturesRemaining !== undefined ? Math.max(0, capturesRemaining) : Math.max(0, limit - (capturesUsedToday || 0));
+      valor = String(rem);
+      label = 'capturas restantes hoje';
+      cor   = rem === 0 ? '#ef4444' : rem === 1 ? '#fbbf24' : '';
     }
+
+    numEl.style.transition = 'opacity 150ms, transform 150ms';
+    numEl.style.opacity    = '0';
+    numEl.style.transform  = 'translateY(-4px)';
+    setTimeout(() => {
+      numEl.textContent  = valor;
+      numEl.style.color  = cor;
+      numEl.style.opacity   = '1';
+      numEl.style.transform = 'translateY(0)';
+    }, 150);
+    if (lblEl) lblEl.textContent = label;
   }
 
   // ── Plans ─────────────────────────────────────────────────────────────────
@@ -1651,7 +1812,13 @@
   function showCaptureLimitBanner(used, limit, planName) {
     const el  = document.getElementById('capture-limit-banner');
     const txt = document.getElementById('cap-limit-text');
-    if (txt) txt.textContent = `Você atingiu o limite de ${limit} capturas do Plano ${planName || 'Starter'}. Faça upgrade para o Pro e capture sem limites.`;
+    if (txt) {
+      if (planName && planName.toLowerCase() === 'free') {
+        txt.textContent = `Suas 3 capturas gratuitas de hoje foram usadas. Renova à meia-noite — ou faça upgrade agora para capturar sem restrições.`;
+      } else {
+        txt.textContent = `Você atingiu o limite de ${limit} capturas do Plano ${planName || 'Starter'} este mês. Faça upgrade para capturar sem limites.`;
+      }
+    }
     if (el)  el.classList.add('shown');
   }
   function hideCaptureLimitBanner() {
@@ -1663,6 +1830,12 @@
   function updateCrawlLimitMsg(planLimit, totalFound) {
     const msg = document.getElementById('crawl-limit-msg');
     const txt = document.getElementById('crawl-limit-text');
+    // Atualizar subtítulo do S3 com o limite do plano
+    const s3sub = document.getElementById('s3-sub');
+    if (s3sub && planLimit) {
+      const planName = (currentPlan && currentPlan.planName) || 'Free';
+      s3sub.textContent = `Clique nas páginas que deseja capturar. Plano ${planName}: até ${planLimit} páginas.`;
+    }
     if (!msg) return;
     if (planLimit && totalFound && totalFound > planLimit) {
       if (txt) txt.textContent = `Seu plano permite ver até ${planLimit} páginas. Este site tem ${totalFound} páginas.`;
@@ -1697,6 +1870,32 @@
     showPmScreen(2);
   };
 
+  // ── Helpers para erros do formulário PIX ─────────────────────────────────
+  function clearPixErrors() {
+    const genErr  = document.getElementById('pix-general-error');
+    const taxErr  = document.getElementById('pix-taxid-error');
+    const phErr   = document.getElementById('pix-cellphone-error');
+    const coErr   = document.getElementById('co-err');
+    if (genErr)  { genErr.style.display  = 'none'; genErr.textContent  = ''; }
+    if (taxErr)  { taxErr.style.display  = 'none'; taxErr.textContent  = ''; }
+    if (phErr)   { phErr.style.display   = 'none'; phErr.textContent   = ''; }
+    if (coErr)   { coErr.textContent = ''; }
+  }
+  function showPixFieldError(field, msg) {
+    if (field === 'taxId') {
+      const el = document.getElementById('pix-taxid-error');
+      if (el) { el.textContent = msg; el.style.display = 'block'; }
+    } else if (field === 'cellphone') {
+      const el = document.getElementById('pix-cellphone-error');
+      if (el) { el.textContent = msg; el.style.display = 'block'; }
+    } else {
+      const el = document.getElementById('pix-general-error');
+      const coErr = document.getElementById('co-err');
+      if (el) { el.textContent = msg; el.style.display = 'block'; }
+      if (coErr) coErr.textContent = '';
+    }
+  }
+
   // ── Tela 2: submeter formulário e chamar API ──────────────────────────────
   window.submitCheckoutForm = async function() {
     const name  = (document.getElementById('co-name').value  || '').trim();
@@ -1705,9 +1904,22 @@
     const phone = (document.getElementById('co-phone').value || '').trim();
     const errEl = document.getElementById('co-err');
 
+    clearPixErrors();
+
+    // Frontend validação
     if (!name)  { errEl.textContent = 'Informe seu nome completo.'; return; }
     if (!email || !email.includes('@')) { errEl.textContent = 'E-mail inválido.'; return; }
-    errEl.textContent = '';
+
+    const cpfDigits = cpf.replace(/\D/g, '');
+    if (!cpf) { showPixFieldError('taxId', 'CPF ou CNPJ é obrigatório.'); return; }
+    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) {
+      showPixFieldError('taxId', 'CPF deve ter 11 dígitos ou CNPJ 14 dígitos.'); return;
+    }
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (!phone) { showPixFieldError('cellphone', 'Telefone é obrigatório.'); return; }
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      showPixFieldError('cellphone', 'Telefone deve ter 10 ou 11 dígitos.'); return;
+    }
 
     const btn = document.getElementById('co-submit-btn');
     btn.disabled = true;
@@ -1716,21 +1928,27 @@
     try {
       const r = await post('/api/create-pix', {
         plan:     selectedPkg,
-        customer: { name, email, cpf, phone },
+        customer: { name, email, taxId: cpf, cellphone: phone, cpf, phone },
       }, 15000);
       if (r.ok && r.data.pixId) {
         btn.disabled = false;
         btn.textContent = 'Gerar QR Code PIX';
         showPixScreen(r.data);
       } else {
-        errEl.textContent = r.data.error || 'Erro ao gerar PIX. Tente novamente.';
         btn.disabled = false;
         btn.textContent = 'Gerar QR Code PIX';
+        const field = r.data && r.data.field;
+        const msg   = r.data && r.data.error || 'Erro ao gerar PIX. Tente novamente.';
+        if (field) {
+          showPixFieldError(field, msg);
+        } else {
+          showPixFieldError(null, msg);
+        }
       }
     } catch {
-      errEl.textContent = 'Erro de conexão. Tente novamente.';
       btn.disabled = false;
       btn.textContent = 'Gerar QR Code PIX';
+      showPixFieldError(null, 'Erro de conexão. Tente novamente.');
     }
   };
 
@@ -1783,7 +2001,7 @@
       }
       const m = Math.floor(diff / 60), s = diff % 60;
       el.textContent = `Expira em: ${m}:${String(s).padStart(2,'0')}`;
-      el.classList.remove('warn');
+      if (diff <= 300) { el.classList.add('warn'); } else { el.classList.remove('warn'); }
     };
     update();
     pixTimerInterval = setInterval(update, 1000);
@@ -1878,6 +2096,7 @@
       } catch {}
       updateSubBadge();
       applyPlanToInterface();
+      refreshCapturesRemaining();
     }
     const closeBtn = document.getElementById('pm-close-btn');
     if (closeBtn) closeBtn.style.display = '';
@@ -1931,6 +2150,7 @@
     } catch {}
     updateSubBadge();
     applyPlanToInterface();
+    refreshCapturesRemaining();
     // [COR-4] Marcar que plano foi ativado agora — para lógica do rerender banner
     window._justActivatedPaidPlan = true;
     // Re-render pós-compra: verificar pendingRerenderJobId no localStorage
@@ -2064,6 +2284,7 @@
     btn.disabled = true;
     text.textContent = 'Processando…';
 
+    hideTechBadge();
     show('s2');
     startPhrases();
     document.getElementById('crawl-log').innerHTML = '';
@@ -2330,6 +2551,7 @@
     pageTemplates = {};
     await loadTemplates();
     show('s4');
+    updatePerPageCustomizeBtn();
   };
 
   // ── Template selection (internal — called after sheet confirm) ───────────
@@ -2338,7 +2560,13 @@
     selectedTemplate = name; // [COR-3] manter em sincronia
     document.querySelectorAll('.tmpl-card').forEach(c => c.classList.remove('sel'));
     if (el) el.classList.add('sel');
+    updatePerPageCustomizeBtn();
   };
+
+  function updatePerPageCustomizeBtn() {
+    const row = document.getElementById('per-page-customize-row');
+    if (row) row.style.display = selected.size > 1 ? '' : 'none';
+  }
 
   // ── Template sheet lateral ────────────────────────────────────────────────
   // [COR-3] Estado pendente correto com _sheetPendingMap
@@ -2502,6 +2730,132 @@
     closeTemplateSheet();
   };
 
+  // ── Per-page customization sheet ─────────────────────────────────────────
+  // Opens the existing #tmpl-sheet in "per-page" mode with a <select> per page
+
+  window.openPerPageSheet = function() {
+    const overlay = document.getElementById('tmpl-sheet-overlay');
+    const sheet   = document.getElementById('tmpl-sheet');
+    if (!overlay || !sheet) return;
+
+    // Swap sheet header
+    const nameEl     = document.getElementById('sheet-tmpl-name');
+    const subtitleEl = sheet.querySelector('.sheet-subtitle');
+    const previewWrap = sheet.querySelector('.sheet-preview-wrap');
+    if (nameEl)     nameEl.textContent     = 'Template por página';
+    if (subtitleEl) subtitleEl.textContent = 'Defina um template diferente para cada página';
+    if (previewWrap) previewWrap.style.display = 'none';
+
+    // Hide mode cards, show page list directly
+    const modeCards = sheet.querySelector('.sheet-mode-cards');
+    const secTitle  = sheet.querySelector('.sheet-section-title');
+    if (modeCards) modeCards.style.display = 'none';
+    if (secTitle)  secTitle.style.display  = 'none';
+
+    // Build the per-page select list
+    const listEl = document.getElementById('sheet-page-list');
+    listEl.style.display = 'flex';
+    listEl.innerHTML = '';
+
+    // Build template <options> string once
+    const optionsHtml = allTemplates
+      .filter(t => t.active !== false)
+      .map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`)
+      .join('');
+
+    Array.from(selected).forEach(url => {
+      const job  = pages.find(p => p.url === url) || {};
+      const slug = (() => { try { return new URL(url).pathname || '/'; } catch { return url; } })();
+      const curTid = pageTemplates[url] || currentTemplate || 'void';
+
+      const row = document.createElement('div');
+      row.className   = 'sheet-page-row';
+      row.style.cssText = 'justify-content:space-between;align-items:center;gap:8px;';
+      row.dataset.url = url;
+
+      const urlEnc = encodeURIComponent(url);
+      row.innerHTML = `
+        <span class="sheet-pg-title" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(job.title || slug)}</span>
+        <select data-url="${urlEnc}" onchange="window._perPageSelectChange(this)" style="flex-shrink:0;max-width:130px;background:#1e1e1e;color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:4px 6px;font-size:11px;font-family:inherit;cursor:pointer;">
+          ${optionsHtml}
+        </select>`;
+
+      // Set current selection
+      const sel = row.querySelector('select');
+      if (sel) sel.value = curTid;
+
+      listEl.appendChild(row);
+    });
+
+    // Override apply button
+    const applyBtn = sheet.querySelector('.sheet-btn-apply');
+    if (applyBtn) {
+      applyBtn.textContent = 'Aplicar por página';
+      applyBtn.onclick = window.applyPerPageSheet;
+    }
+    const resetBtn = sheet.querySelector('.sheet-btn-reset');
+    if (resetBtn) resetBtn.style.display = 'none';
+
+    overlay.classList.add('open');
+    sheet.classList.add('open');
+    sheet.dataset.mode = 'per-page';
+  };
+
+  window._perPageSelectChange = function(selectEl) {
+    // Live preview — no action needed until Apply is clicked
+  };
+
+  window.applyPerPageSheet = function() {
+    const listEl = document.getElementById('sheet-page-list');
+    if (!listEl) return;
+    listEl.querySelectorAll('select[data-url]').forEach(sel => {
+      const url = decodeURIComponent(sel.dataset.url);
+      const tid = sel.value;
+      if (tid && tid !== currentTemplate) {
+        pageTemplates[url] = tid;
+      } else {
+        delete pageTemplates[url];
+      }
+    });
+    buildPerPageUI();
+    // Restore sheet to normal mode for next use
+    _closePerPageSheet();
+  };
+
+  function _closePerPageSheet() {
+    const sheet = document.getElementById('tmpl-sheet');
+    if (sheet) {
+      sheet.dataset.mode = '';
+      const previewWrap = sheet.querySelector('.sheet-preview-wrap');
+      const modeCards   = sheet.querySelector('.sheet-mode-cards');
+      const secTitle    = sheet.querySelector('.sheet-section-title');
+      if (previewWrap) previewWrap.style.display = '';
+      if (modeCards)   modeCards.style.display   = '';
+      if (secTitle)    secTitle.style.display     = '';
+      // Restore apply button
+      const applyBtn = sheet.querySelector('.sheet-btn-apply');
+      if (applyBtn) {
+        applyBtn.textContent = 'Aplicar';
+        applyBtn.onclick     = window.applyTemplateSheet;
+      }
+      const resetBtn = sheet.querySelector('.sheet-btn-reset');
+      if (resetBtn) resetBtn.style.display = '';
+    }
+    document.getElementById('tmpl-sheet-overlay').classList.remove('open');
+    sheet && sheet.classList.remove('open');
+  }
+
+  // Patch closeTemplateSheet to also restore per-page sheet state
+  const _origClose = window.closeTemplateSheet;
+  window.closeTemplateSheet = function() {
+    const sheet = document.getElementById('tmpl-sheet');
+    if (sheet && sheet.dataset.mode === 'per-page') {
+      _closePerPageSheet();
+    } else {
+      _origClose && _origClose();
+    }
+  };
+
   // ── Start capture ─────────────────────────────────────────────────────────
   window.handleStartCapture = async function() {
     const btn = document.getElementById('s4-confirm-btn');
@@ -2607,6 +2961,7 @@
           } catch {}
           // [COR-9] Atualizar status do plano após captura
           refreshPlanStatus();
+          refreshCapturesRemaining();
           show('s6');
         }, 400);
       }
@@ -2614,8 +2969,30 @@
   }
 
   function updateDownloadPanel() {
-    const hasWm = applyWatermark; // reliable — set from server via capture-progress polling
+    const hasWm      = applyWatermark; // reliable — set from server via capture-progress polling
+    // hasMobile: planos pagos (sem watermark) sempre têm mobile.
+    // Não depender de currentPlan.mobileCapture pois currentPlan pode estar
+    // incompleto (sem mobileCapture) dependendo do momento em que foi setado.
+    const hasMobile = !hasWm;
     document.getElementById('pay-label-text').textContent = hasWm ? 'Download' : 'Download HD';
+
+    // Controlar visibilidade das opções de modo
+    const dlModeRadios = document.getElementById('dl-mode-radios');
+    if (dlModeRadios) {
+      dlModeRadios.style.display = 'flex'; // sempre visível
+      // Mostrar/esconder opção "Só Mobile" conforme disponibilidade
+      const mobileLabel = dlModeRadios.querySelectorAll('label')[2]; // terceiro label = Só Mobile
+      if (mobileLabel) {
+        mobileLabel.style.display = hasMobile ? '' : 'none';
+        // Se mobile estava selecionado mas não está disponível, resetar para full
+        const mobileRadio = mobileLabel.querySelector('input');
+        if (mobileRadio && mobileRadio.checked && !hasMobile) {
+          const fullRadio = dlModeRadios.querySelector('input[value="full"]');
+          if (fullRadio) fullRadio.checked = true;
+        }
+      }
+    }
+
     // Free: show wm-btn + upgrade-card; paid: show pay-btn only
     const wmBtn      = document.getElementById('wm-download-btn');
     const upgradeCard = document.getElementById('upgrade-card');
@@ -2751,12 +3128,38 @@
       payErr.textContent = humanError((r.data && r.data.error) || 'Erro ao processar pagamento.');
       return;
     }
-    window.location.href = r.data.checkoutUrl;
+    const dlModeEl2  = document.querySelector('input[name="dl-mode"]:checked');
+    const dlModeVal2 = dlModeEl2 ? dlModeEl2.value : 'full';
+    window.location.href = r.data.checkoutUrl + `?mode=${dlModeVal2}`;
   };
 
+  async function downloadZip(mode) {
+    if (!currentJobId) { console.warn('[downloadZip] sem currentJobId'); return; }
+    const m = (['full','desktop','mobile'].includes(mode)) ? mode : 'full';
+    console.log('[downloadZip] mode='+m+' jobId='+currentJobId);
+
+    // Para mobile: verificar disponibilidade antes de redirecionar
+    if (m === 'mobile') {
+      try {
+        const chk = await fetch(`/api/download/${currentJobId}?mode=mobile`, { method: 'HEAD' });
+        if (!chk.ok) {
+          const payErr = document.getElementById('pay-err');
+          if (payErr) { payErr.textContent = 'Capturas mobile não disponíveis para este job.'; payErr.style.display = 'block'; }
+          return;
+        }
+      } catch (_) { /* sem suporte a HEAD, tentar mesmo assim */ }
+    }
+
+    const payErr = document.getElementById('pay-err');
+    if (payErr) { payErr.textContent = ''; payErr.style.display = 'none'; }
+    window.location.href = `/api/download/${currentJobId}?mode=${m}`;
+  }
+
   window.handleWatermarkDownload = function() {
-    if (!jobId) return;
-    window.location.href = '/api/download/' + jobId;
+    if (!currentJobId) return;
+    const dlModeEl  = document.querySelector('input[name="dl-mode"]:checked');
+    const dlModeVal = dlModeEl ? dlModeEl.value : 'desktop';
+    downloadZip(dlModeVal);
   };
 
   // ── Success ───────────────────────────────────────────────────────────────
@@ -2884,21 +3287,28 @@
   };
 
   // ── Templates ─────────────────────────────────────────────────────────────
-  // [COR-6] Distribuir templates nas 4 abas com getTemplateTab()
+  // Distribuir templates nas 5 abas com getTemplateTab()
   function getTemplateTab(tpl) {
-    if (tpl.category === 'free')         return 'free';
-    if (tpl.category === 'creative')     return 'creative';
-    if (tpl.category === 'professional') return 'professional';
-    return 'device';
+    if (tpl.plan === 'free')                  return 'basico';
+    if (tpl.category === 'basico')            return 'basico';
+    if (tpl.category === 'social')            return 'social';
+    if (tpl.category === 'profissional')      return 'profissional';
+    if (tpl.category === 'dispositivos')      return 'dispositivos';
+    if (tpl.category === 'marketing')         return 'marketing';
+    // Legacy fallback mappings
+    if (tpl.category === 'creative')          return 'marketing';
+    if (tpl.category === 'professional')      return 'profissional';
+    if (tpl.category === 'device')            return 'dispositivos';
+    return 'marketing';
   }
 
   function updateTabCounts() {
-    const counts = { free: 0, device: 0, professional: 0, creative: 0 };
+    const counts = { basico: 0, social: 0, profissional: 0, dispositivos: 0, marketing: 0 };
     allTemplates.forEach(t => {
-      const cat = t.category || 'device';
+      const cat = getTemplateTab(t);
       if (counts[cat] !== undefined) counts[cat]++;
     });
-    ['free','device','professional','creative'].forEach(cat => {
+    ['basico','social','profissional','dispositivos','marketing'].forEach(cat => {
       const el = document.getElementById('tab-count-' + cat);
       if (el) el.textContent = counts[cat] || '';
     });
@@ -2911,10 +3321,16 @@
       const tpls = r.data;
 
       const panes = {
-        free:         document.getElementById('tmpl-pane-free'),
-        device:       document.getElementById('tmpl-pane-device'),
-        professional: document.getElementById('tmpl-pane-professional'),
-        creative:     document.getElementById('tmpl-pane-creative'),
+        basico:       document.getElementById('tmpl-pane-basico'),
+        social:       document.getElementById('tmpl-pane-social'),
+        profissional: document.getElementById('tmpl-pane-profissional'),
+        dispositivos: document.getElementById('tmpl-pane-dispositivos'),
+        marketing:    document.getElementById('tmpl-pane-marketing'),
+        // Legacy compat — redirect to new tabs
+        free:         document.getElementById('tmpl-pane-basico'),
+        device:       document.getElementById('tmpl-pane-dispositivos'),
+        professional: document.getElementById('tmpl-pane-profissional'),
+        creative:     document.getElementById('tmpl-pane-marketing'),
       };
 
       Object.values(panes).forEach(p => { if (p) p.innerHTML = ''; });
@@ -2959,7 +3375,7 @@
 
         card.onclick = () => {
           if (card.classList.contains('tpl-locked')) { openUpgradeModal(t.plan || 'starter', `Desbloqueie "${t.name}"`); return; }
-          openTemplateSheet(t.id, card);
+          selectTemplate(t.id, card);
         };
 
         pane.appendChild(card);
@@ -2985,7 +3401,7 @@
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   document.getElementById('url1').addEventListener('keydown', e => { if (e.key==='Enter') handleExplore(); });
   document.getElementById('url1').addEventListener('input',   () => document.getElementById('url-err').classList.remove('on'));
-  document.addEventListener('keydown', e => { if (e.key==='Escape') { closeLightbox(); closePkgModal(); closeTemplateSheet(); } });
+  document.addEventListener('keydown', e => { if (e.key==='Escape') { closeLightbox(); closePkgModal(); closeTemplateSheet(); if (typeof fecharModalPlano === 'function') fecharModalPlano(); } });
 
   // ── Init ──────────────────────────────────────────────────────────────────
   const params = new URLSearchParams(location.search);
@@ -2996,6 +3412,7 @@
     loadStats();
     loadPlans();
     loadTemplates();
+    refreshCapturesRemaining();
   }
 
   // ── initSubscriptionState — executado ao carregar ─────────────────────────
@@ -3096,6 +3513,19 @@
 
   initSubscriptionState();
 
+  // ── Tech badge helper ────────────────────────────────────────────────────
+  function hideTechBadge() {
+    const badge = document.getElementById('platform-badge');
+    if (!badge) return;
+    badge.style.transition = 'opacity 200ms';
+    badge.style.opacity    = '0';
+    setTimeout(() => {
+      badge.classList.remove('show');
+      badge.style.display = '';
+      badge.style.opacity = '';
+    }, 200);
+  }
+
   // ── URL Detection ────────────────────────────────────────────────────────
   let detectTimer = null;
   let currentPlatform = null;
@@ -3107,6 +3537,9 @@
       clearTimeout(detectTimer);
       const badge = document.getElementById('platform-badge');
       const dot   = document.querySelector('.url-loading-dot');
+
+      // Hide tech badge when URL is cleared
+      if (!val) { hideTechBadge(); }
 
       // Normalize hint
       const normalized = normalizeUrlInput(val);
@@ -3430,7 +3863,8 @@
       if (!r.ok) return;
       const d = await r.json();
       currentPlan = Object.assign({}, currentPlan, d);
-      if (typeof updateSubBadge === 'function') updateSubBadge();
+      updatePlanPill(d);
+      atualizarMetricaCapturas(d);
       if (typeof applyPlanToInterface === 'function') applyPlanToInterface();
     } catch {}
   }
@@ -3489,26 +3923,124 @@
     if (m) m.style.display = 'none';
   };
 
+  // ── Modal de plano ────────────────────────────────────────────────────────
+  window.abrirModalPlano = function() {
+    const overlay = document.getElementById('modal-plano-overlay');
+    const modal   = document.getElementById('modal-plano');
+    if (!overlay || !modal) return;
+    const code    = activeCode || localStorage.getItem('snapshot_access_code') || '';
+    const headers = {};
+    if (code) headers['x-access-code'] = code;
+    fetch('/api/plan-status', { headers })
+      .then(r => r.json())
+      .then(data => {
+        preencherModalPlano(data);
+        overlay.style.display = 'block';
+        modal.style.display   = 'block';
+      })
+      .catch(() => {
+        preencherModalPlano(currentPlan || { plan:'free' });
+        overlay.style.display = 'block';
+        modal.style.display   = 'block';
+      });
+  };
+
+  window.fecharModalPlano = function() {
+    const overlay = document.getElementById('modal-plano-overlay');
+    const modal   = document.getElementById('modal-plano');
+    if (overlay) overlay.style.display = 'none';
+    if (modal)   modal.style.display   = 'none';
+  };
+
+  function preencherModalPlano(data) {
+    const { plan, planName, capturesRemaining, capturesUsedToday,
+            capturesPerMonth, capturesPerDay } = data;
+
+    const nameEl  = document.getElementById('modal-plan-name');
+    const subEl   = document.getElementById('modal-plan-sub');
+    const labelEl = document.getElementById('modal-uso-label');
+    const valorEl = document.getElementById('modal-uso-valor');
+    const barEl   = document.getElementById('modal-uso-bar');
+    const resetEl = document.getElementById('modal-uso-reset');
+    const featEl  = document.getElementById('modal-features');
+    const footEl  = document.getElementById('modal-plano-footer');
+
+    if (nameEl) nameEl.textContent = planName || (plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1));
+    if (subEl)  subEl.textContent  = plan === 'free' ? 'Plano gratuito' : 'Plano ativo';
+
+    if (plan === 'free') {
+      const limit     = capturesPerDay || 3;
+      const remaining = capturesRemaining !== undefined ? Math.max(0, capturesRemaining) : Math.max(0, limit - (capturesUsedToday || 0));
+      const used      = limit - remaining;
+      if (labelEl) labelEl.textContent = 'Capturas hoje';
+      if (valorEl) valorEl.textContent = `${remaining} restantes`;
+      if (barEl)   { barEl.style.width = `${Math.min(100,(used/limit)*100)}%`; barEl.style.background = remaining === 0 ? '#ef4444' : '#22c55e'; }
+      if (resetEl) resetEl.textContent = 'Renova à meia-noite';
+    } else if (capturesPerMonth === -1) {
+      if (labelEl) labelEl.textContent = 'Capturas';
+      if (valorEl) { valorEl.textContent = '∞'; valorEl.style.fontSize = '28px'; }
+      if (barEl)   { barEl.style.width = '100%'; barEl.style.background = '#3b82f6'; }
+      if (resetEl) resetEl.textContent = 'Capturas ilimitadas';
+    } else {
+      const remaining = capturesRemaining !== undefined ? Math.max(0, capturesRemaining) : 0;
+      const used      = Math.max(0, (capturesPerMonth || 0) - remaining);
+      const pct       = capturesPerMonth > 0 ? Math.min(100, (used / capturesPerMonth) * 100) : 0;
+      if (labelEl) labelEl.textContent = 'Capturas este mês';
+      if (valorEl) valorEl.textContent = `${remaining} / ${capturesPerMonth}`;
+      if (barEl)   { barEl.style.width = `${pct}%`; barEl.style.background = pct >= 80 ? '#f59e0b' : '#22c55e'; }
+      if (resetEl) resetEl.textContent = 'Renova no dia 1 do mês';
+    }
+
+    if (featEl) {
+      const checkSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+      featEl.innerHTML = getPlanoFeatures(plan).map(f =>
+        `<div class="feature-row">${checkSvg}${f}</div>`
+      ).join('');
+    }
+
+    if (footEl) footEl.style.display = (plan === 'agency') ? 'none' : 'block';
+  }
+
+  function getPlanoFeatures(plan) {
+    const base = {
+      free:    ['3 capturas por dia', 'Marca d\'água nas imagens', '6 templates gratuitos', 'Apenas desktop'],
+      starter: ['60 capturas por mês', 'Sem marca d\'água', '32 templates profissionais', 'Desktop + Mobile 2x'],
+      pro:     ['Capturas ilimitadas', 'Sem marca d\'água', '32 templates profissionais', 'Desktop + Mobile 2x'],
+      agency:  ['Capturas ilimitadas', 'Sem marca d\'água', '32 templates profissionais', 'Desktop + Mobile 2x', 'Múltiplos códigos de acesso'],
+    };
+    return base[plan] || base.free;
+  }
+
+
 })();
 </script>
 
-<!-- [COR-7] Modal de Info do Plano -->
-<div id="modal-plan-info" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:24px;" onclick="if(event.target===this)closePlanInfoModal()">
-  <div style="background:#161616;border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:28px;max-width:400px;width:100%;position:relative;max-height:80vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <h3 id="pim-plan-name" style="font-family:'Outfit',sans-serif;font-weight:700;font-size:20px;color:rgba(255,255,255,0.92);">Free</h3>
-      <button onclick="closePlanInfoModal()" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:22px;line-height:1;">&#215;</button>
+<!-- Modal de plano -->
+<div class="modal-plano-overlay" id="modal-plano-overlay" onclick="fecharModalPlano()" style="display:none"></div>
+<div class="modal-plano" id="modal-plano" style="display:none">
+  <div class="modal-plano-header">
+    <div>
+      <div class="modal-plano-name" id="modal-plan-name">Free</div>
+      <div class="modal-plano-sub" id="modal-plan-sub">Plano gratuito</div>
     </div>
-    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
-      <div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Capturas</div>
-      <div id="pim-captures" style="font-family:'Outfit',sans-serif;font-size:15px;color:rgba(255,255,255,0.85);">--</div>
-      <div id="pim-reset" style="font-family:'Outfit',sans-serif;font-size:12px;color:rgba(255,255,255,0.35);margin-top:4px;"></div>
+    <button class="modal-close-btn" onclick="fecharModalPlano()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="modal-plano-body">
+    <div class="modal-uso-card">
+      <div class="modal-uso-label" id="modal-uso-label">Capturas hoje</div>
+      <div class="modal-uso-valor" id="modal-uso-valor">3</div>
+      <div class="modal-uso-bar-track"><div class="modal-uso-bar-fill" id="modal-uso-bar" style="width:0%"></div></div>
+      <div class="modal-uso-reset" id="modal-uso-reset"></div>
     </div>
-    <div style="margin-bottom:20px;">
-      <div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Esta sessão</div>
-      <div id="pim-history"></div>
-    </div>
-    <button id="pim-upgrade-btn" onclick="closePlanInfoModal();openUpgradeModal('starter','')" style="width:100%;height:44px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-family:'Outfit',sans-serif;font-size:14px;color:rgba(255,255,255,0.7);cursor:pointer;">Fazer upgrade →</button>
+    <div class="modal-features" id="modal-features"></div>
+  </div>
+  <div class="modal-plano-footer" id="modal-plano-footer">
+    <button class="btn-upgrade-modal" onclick="fecharModalPlano();abrirModalUpgrade()">
+      Fazer upgrade
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
   </div>
 </div>
 
