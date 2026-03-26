@@ -44,7 +44,7 @@ const PLANS = {
 
 // ── Create Subscription Checkout ──────────────────────────────────────────────
 async function createCheckoutSession(plan) {
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3001';
+  const baseUrl = process.env.BASE_URL || 'https://snapdeck.pro';
   const planKey = PLANS[plan] ? plan : 'starter';
   const planData = PLANS[planKey];
   const priceId  = planData.priceId();

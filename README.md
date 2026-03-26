@@ -1,4 +1,4 @@
-# SnapShot.pro
+# SnapDeck.pro
 
 Pay-per-use URL screenshot service. Paste a URL, get HD desktop + mobile screenshots, pay $4.99, download a ZIP. No signup, no subscription, no bullshit.
 
@@ -38,7 +38,7 @@ Then edit `.env` and fill in each value:
 
 ```env
 PORT=3000
-BASE_URL=http://localhost:3000
+BASE_URL=https://snapdeck.pro
 
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
@@ -63,7 +63,7 @@ PRICE_CENTS=499
 In a **separate terminal**, run:
 
 ```bash
-stripe listen --forward-to localhost:3000/api/webhook
+stripe listen --forward-to snapdeck.pro/api/webhook
 ```
 
 The CLI will print something like:
@@ -84,7 +84,7 @@ Keep this terminal running while you test.
 npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [https://snapdeck.pro](https://snapdeck.pro).
 
 ---
 
@@ -171,7 +171,7 @@ Railway is the simplest zero-config deployment for this project.
 **Symptom:** Payment succeeds on Stripe, but the page stays on the success screen and the download never starts (404 or 402 from `/api/download`).
 
 **Causes and fixes:**
-- The Stripe CLI is not running. Start it: `stripe listen --forward-to localhost:3000/api/webhook`
+- The Stripe CLI is not running. Start it: `stripe listen --forward-to snapdeck.pro/api/webhook`
 - `STRIPE_WEBHOOK_SECRET` in `.env` doesn't match the secret printed by `stripe listen`. Copy the `whsec_...` value again and restart the server.
 - In production: verify the webhook endpoint URL in the Stripe Dashboard matches your deployed URL exactly.
 

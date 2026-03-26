@@ -582,7 +582,7 @@ snapshot/
 ```env
 PORT=3001
 NODE_ENV=development
-BASE_URL=http://localhost:3001
+BASE_URL=https://snapdeck.pro
 ABACATEPAY_API_KEY=abc_dev_...
 ABACATEPAY_WEBHOOK_SECRET=     # obrigatório em produção
 ADMIN_PASSWORD=changeme        # usado no admin.html

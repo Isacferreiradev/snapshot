@@ -370,5 +370,17 @@
     "createdAt": 1774548526492,
     "monthResetAt": 1775012400000,
     "checkoutSessionId": null
+  },
+  "SNAP-7B53-DE2F-F484": {
+    "plan": "starter",
+    "stripeSubscriptionId": "pix_char_BSdjcZ1NpGft0TrSdGqusuYn",
+    "stripeCustomerId": null,
+    "validUntil": 1777141688492,
+    "capturesThisMonth": 0,
+    "capturesLimit": 100,
+    "active": true,
+    "createdAt": 1774549688492,
+    "monthResetAt": 1775012400000,
+    "checkoutSessionId": null
   }
 }

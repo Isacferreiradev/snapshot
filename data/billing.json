@@ -539,5 +539,23 @@
       "cellphone": "73982549895"
     },
     "confirmationEmailSent": true
+  },
+  "pix_char_BSdjcZ1NpGft0TrSdGqusuYn": {
+    "pixId": "pix_char_BSdjcZ1NpGft0TrSdGqusuYn",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-7B53-DE2F-F484",
+    "createdAt": 1774549680373,
+    "paidAt": 1774549688493,
+    "expiresAt": "2026-03-26T19:27:59.275Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(73) 98254-9895",
+      "taxId": "94378754568",
+      "cellphone": "73982549895"
+    },
+    "confirmationEmailSent": true
   }
 }

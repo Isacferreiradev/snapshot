@@ -32,7 +32,7 @@ async function createBilling(plan, customerData) {
   const price = PLAN_PRICES[plan];
   if (!price) throw new Error(`Plano inválido: ${plan}`);
 
-  const base = process.env.BASE_URL || 'http://localhost:3001';
+  const base = process.env.BASE_URL || 'https://snapdeck.pro';
 
   const body = {
     frequency:     'MULTIPLE_PAYMENTS',

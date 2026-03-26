@@ -1712,7 +1712,7 @@ function syncTemplates() {
 }
 
 app.listen(PORT, async () => {
-  console.log(`SnapShot.pro rodando em http://localhost:${PORT}`);
+  console.log(`SnapDeck.pro rodando em https://snapdeck.pro (porta ${PORT})`);
   syncTemplates();
   await initBrowserPool();
   storage.startCleanupScheduler(() => getAllJobIds());
