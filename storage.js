@@ -3,7 +3,9 @@
 const fs   = require('fs');
 const path = require('path');
 
-const SCREENSHOTS_BASE = path.join(__dirname, 'screenshots');
+const SCREENSHOTS_BASE = process.env.NODE_ENV === 'production'
+  ? path.join(require('os').tmpdir(), 'screenshots')
+  : path.join(__dirname, 'screenshots');
 const MAX_AGE_MS       = 30 * 60 * 1000; // 30 minutos
 const CLEANUP_INTERVAL = 15 * 60 * 1000; // varrer a cada 15 minutos
 

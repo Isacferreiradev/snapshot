@@ -61,7 +61,7 @@ app.use((_req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-const SS   = path.join(__dirname, 'screenshots');
+const SS   = storage.SCREENSHOTS_BASE;
 
 fs.mkdirSync(SS, { recursive: true });
 fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
