@@ -66,6 +66,18 @@ const SS   = path.join(__dirname, 'screenshots');
 fs.mkdirSync(SS, { recursive: true });
 fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 
+// Seed: copia arquivos de data-seed/ para data/ se ainda não existirem (Railway volume)
+const SEED_DIR = path.join(__dirname, 'data-seed');
+if (fs.existsSync(SEED_DIR)) {
+  for (const f of fs.readdirSync(SEED_DIR)) {
+    const dest = path.join(__dirname, 'data', f);
+    if (!fs.existsSync(dest)) {
+      fs.copyFileSync(path.join(SEED_DIR, f), dest);
+      console.log(`[seed] copiado ${f} para data/`);
+    }
+  }
+}
+
 const TEMPLATES_FILE = path.join(__dirname, 'data', 'templates.json');
 const ERRORS_FILE    = path.join(__dirname, 'data', 'errors.json');
 const CONFIG_FILE    = path.join(__dirname, 'data', 'config.json');

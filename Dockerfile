@@ -11,7 +11,7 @@ RUN npm ci --omit=dev
 COPY . .
 
 USER root
-RUN mkdir -p data screenshots && chmod -R 777 data screenshots
+RUN mkdir -p data data-seed screenshots && chmod -R 777 data data-seed screenshots
 USER pptruser
 
 EXPOSE 3001
