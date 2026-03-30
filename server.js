@@ -31,8 +31,8 @@ const { captureJobPages, initBrowserPool }                                      
 const { renderProfessional }                                                     = require('./renderer');
 const { createPixPayment, checkPixStatus,
         activatePayment, simulatePayment,
-        verifyWebhookSignature, getBillingEntry,
-        claimConfirmationEmail }                                                  = require('./billing');
+        verifyWebhookToken, getBillingEntry,
+        claimConfirmationEmail, claimPixReminder }                               = require('./asaas');
 const { sendPaymentConfirmed, sendSnapCode, sendInternalPaymentAlert,
         sendFreeLimitReached, sendFirstCapture,
         sendPixReminder }                                                         = require('./mailer');
@@ -61,7 +61,7 @@ app.use((_req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-const SS   = storage.SCREENSHOTS_BASE;
+const SS   = path.join(__dirname, 'screenshots');
 
 fs.mkdirSync(SS, { recursive: true });
 fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
@@ -238,71 +238,37 @@ async function dispatchPaymentEmails(pixId, plan, webhookEventData) {
   }
 }
 
-// ── Webhook AbacatePay (raw body + HMAC verification) ────────────────────────
-app.post('/api/webhook/abacatepay', express.raw({ type: 'application/json' }), async (req, res) => {
-  // Logar todos os headers no primeiro webhook recebido
-  if (!global._webhookReceived) {
-    global._webhookReceived = true;
-    console.log('[webhook] primeiro webhook recebido — headers:', JSON.stringify(req.headers, null, 2));
-    console.log('[webhook] body raw (primeiros 500 chars):', req.body.toString().slice(0, 500));
+// ── Webhook Asaas ─────────────────────────────────────────────────────────────
+app.post('/api/webhook/asaas', express.json(), async (req, res) => {
+  if (!verifyWebhookToken(req)) {
+    console.warn('[Webhook Asaas] Token invalido');
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  try {
-    const sig = req.headers['x-webhook-signature'] || req.headers['x-abacatepay-signature'] || '';
+  const { event, payment } = req.body || {};
+  console.log(`[Webhook Asaas] evento:${event} paymentId:${payment?.id} status:${payment?.status}`);
 
-    // Verificar assinatura sempre (fail-closed): rejeita se secret não configurado ou HMAC inválido
-    if (!verifyWebhookSignature(req.body, sig)) {
-      console.error('[webhook] assinatura inválida ou secret não configurado — sig recebida:', sig.slice(0, 40));
-      return res.status(401).json({ error: 'Assinatura inválida.' });
-    }
-
-    let event;
-    try { event = JSON.parse(req.body.toString()); }
-    catch { return res.status(200).end(); }
-
-    console.log('[webhook] evento:', JSON.stringify(event).slice(0, 300));
-
-    // Aceita tanto pix.paid quanto billing.paid
-    const eventType = event && event.event;
-    if (eventType !== 'pix.paid' && eventType !== 'billing.paid') return res.status(200).end();
-
-    const pixId = event.data && event.data.id;
-    if (!pixId) return res.status(200).end();
-
-    // Extrair plano do metadata (PIX) ou externalId/completionUrl (billing)
-    let plan = null;
+  if (event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_CONFIRMED') {
+    if (!payment?.id) return res.status(200).end();
     try {
-      plan = event.data.metadata && event.data.metadata.plan;
-    } catch {}
-    if (!plan) {
-      try {
-        const products = event.data.products || event.data.billing?.products || [];
-        for (const p of products) {
-          const ext = (p.externalId || p.external_id || '').toLowerCase();
-          if (ext.includes('starter')) { plan = 'starter'; break; }
-          if (ext.includes('agency'))  { plan = 'agency';  break; }
-          if (ext.includes('pro'))     { plan = 'pro';     break; }
-        }
-      } catch {}
+      let plan = 'starter';
+      if (payment.externalReference) {
+        const m = payment.externalReference.match(/snapdeck-(\w+)-/);
+        if (m) plan = m[1];
+      }
+      const { accessCode } = await activatePayment(payment.id, plan);
+      sendAlert(`💰 Novo pagamento Asaas!\nPlano: ${plan}\nCódigo: ${accessCode}`);
+      setImmediate(() => dispatchPaymentEmails(payment.id, plan, null));
+    } catch (err) {
+      console.error('[Webhook Asaas] Erro:', err.message);
     }
-    if (!plan) {
-      console.warn('[webhook] plano não encontrado no metadata — usando starter como fallback. pixId:', pixId);
-      plan = 'starter';
-    }
-
-    const code = await activatePayment(pixId, plan);
-    console.log(`[webhook] pagamento confirmado — plano: ${plan}, pixId: ${pixId}, código: ${code}`);
-    sendAlert(`💰 Novo pagamento!\nPlano: ${plan}\nCódigo: ${code}`);
-
-    // fire-and-forget — nunca bloquear o webhook
-    setImmediate(() => dispatchPaymentEmails(pixId, plan, event.data));
-
-    return res.status(200).end();
-  } catch (err) {
-    console.error('[webhook] erro interno:', err.message);
-    return res.status(200).end(); // nunca retornar 5xx ao AbacatePay
   }
+
+  return res.status(200).json({ received: true });
 });
+
+// Rota antiga AbacatePay — descontinuada
+app.post('/api/webhook/abacatepay', (_req, res) => res.status(410).json({ error: 'Descontinuado. Use /api/webhook/asaas' }));
 
 // Compat: rota legada sem assinatura (aceita mas não verifica)
 app.post('/api/webhook', express.json(), (_req, res) => res.status(200).json({ ok: true }));
@@ -403,111 +369,82 @@ app.post('/api/create-pix', rlCreatePix, async (req, res) => {
   const { plan, customer } = req.body || {};
   const VALID = ['starter', 'pro', 'agency'];
 
-  // Validação 1: plano
   if (!plan || !VALID.includes(plan))
     return res.status(400).json({ error: `Plano inválido. Use: ${VALID.join(', ')}` });
 
   const cust = customer || {};
 
-  // Validação 2: taxId (CPF/CNPJ)
-  const taxIdRaw = typeof cust.taxId === 'string' ? cust.taxId : (typeof cust.cpf === 'string' ? cust.cpf : '');
-  if (!taxIdRaw || !taxIdRaw.trim()) {
-    return res.status(400).json({ error: 'CPF ou CNPJ é obrigatório.', field: 'taxId' });
-  }
-  const taxIdDigits = taxIdRaw.replace(/\D/g, '');
-  if (taxIdDigits.length !== 11 && taxIdDigits.length !== 14) {
-    return res.status(400).json({ error: 'CPF ou CNPJ inválido. Verifique e tente novamente.', field: 'taxId' });
+  // Validação CPF/CNPJ
+  const cpfRaw    = typeof cust.cpfCnpj === 'string' ? cust.cpfCnpj : (typeof cust.cpf === 'string' ? cust.cpf : '');
+  const cpfDigits = cpfRaw.replace(/\D/g, '');
+  if (!cpfDigits || (cpfDigits.length !== 11 && cpfDigits.length !== 14)) {
+    return res.status(400).json({ error: 'CPF ou CNPJ inválido.', field: 'cpfCnpj' });
   }
 
-  // Validação 3: cellphone
-  const phoneRaw = typeof cust.cellphone === 'string' ? cust.cellphone : (typeof cust.phone === 'string' ? cust.phone : '');
-  if (!phoneRaw || !phoneRaw.trim()) {
-    return res.status(400).json({ error: 'Número de telefone é obrigatório.', field: 'cellphone' });
-  }
+  // Validação telefone
+  const phoneRaw    = typeof cust.cellphone === 'string' ? cust.cellphone : (typeof cust.phone === 'string' ? cust.phone : '');
   const phoneDigits = phoneRaw.replace(/\D/g, '');
-  if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+  if (!phoneDigits || phoneDigits.length < 10 || phoneDigits.length > 11) {
     return res.status(400).json({ error: 'Número de telefone inválido.', field: 'cellphone' });
   }
 
-  // Validação 4: API key configurada
-  const apiKey = process.env.ABACATEPAY_API_KEY || '';
-  if (!apiKey || apiKey.includes('YOUR_') || apiKey.includes('PLACEHOLDER') || apiKey.length < 10) {
-    return res.status(503).json({ error: 'Pagamento temporariamente indisponível. Entre em contato com o suporte.' });
+  const apiKey = process.env.ASAAS_API_KEY || '';
+  if (!apiKey || apiKey.length < 5) {
+    return res.status(503).json({ error: 'Pagamento temporariamente indisponível.' });
   }
 
-  // Normalizar customer para o formato que o billing espera
   const normalizedCustomer = {
-    name:      cust.name  || '',
-    email:     cust.email || '',
-    cpf:       taxIdRaw,
-    phone:     phoneRaw,
-    taxId:     taxIdDigits,
-    cellphone: phoneDigits,
+    name:     cust.name   || '',
+    email:    cust.email  || '',
+    cpfCnpj:  cpfDigits,
+    phone:    phoneDigits,
   };
 
   try {
     const result = await createPixPayment(plan, normalizedCustomer);
-    const config = readJsonFile(CONFIG_FILE, { plans: {} });
-    const planName = (config.plans && config.plans[plan] && config.plans[plan].name) || plan;
 
-    // Store IP→email for first-capture email lookup
+    // Store IP→email for first-capture email
     if (normalizedCustomer.email) {
       storeIpEmail(clientIp(req), normalizedCustomer.email, normalizedCustomer.name || null);
     }
 
-    // Schedule PIX reminder (15 min) — fire-and-forget
-    const _reminderPixId   = result.pixId;
-    const _reminderEmail   = normalizedCustomer.email;
-    const _reminderName    = normalizedCustomer.name || null;
-    const _reminderPlan    = plan;
-    const _reminderAmount  = result.amount ? `R$ ${(result.amount / 100).toFixed(2).replace('.', ',')}` : null;
-    if (_reminderEmail) {
+    // Schedule PIX reminder (15 min)
+    const _rPaymentId = result.paymentId;
+    const _rEmail     = normalizedCustomer.email;
+    const _rName      = normalizedCustomer.name || null;
+    const _rPlan      = plan;
+    const _rAmount    = result.amount ? `R$ ${Number(result.amount).toFixed(2).replace('.', ',')}` : null;
+    if (_rEmail) {
       setTimeout(async () => {
         try {
-          const { getBillingEntry: _getBE, claimPixReminder } = require('./billing');
-          const entry = _getBE(_reminderPixId);
-          if (entry && entry.status === 'paid') return; // já pagou
-          if (!claimPixReminder(_reminderPixId)) return; // já enviado
-          await sendPixReminder({
-            to:     _reminderEmail,
-            name:   _reminderName,
-            pixId:  _reminderPixId,
-            plan:   _reminderPlan,
-            amount: _reminderAmount,
-          });
-        } catch (e) {
-          console.error('[pix-reminder] erro:', e.message);
-        }
-      }, 15 * 60 * 1000); // 15 minutos
+          const entry = getBillingEntry(_rPaymentId);
+          if (entry && entry.status === 'paid') return;
+          if (!claimPixReminder(_rPaymentId)) return;
+          await sendPixReminder({ to: _rEmail, name: _rName, plan: _rPlan, amount: _rAmount });
+        } catch (e) { console.error('[pix-reminder]', e.message); }
+      }, 15 * 60 * 1000);
     }
 
+    const config  = readJsonFile(CONFIG_FILE, { plans: {} });
+    const planName = (config.plans && config.plans[plan] && config.plans[plan].name) || plan;
     return res.json({ ...result, planName });
   } catch (err) {
     console.error('[create-pix] erro:', err.message);
     const msg = err.message || '';
-    // Traduzir erros técnicos para mensagens amigáveis
-    if (/invalid.*api.*key|inactive.*api|api.*key.*invalid/i.test(msg) || /unauthorized/i.test(msg)) {
-      return res.status(503).json({ error: 'Pagamento temporariamente indisponível. Entre em contato com o suporte.' });
-    }
-    if (/taxid|tax_id|cpf|cnpj/i.test(msg)) {
-      return res.status(400).json({ error: 'CPF ou CNPJ inválido. Verifique e tente novamente.', field: 'taxId' });
-    }
-    if (/cellphone|phone|telefone/i.test(msg)) {
-      return res.status(400).json({ error: 'Número de telefone inválido.', field: 'cellphone' });
-    }
-    return res.status(500).json({ error: `Erro ao gerar PIX: ${msg}` });
+    if (/cpf|cnpj|cpfCnpj/i.test(msg)) return res.status(400).json({ error: 'CPF ou CNPJ inválido.', field: 'cpfCnpj' });
+    if (/api.*key|access_token|unauthorized/i.test(msg)) return res.status(503).json({ error: 'Pagamento temporariamente indisponível.' });
+    return res.status(500).json({ error: 'Erro ao gerar PIX. Tente novamente.' });
   }
 });
 
 // ── GET /api/pix-status — polling de status do PIX (nunca retorna 4xx/5xx) ───
 app.get('/api/pix-status', async (req, res) => {
-  const { pixId } = req.query;
-  if (!pixId) return res.json({ status: 'pending', accessCode: null });
+  const { paymentId } = req.query;
+  if (!paymentId) return res.json({ status: 'pending', accessCode: null });
   try {
-    const result = await checkPixStatus(pixId);
-    // Disparar emails ao detectar pagamento via polling (idempotente via claimConfirmationEmail)
+    const result = await checkPixStatus(paymentId);
     if (result.status === 'paid') {
-      setImmediate(() => dispatchPaymentEmails(pixId, result.plan || 'starter', null));
+      setImmediate(() => dispatchPaymentEmails(paymentId, result.plan || 'starter', null));
     }
     return res.json(result);
   } catch {
@@ -519,11 +456,14 @@ app.get('/api/pix-status', async (req, res) => {
 app.post('/api/simulate-pix', requireAdmin, async (req, res) => {
   if (process.env.NODE_ENV === 'production')
     return res.status(403).json({ error: 'Indisponível em produção.' });
-  const { pixId } = req.body || {};
-  if (!pixId) return res.status(400).json({ error: 'pixId obrigatório.' });
+  const { paymentId } = req.body || {};
+  if (!paymentId) return res.status(400).json({ error: 'paymentId obrigatório.' });
   try {
-    const result = await simulatePayment(pixId);
-    if (result.accessCode) sendAlert(`💰 Simulação PIX confirmada!\nPlano: ${result.plan}\nCódigo: ${result.accessCode}`);
+    const result = await simulatePayment(paymentId);
+    if (result.accessCode) {
+      sendAlert(`💰 Simulação Asaas confirmada!\nPlano: ${result.plan}\nCódigo: ${result.accessCode}`);
+      setImmediate(() => dispatchPaymentEmails(paymentId, result.plan || 'starter', null));
+    }
     return res.json(result);
   } catch (err) {
     console.error('[simulate-pix] erro:', err.message);
@@ -1712,7 +1652,7 @@ function syncTemplates() {
 }
 
 app.listen(PORT, async () => {
-  console.log(`SnapDeck.pro rodando em https://snapdeck.pro (porta ${PORT})`);
+  console.log(`SnapShot.pro rodando em http://localhost:${PORT}`);
   syncTemplates();
   await initBrowserPool();
   storage.startCleanupScheduler(() => getAllJobIds());

@@ -4,7 +4,7 @@
   "description": "Pay-per-use URL screenshot SaaS — desktop + mobile in seconds",
   "main": "server.js",
   "scripts": {
-    "start": "npx kill-port 3001 --silent & node server.js",
+    "start": "node server.js",
     "dev": "npx kill-port 3001 --silent & node server.js"
   },
   "dependencies": {

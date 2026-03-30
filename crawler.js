@@ -126,8 +126,7 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
   try { origin = new URL(rawUrl).origin; }
   catch { return { pages: [{ url: rawUrl, title: rawUrl, thumbnailPath: '', thumbnailUrl: '', pageType: 'homepage' }], totalFound: 1 }; }
 
-  const { SCREENSHOTS_BASE } = require('./storage');
-  const thumbDir = path.join(SCREENSHOTS_BASE, jobId, 'thumbs');
+  const thumbDir = path.join(__dirname, 'screenshots', jobId, 'thumbs');
   fs.mkdirSync(thumbDir, { recursive: true });
 
   const log = (msg) => { try { appendCrawlLog(jobId, msg); } catch {} };

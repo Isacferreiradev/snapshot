@@ -415,23 +415,6 @@
     },
     "confirmationEmailSent": true
   },
-  "pix_char_zYudPbCHq52zCmxJ5GB2rLxx": {
-    "pixId": "pix_char_zYudPbCHq52zCmxJ5GB2rLxx",
-    "plan": "starter",
-    "status": "pending",
-    "accessCode": null,
-    "createdAt": 1774546934726,
-    "paidAt": null,
-    "expiresAt": "2026-03-26T18:42:13.722Z",
-    "customer": {
-      "name": "AJDASHD",
-      "email": "aristocrata.black@gmail.com",
-      "cpf": "943.787.545-68",
-      "phone": "(73) 98254-9895",
-      "taxId": "94378754568",
-      "cellphone": "73982549895"
-    }
-  },
   "pix_char_wCEsF2bHt6mmnpr0GEYynKMM": {
     "pixId": "pix_char_wCEsF2bHt6mmnpr0GEYynKMM",
     "plan": "starter",
@@ -557,5 +540,56 @@
       "cellphone": "73982549895"
     },
     "confirmationEmailSent": true
+  },
+  "pix_char_uqxDQYyP05rCbYaCGrmaAD5f": {
+    "pixId": "pix_char_uqxDQYyP05rCbYaCGrmaAD5f",
+    "plan": "starter",
+    "status": "paid",
+    "accessCode": "SNAP-E1A6-0833-5193",
+    "createdAt": 1774555868604,
+    "paidAt": 1774555894960,
+    "expiresAt": "2026-03-26T21:11:07.488Z",
+    "customer": {
+      "name": "WENIA REIS DOS SANTOS",
+      "email": "aristocrata.black@gmail.com",
+      "cpf": "943.787.545-68",
+      "phone": "(73) 98254-9895",
+      "taxId": "94378754568",
+      "cellphone": "73982549895"
+    },
+    "confirmationEmailSent": true
+  },
+  "pay_jz8wl2413g7i5zps": {
+    "paymentId": "pay_jz8wl2413g7i5zps",
+    "customerId": "cus_000167958518",
+    "plan": "starter",
+    "amount": 19.9,
+    "status": "PENDING",
+    "accessCode": null,
+    "createdAt": 1774560061355,
+    "expiresAt": 1806202799000,
+    "customer": {
+      "name": "Teste Silva",
+      "email": "teste@teste.com",
+      "cpfCnpj": "00000000191"
+    }
+  },
+  "pay_gsfzqeb74xr02ud3": {
+    "paymentId": "pay_gsfzqeb74xr02ud3",
+    "customerId": "cus_000167958869",
+    "plan": "starter",
+    "amount": 19.9,
+    "status": "RECEIVED",
+    "accessCode": "SNAP-FBFB-A98C-288E",
+    "createdAt": 1774560235467,
+    "expiresAt": 1806202799000,
+    "customer": {
+      "name": "WENIA REIS FERREIRA",
+      "email": "aristocrata.black@gmail.com",
+      "cpfCnpj": "94378754568"
+    },
+    "activatedAt": 1774560360325,
+    "confirmationEmailSent": true,
+    "reminderSent": true
   }
 }

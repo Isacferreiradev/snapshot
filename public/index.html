@@ -1928,9 +1928,9 @@
     try {
       const r = await post('/api/create-pix', {
         plan:     selectedPkg,
-        customer: { name, email, taxId: cpf, cellphone: phone, cpf, phone },
+        customer: { name, email, cpfCnpj: cpf, cellphone: phone },
       }, 15000);
-      if (r.ok && r.data.pixId) {
+      if (r.ok && r.data.paymentId) {
         btn.disabled = false;
         btn.textContent = 'Gerar QR Code PIX';
         showPixScreen(r.data);
@@ -1954,26 +1954,26 @@
 
   // ── Tela 3: exibir QR Code e iniciar polling ─────────────────────────────
   function showPixScreen(data) {
-    currentPixId = data.pixId;
-    localStorage.setItem('snapshot_pending_pix', data.pixId);
+    currentPixId = data.paymentId;
+    localStorage.setItem('snapshot_pending_pix', data.paymentId);
     showPmScreen(3);
 
     // Valor
-    const cents = data.amount || 0;
-    document.getElementById('pix-amount').textContent = `R$ ${(cents/100).toFixed(2).replace('.',',')}`;
+    const amount = data.amount || 0;
+    document.getElementById('pix-amount').textContent = `R$ ${Number(amount).toFixed(2).replace('.',',')}`;
     document.getElementById('pix-plan-label').textContent = data.planName || selectedPkg || '';
 
     // QR Code
     const qrImg     = document.getElementById('pix-qr-img');
     const qrLoading = document.getElementById('pix-qr-loading');
-    if (data.brCodeBase64) {
-      qrImg.src = data.brCodeBase64;
+    if (data.qrCodeBase64) {
+      qrImg.src = `data:image/png;base64,${data.qrCodeBase64}`;
       qrImg.style.display = 'block';
       qrLoading.style.display = 'none';
     }
 
     // Código copia-e-cola
-    const pixBrCode = data.brCode || '';
+    const pixBrCode = data.copyPasteCode || '';
     document.getElementById('pix-code-text').textContent = pixBrCode;
     window._pixBrCode = pixBrCode;
 
@@ -1985,7 +1985,7 @@
     startPixTimer(data.expiresAt);
 
     // Polling
-    startPixPolling(data.pixId);
+    startPixPolling(data.paymentId);
   }
 
   function startPixTimer(expiresAt) {
@@ -2011,7 +2011,7 @@
     stopPixPolling();
     const poll = async () => {
       try {
-        const r = await api(`/api/pix-status?pixId=${encodeURIComponent(pixId)}`, {}, 8000);
+        const r = await api(`/api/pix-status?paymentId=${encodeURIComponent(pixId)}`, {}, 8000);
         if (r.ok && r.data.status === 'paid' && r.data.accessCode) {
           stopPixPolling();
           showSuccessScreen(r.data.accessCode, r.data.plan || selectedPkg);
@@ -2047,7 +2047,7 @@
     const btn = document.getElementById('pix-dev-btn');
     if (btn) btn.textContent = 'Simulando…';
     try {
-      const r = await post('/api/simulate-pix', { pixId: currentPixId }, 10000);
+      const r = await post('/api/simulate-pix', { paymentId: currentPixId }, 10000);
       if (r.ok && r.data.accessCode) {
         stopPixPolling();
         showSuccessScreen(r.data.accessCode, r.data.plan || selectedPkg);
@@ -2106,10 +2106,10 @@
 
   // ── Reabrir modal com PIX pendente ───────────────────────────────────────
   window.reopenPixModal = async function() {
-    const pixId = localStorage.getItem('snapshot_pending_pix');
-    if (!pixId) return;
+    const paymentId = localStorage.getItem('snapshot_pending_pix');
+    if (!paymentId) return;
     // Verificar status
-    const r = await api(`/api/pix-status?pixId=${encodeURIComponent(pixId)}`, {}, 5000).catch(()=>({ok:false}));
+    const r = await api(`/api/pix-status?paymentId=${encodeURIComponent(paymentId)}`, {}, 5000).catch(()=>({ok:false}));
     if (r.ok && r.data.status === 'paid' && r.data.accessCode) {
       showSuccessScreen(r.data.accessCode, r.data.plan);
       document.getElementById('pkg-modal').classList.add('on');
@@ -2122,10 +2122,10 @@
       return;
     }
     // Ainda pending — reabrir tela 3 sem chamar create-pix de novo
-    currentPixId = pixId;
+    currentPixId = paymentId;
     showPmScreen(3);
     document.getElementById('pkg-modal').classList.add('on');
-    startPixPolling(pixId);
+    startPixPolling(paymentId);
   };
 
   window.applyModalCode = async function() {
@@ -3467,7 +3467,7 @@
     const pendingPixId = localStorage.getItem('snapshot_pending_pix');
     if (pendingPixId && !activeCode) {
       try {
-        const r = await api(`/api/pix-status?pixId=${encodeURIComponent(pendingPixId)}`, {}, 5000);
+        const r = await api(`/api/pix-status?paymentId=${encodeURIComponent(pendingPixId)}`, {}, 5000);
         if (r.ok && r.data.status === 'paid' && r.data.accessCode) {
           // Pago! Processar silenciosamente
           const code    = r.data.accessCode;
