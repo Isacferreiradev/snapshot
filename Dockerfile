@@ -10,7 +10,7 @@ RUN npm ci --omit=dev
 
 COPY . .
 
-RUN mkdir -p data
+RUN mkdir -p data screenshots && chmod -R 777 data screenshots
 
 EXPOSE 3001
 
