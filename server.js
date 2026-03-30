@@ -600,12 +600,13 @@ app.post('/api/select-pages', (req, res) => {
   const job = getJob(jobId);
   if (!job) return res.status(404).json({ error: 'Job não encontrado.' });
   if (!Array.isArray(selectedUrls) || selectedUrls.length === 0) return res.status(400).json({ error: 'Selecione ao menos uma página.' });
-  if (selectedUrls.length > 12) return res.status(400).json({ error: 'Máximo de 12 páginas.' });
+  const uniqueUrls = [...new Set(selectedUrls)];
+  if (uniqueUrls.length > 12) return res.status(400).json({ error: 'Máximo de 12 páginas.' });
   const discovered = new Set(job.pages.map(p => p.url));
-  for (const u of selectedUrls) {
+  for (const u of uniqueUrls) {
     if (!discovered.has(u)) return res.status(400).json({ error: `URL desconhecida: ${u}` });
   }
-  updateSelectedPages(jobId, selectedUrls);
+  updateSelectedPages(jobId, uniqueUrls);
   return res.json({ jobId, status: 'configuring' });
 });
 
@@ -677,7 +678,8 @@ app.post('/api/start-capture', rlStartCapture, (req, res) => {
   // [COR-4] Determinar applyWatermark com base no plano do request
   const subCode        = job.subscriptionCode || null;
   const subValid       = subCode ? resolveAccessCode(subCode) : null;
-  const applyWatermark = (req.plan && req.plan.watermark === true);
+  // Free plan always gets watermark; paid plans explicitly have watermark:false in config
+  const applyWatermark = req.planKey === 'free' ? true : (req.plan && req.plan.watermark === true);
   job.applyWatermark   = applyWatermark;
   setJobCaptureInfo(jobId, req.planKey || 'free', applyWatermark);
 

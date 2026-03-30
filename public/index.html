@@ -481,6 +481,7 @@
     #s6 { padding:64px 0 100px; }
     .wm-notice { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:#f87171; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.15); border-radius:var(--radius-badge); padding:3px 10px; margin-bottom:20px; }
     .preview-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; margin-bottom:28px; }
+    @media(max-width:600px) { .preview-grid { grid-template-columns:1fr; } }
     .prev-card { background:var(--card-bg); border:1px solid var(--border-subtle); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow-card); cursor:pointer; transition:border-color var(--transition); }
     .prev-card:hover { border-color:var(--border-mid); }
     .prev-img { width:100%; aspect-ratio:16/10; background:#111; overflow:hidden; position:relative; }
@@ -531,6 +532,7 @@
     .lb-tab { background:rgba(255,255,255,0.08); border:none; color:var(--text-secondary); font-size:13px; font-weight:500; padding:6px 14px; border-radius:6px; cursor:pointer; transition:all var(--transition); font-family:var(--font); }
     .lb-tab.active { background:rgba(255,255,255,0.16); color:var(--text-primary); }
     .lb-img { max-width:80vw; max-height:75vh; object-fit:contain; border-radius:8px; display:block; }
+    @media(max-width:600px) { .lb-inner { max-width:96vw; max-height:88vh; } .lb-img { max-width:96vw; max-height:72vh; } .lb-close { top:-36px; font-size:20px; } }
 
     /* ═══════════ PURCHASE MODAL ═══════════ */
     #pkg-modal { display:none; position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.82); backdrop-filter:blur(8px); align-items:center; justify-content:center; }
@@ -1629,13 +1631,28 @@
     requestAnimationFrame(tick);
   }
   async function loadStats() {
-    const r = await api('/api/stats', {}, 5000);
+    // Mostra capturas do próprio usuário, não o total global
+    const r = await api('/api/plan-status', {}, 5000);
     if (!r.ok) return;
+    const d = r.data;
     const el  = document.getElementById('stats-num');
+    const lbl = el && el.nextElementSibling;
+    let userCaptures = 0;
+    if (d.plan === 'free') {
+      userCaptures = d.capturesUsedToday || 0;
+      if (lbl) lbl.textContent = 'capturas hoje';
+    } else if (d.capturesPerMonth === -1) {
+      userCaptures = d.capturesUsedMonth || 0;
+      if (lbl) lbl.textContent = 'capturas este mês';
+    } else {
+      const used = (d.capturesPerMonth || 0) - Math.max(0, d.capturesRemaining || 0);
+      userCaptures = Math.max(0, used);
+      if (lbl) lbl.textContent = 'capturas este mês';
+    }
     const obs = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && !statsAnimDone) {
         statsAnimDone = true;
-        animateCount(el, 0, r.data.total||0, 1500);
+        animateCount(el, 0, userCaptures, 1000);
         obs.disconnect();
       }
     });
@@ -4003,10 +4020,10 @@
 
   function getPlanoFeatures(plan) {
     const base = {
-      free:    ['3 capturas por dia', 'Marca d\'água nas imagens', '6 templates gratuitos', 'Apenas desktop'],
-      starter: ['60 capturas por mês', 'Sem marca d\'água', '32 templates profissionais', 'Desktop + Mobile 2x'],
-      pro:     ['Capturas ilimitadas', 'Sem marca d\'água', '32 templates profissionais', 'Desktop + Mobile 2x'],
-      agency:  ['Capturas ilimitadas', 'Sem marca d\'água', '32 templates profissionais', 'Desktop + Mobile 2x', 'Múltiplos códigos de acesso'],
+      free:    ['3 capturas por dia', 'Marca d\'água nas imagens', '6 templates gratuitos', 'Apenas desktop', '1 página por captura'],
+      starter: ['60 capturas por mês', 'Sem marca d\'água', '32 templates profissionais', 'Desktop + Mobile em 2x resolução', 'Até 2 páginas por captura', 'Crawl automático até 10 páginas'],
+      pro:     ['Capturas ilimitadas', 'Sem marca d\'água', '32 templates profissionais', 'Desktop + Mobile em 2x resolução', 'Até 8 páginas por captura', 'Crawl automático até 20 páginas', 'Exportação para redes sociais', 'Link de compartilhamento (7 dias)'],
+      agency:  ['Capturas ilimitadas', 'Sem marca d\'água', '32 templates profissionais', 'Desktop + Mobile em 2x resolução', 'Páginas ilimitadas por captura', 'Crawl automático ilimitado', 'Exportação para redes sociais', 'Link de compartilhamento (30 dias)', '3 códigos de acesso simultâneos'],
     };
     return base[plan] || base.free;
   }
