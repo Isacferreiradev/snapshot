@@ -1,0 +1,254 @@
+{
+  "round": 0,
+  "rate": 0.15,
+  "success": 0,
+  "partial": 3,
+  "failures": 17,
+  "analysis": {
+    "total": 17,
+    "byType": {
+      "CAPTURE_START_FAILED": [
+        "https://vercel.com",
+        "https://railway.app",
+        "https://shopify.com",
+        "https://mercadolivre.com.br",
+        "https://dev.to",
+        "https://g1.globo.com",
+        "https://nextjs.org",
+        "https://docs.github.com",
+        "https://tailwindcss.com/docs",
+        "https://producthunt.com",
+        "https://motherfuckingwebsite.com",
+        "https://dribbble.com",
+        "https://nubank.com.br",
+        "https://hotmart.com"
+      ],
+      "RATE_LIMITED": [
+        "https://news.ycombinator.com",
+        "https://paulgraham.com",
+        "https://unsplash.com"
+      ]
+    },
+    "patterns": []
+  },
+  "improvements": [],
+  "results": [
+    {
+      "url": "https://stripe.com",
+      "classification": "PARTIAL",
+      "duration": 27160,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "a46ee96f-32b7-4b54-8b19-bff9301050a9",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://linear.app",
+      "classification": "PARTIAL",
+      "duration": 24106,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "209375f4-68d9-4c1a-8418-faad6eb03ae9",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://vercel.com",
+      "classification": "FAILURE",
+      "duration": 4035,
+      "error": "Limite diário de 3 capturas atingido. Volte amanhã ou ative um plano.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "3a2cd80d-4a09-4fe7-97e8-7d6d874ec11d",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://railway.app",
+      "classification": "FAILURE",
+      "duration": 4041,
+      "error": "Limite diário de 3 capturas atingido. Volte amanhã ou ative um plano.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "fa16229c-25d3-4d10-bb8a-e4de2e757ce7",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://shopify.com",
+      "classification": "FAILURE",
+      "duration": 6044,
+      "error": "Limite diário de 3 capturas atingido. Volte amanhã ou ative um plano.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "7de1ee49-9ee0-4c61-ab8d-fdb4b176794a",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://mercadolivre.com.br",
+      "classification": "FAILURE",
+      "duration": 2024,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "921b922e-296f-4bab-8fd2-bdf9bbee6fbd",
+        "pagesFound": 1
+      }
+    },
+    {
+      "url": "https://dev.to",
+      "classification": "FAILURE",
+      "duration": 8033,
+      "error": "Limite diário de 3 capturas atingido. Volte amanhã ou ative um plano.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "5ca89c60-1b36-49a2-8fff-4e2c28e21c2e",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://g1.globo.com",
+      "classification": "FAILURE",
+      "duration": 7286,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "6b0aafa6-6460-4f02-8862-018d35c76c87",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://react.dev",
+      "classification": "PARTIAL",
+      "duration": 19944,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "8ed3c38b-71f9-4a1a-baec-2bcbb6e9620a",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://nextjs.org",
+      "classification": "FAILURE",
+      "duration": 4055,
+      "error": "Limite diário de 3 capturas atingido. Volte amanhã ou ative um plano.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "ea15b21a-a064-4e33-bc3c-f103307fa9e6",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://docs.github.com",
+      "classification": "FAILURE",
+      "duration": 4051,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "b234e61a-4294-48c4-abcf-d16a3fdf38ed",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://tailwindcss.com/docs",
+      "classification": "FAILURE",
+      "duration": 4024,
+      "error": "Limite diário de 3 capturas atingido. Volte amanhã ou ative um plano.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "0d77a274-448f-45e3-945e-ddda35794f56",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://producthunt.com",
+      "classification": "FAILURE",
+      "duration": 2018,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "7c4f8eec-b757-49a1-8ba6-ea9507d2656e",
+        "pagesFound": 1
+      }
+    },
+    {
+      "url": "https://news.ycombinator.com",
+      "classification": "FAILURE",
+      "duration": 3,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "RATE_LIMITED",
+      "details": {}
+    },
+    {
+      "url": "https://motherfuckingwebsite.com",
+      "classification": "FAILURE",
+      "duration": 2015,
+      "error": "Limite diário de 3 capturas atingido. Volte amanhã ou ative um plano.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "e4337898-69c9-41d6-8040-7ad118b3cc25",
+        "pagesFound": 1
+      }
+    },
+    {
+      "url": "https://paulgraham.com",
+      "classification": "FAILURE",
+      "duration": 4,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "RATE_LIMITED",
+      "details": {}
+    },
+    {
+      "url": "https://dribbble.com",
+      "classification": "FAILURE",
+      "duration": 6064,
+      "error": "Limite diário de 3 capturas atingido. Volte amanhã ou ative um plano.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "063bec20-e866-42bc-83be-cbd3d649558d",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://unsplash.com",
+      "classification": "FAILURE",
+      "duration": 2,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "RATE_LIMITED",
+      "details": {}
+    },
+    {
+      "url": "https://nubank.com.br",
+      "classification": "FAILURE",
+      "duration": 4040,
+      "error": "Limite diário de 3 capturas atingido. Volte amanhã ou ative um plano.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "0154b5a2-eb45-4eba-95dd-d289e3f13ca6",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://hotmart.com",
+      "classification": "FAILURE",
+      "duration": 6049,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "6cacd45c-527c-464f-93c7-9b93562f0f3d",
+        "pagesFound": 4
+      }
+    }
+  ]
+}

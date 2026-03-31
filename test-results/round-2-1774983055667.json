@@ -1,0 +1,277 @@
+{
+  "round": 1,
+  "rate": 0.9,
+  "success": 0,
+  "partial": 18,
+  "failures": 2,
+  "analysis": {
+    "total": 2,
+    "byType": {
+      "TIMEOUT": [
+        "https://stripe.com"
+      ],
+      "BLANK_PAGE": [
+        "https://railway.app"
+      ]
+    },
+    "patterns": []
+  },
+  "improvements": [],
+  "results": [
+    {
+      "url": "https://stripe.com",
+      "classification": "FAILURE",
+      "duration": 46247,
+      "error": "Crawl timeout após 45s",
+      "errorType": "TIMEOUT",
+      "details": {
+        "jobId": "6c171ee3-b3c9-42c6-a234-08a61b3ec04c"
+      }
+    },
+    {
+      "url": "https://linear.app",
+      "classification": "PARTIAL",
+      "duration": 33176,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "dba3aa23-c171-492f-ad46-5b5a7b06c908",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://vercel.com",
+      "classification": "PARTIAL",
+      "duration": 30156,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "71c7d361-0b2a-4d88-b11b-75e5973efece",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://railway.app",
+      "classification": "FAILURE",
+      "duration": 55247,
+      "error": "Galeria vazia após captura",
+      "errorType": "BLANK_PAGE",
+      "details": {
+        "jobId": "39bf374a-2b2a-4a0a-bf2f-73dbe7ca635e",
+        "pagesFound": 10
+      }
+    },
+    {
+      "url": "https://shopify.com",
+      "classification": "PARTIAL",
+      "duration": 26119,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "cd198f61-8697-4f69-80ae-80cc70738ab9",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://mercadolivre.com.br",
+      "classification": "PARTIAL",
+      "duration": 20128,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "da0aadd2-a0d7-4c1e-bad1-d44406f3e73f",
+        "pagesFound": 1,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://dev.to",
+      "classification": "PARTIAL",
+      "duration": 30159,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "d86552a6-382e-4250-9719-c9f22e36159e",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://g1.globo.com",
+      "classification": "PARTIAL",
+      "duration": 28141,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "e7995143-2ade-495a-bf72-18447ade4b46",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://react.dev",
+      "classification": "PARTIAL",
+      "duration": 24123,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "7708b38b-1cfd-4e70-8ef3-d3ae4d0ac9f2",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://nextjs.org",
+      "classification": "PARTIAL",
+      "duration": 30186,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "7553c373-85bf-49b9-8eef-630a6cf9f212",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://docs.github.com",
+      "classification": "PARTIAL",
+      "duration": 21095,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "1109acb9-c7d4-4c2c-84af-63cd3067540d",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://tailwindcss.com/docs",
+      "classification": "PARTIAL",
+      "duration": 25157,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "75238b6d-7ffa-4ece-9e84-81c9b80b6b43",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://producthunt.com",
+      "classification": "PARTIAL",
+      "duration": 17093,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "51739649-ca7d-467f-898a-6ec8d4e381d8",
+        "pagesFound": 1,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://news.ycombinator.com",
+      "classification": "PARTIAL",
+      "duration": 21134,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "aed8e0ad-2f48-4480-b16d-46bd19bf22a5",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://motherfuckingwebsite.com",
+      "classification": "PARTIAL",
+      "duration": 17106,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "82a38145-a30d-41d5-9f74-ae0b38afc14b",
+        "pagesFound": 1,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://paulgraham.com",
+      "classification": "PARTIAL",
+      "duration": 17103,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "cc04be13-14b0-4867-936c-5d35f642e075",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://dribbble.com",
+      "classification": "PARTIAL",
+      "duration": 28154,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "917a4184-9912-45b1-8240-cac317488786",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://unsplash.com",
+      "classification": "PARTIAL",
+      "duration": 32135,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "2a3c5af4-9c36-41c7-869a-c89ff4bd8853",
+        "pagesFound": 2,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://nubank.com.br",
+      "classification": "PARTIAL",
+      "duration": 34167,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "d8dd69b6-627a-4769-9ebc-d4e79711c51d",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://hotmart.com",
+      "classification": "PARTIAL",
+      "duration": 31165,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "44dc27b1-3a44-49e7-9672-388e8b1af972",
+        "pagesFound": 10,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    }
+  ]
+}

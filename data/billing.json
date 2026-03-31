@@ -591,5 +591,20 @@
     "activatedAt": 1774560360325,
     "confirmationEmailSent": true,
     "reminderSent": true
+  },
+  "pay_7xxyhno6ffvpjxra": {
+    "paymentId": "pay_7xxyhno6ffvpjxra",
+    "customerId": "cus_000168480694",
+    "plan": "starter",
+    "amount": 19.9,
+    "status": "PENDING",
+    "accessCode": null,
+    "createdAt": 1774885280174,
+    "expiresAt": 1806548399000,
+    "customer": {
+      "name": "Teste Silva",
+      "email": "teste@teste.com",
+      "cpfCnpj": "52998224725"
+    }
   }
 }

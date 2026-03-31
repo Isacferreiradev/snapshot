@@ -1,0 +1,258 @@
+{
+  "round": 1,
+  "rate": 0.4,
+  "success": 0,
+  "partial": 8,
+  "failures": 12,
+  "analysis": {
+    "total": 12,
+    "byType": {
+      "RATE_LIMITED": [
+        "https://stripe.com",
+        "https://mercadolivre.com.br",
+        "https://news.ycombinator.com",
+        "https://unsplash.com"
+      ],
+      "CAPTURE_START_FAILED": [
+        "https://vercel.com",
+        "https://shopify.com",
+        "https://react.dev",
+        "https://docs.github.com",
+        "https://motherfuckingwebsite.com",
+        "https://dribbble.com",
+        "https://nubank.com.br"
+      ],
+      "BLANK_PAGE": [
+        "https://railway.app"
+      ]
+    },
+    "patterns": []
+  },
+  "improvements": [],
+  "results": [
+    {
+      "url": "https://stripe.com",
+      "classification": "FAILURE",
+      "duration": 2,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "RATE_LIMITED",
+      "details": {}
+    },
+    {
+      "url": "https://linear.app",
+      "classification": "PARTIAL",
+      "duration": 24115,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "63389141-6c5b-4716-8cdd-3e074fe48037",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://vercel.com",
+      "classification": "FAILURE",
+      "duration": 6041,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "f9a4e86e-59ef-485d-8297-36bccb21d757",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://railway.app",
+      "classification": "FAILURE",
+      "duration": 51178,
+      "error": "Galeria vazia após captura",
+      "errorType": "BLANK_PAGE",
+      "details": {
+        "jobId": "3f7bb258-dc2b-4af2-869f-e9cb020c4951",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://shopify.com",
+      "classification": "FAILURE",
+      "duration": 4042,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "971fb92c-60b2-44bf-9dd9-c4529077bfc2",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://mercadolivre.com.br",
+      "classification": "FAILURE",
+      "duration": 2,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "RATE_LIMITED",
+      "details": {}
+    },
+    {
+      "url": "https://dev.to",
+      "classification": "PARTIAL",
+      "duration": 26172,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "1c092cba-711b-4d09-9e1a-edbcf15a6ffa",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://g1.globo.com",
+      "classification": "PARTIAL",
+      "duration": 25220,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "5ab4bc22-79fb-4bbe-92e8-477d49bc01af",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://react.dev",
+      "classification": "FAILURE",
+      "duration": 4025,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "65dac889-8aed-49bc-a4d2-fc17a410df46",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://nextjs.org",
+      "classification": "PARTIAL",
+      "duration": 22129,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "42aacb39-5527-4e2c-be7e-4b5a2f2f220a",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://docs.github.com",
+      "classification": "FAILURE",
+      "duration": 2021,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "bda26e9f-e9d4-493b-b848-3c99ccfab990",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://tailwindcss.com/docs",
+      "classification": "PARTIAL",
+      "duration": 19106,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "2000d72a-453a-4256-b13f-688e2a52921d",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://producthunt.com",
+      "classification": "PARTIAL",
+      "duration": 17079,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "550a6437-0ef7-4397-ab43-499e8c6f892e",
+        "pagesFound": 1,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://news.ycombinator.com",
+      "classification": "FAILURE",
+      "duration": 4,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "RATE_LIMITED",
+      "details": {}
+    },
+    {
+      "url": "https://motherfuckingwebsite.com",
+      "classification": "FAILURE",
+      "duration": 2020,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "32a0c5c3-cd96-4e8b-931e-7c07b0aa665d",
+        "pagesFound": 1
+      }
+    },
+    {
+      "url": "https://paulgraham.com",
+      "classification": "PARTIAL",
+      "duration": 19083,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "8a03e33c-ace8-47c4-9ac7-7e659091fcc8",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    },
+    {
+      "url": "https://dribbble.com",
+      "classification": "FAILURE",
+      "duration": 4029,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "b5608c48-b64d-48b9-b368-ea0262a68b08",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://unsplash.com",
+      "classification": "FAILURE",
+      "duration": 2,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "RATE_LIMITED",
+      "details": {}
+    },
+    {
+      "url": "https://nubank.com.br",
+      "classification": "FAILURE",
+      "duration": 4022,
+      "error": "Muitas requisições. Aguarde um momento.",
+      "errorType": "CAPTURE_START_FAILED",
+      "details": {
+        "jobId": "1483144f-56e7-49e2-be12-42a3db6af367",
+        "pagesFound": 4
+      }
+    },
+    {
+      "url": "https://hotmart.com",
+      "classification": "PARTIAL",
+      "duration": 24124,
+      "error": null,
+      "errorType": null,
+      "details": {
+        "jobId": "5e23a7e9-c95f-4283-b589-8e3044f09ad6",
+        "pagesFound": 4,
+        "fileSizeKB": 39,
+        "gallerySize": 1
+      }
+    }
+  ]
+}
