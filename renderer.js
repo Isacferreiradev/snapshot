@@ -17,20 +17,30 @@ function screenshotToBase64(filePath) {
 
 function getWatermarkHtml(options) {
   if (!options || !options.applyWatermark) return '';
+  // Dual blend-mode strategy: multiply (dark text) on light pages + screen (white text) on dark pages
+  // mix-blend-mode:multiply with dark text → visible on white/light backgrounds
+  // mix-blend-mode:screen with white text → visible on dark backgrounds
+  // Badge with dark background → always visible on any background
   return `
-<div style="position:absolute;inset:0;z-index:99999;pointer-events:none;overflow:hidden;user-select:none;display:flex;align-items:center;justify-content:center;">
-  <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;opacity:0.04;">
+<div style="position:absolute;inset:0;z-index:99999;pointer-events:none;overflow:hidden;user-select:none;">
+  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:multiply;opacity:0.28;">
     <defs>
-      <pattern id="wmPattern" x="0" y="0" width="400" height="200" patternUnits="userSpaceOnUse">
-        <text x="50%" y="50%" font-size="24" font-family="sans-serif" fill="white" transform="rotate(-25 200 100)" text-anchor="middle">SNAPSHOT.PRO</text>
+      <pattern id="wmM" x="0" y="0" width="380" height="190" patternUnits="userSpaceOnUse">
+        <text x="190" y="95" font-size="20" font-family="Arial,sans-serif" font-weight="bold" fill="#111111" transform="rotate(-25 190 95)" text-anchor="middle" dominant-baseline="middle">SNAPSHOT.PRO</text>
       </pattern>
     </defs>
-    <rect width="100%" height="100%" fill="url(#wmPattern)" />
+    <rect width="100%" height="100%" fill="url(#wmM)" />
   </svg>
-  <div style="font-family:sans-serif;font-size:120px;font-weight:900;color:rgba(255,255,255,0.07);letter-spacing:0.1em;transform:rotate(-15deg);text-shadow:0 0 40px rgba(0,0,0,0.1);">SNAPSHOT.PRO</div>
-  <div style="position:absolute;bottom:24px;right:28px;font-family:sans-serif;font-size:14px;font-weight:700;color:rgba(255,255,255,0.7);background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);">snapshot.pro</div>
+  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:screen;opacity:0.22;">
+    <defs>
+      <pattern id="wmS" x="0" y="0" width="380" height="190" patternUnits="userSpaceOnUse">
+        <text x="190" y="95" font-size="20" font-family="Arial,sans-serif" font-weight="bold" fill="#ffffff" transform="rotate(-25 190 95)" text-anchor="middle" dominant-baseline="middle">SNAPSHOT.PRO</text>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#wmS)" />
+  </svg>
+  <div style="position:absolute;bottom:24px;right:28px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#ffffff;background:rgba(0,0,0,0.75);padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);letter-spacing:0.03em;">snapshot.pro</div>
 </div>`;
-}
 
 function getDomain(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return String(url || '').slice(0, 40); }

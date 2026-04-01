@@ -192,6 +192,9 @@ async function safeRender(opts, rawFallback) {
         return true;
       } catch (err2) {
         console.error(`[render] fallback watermark FALHOU: ${err2.message}`);
+        // Both renders failed with watermark required — do NOT deliver the raw file without watermark.
+        // Return false so the page shows as failed rather than unwatermarked.
+        return false;
       }
     }
     try { fs.copyFileSync(rawFallback, opts.outputPath); } catch {}
