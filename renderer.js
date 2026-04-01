@@ -41,6 +41,7 @@ function getWatermarkHtml(options) {
   </svg>
   <div style="position:absolute;bottom:24px;right:28px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#ffffff;background:rgba(0,0,0,0.75);padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);letter-spacing:0.03em;">snapshot.pro</div>
 </div>`;
+}
 
 function getDomain(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return String(url || '').slice(0, 40); }

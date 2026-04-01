@@ -857,12 +857,18 @@ async function initPane(name) {
 
 // ── Overview ──────────────────────────────────────────────────────────────────
 async function initOverview() {
-  const r = await api('/admin/data');
+  const [r, rs] = await Promise.all([api('/admin/data'), api('/admin/subscriptions')]);
   if (!r.ok) return;
   const d = await r.json();
   document.getElementById('ov-today').textContent = d.capturesToday ?? '—';
   document.getElementById('ov-total').textContent = (d.capturesTotal || 0).toLocaleString('pt-BR');
-  document.getElementById('ov-subs').textContent  = d.activeSubscriptions ?? '—';
+  if (rs.ok) {
+    const subs = await rs.json();
+    const activeCnt = subs.filter(s => s.active && Date.now() <= s.validUntil).length;
+    document.getElementById('ov-subs').textContent = activeCnt;
+  } else {
+    document.getElementById('ov-subs').textContent = d.activeSubscriptions ?? '—';
+  }
   const up = d.uptime || 0;
   const h  = Math.floor(up / 3600), m = Math.floor((up % 3600) / 60);
   document.getElementById('ov-uptime').textContent = `${h}h ${m}m uptime`;
@@ -918,7 +924,86 @@ function renderBarChart(labels, values) {
 }
 
 // ── Plans ─────────────────────────────────────────────────────────────────────
-function initPlans() {}
+let allSubs = [];
+
+async function initPlans() {
+  const r = await api('/admin/subscriptions');
+  allSubs = r.ok ? await r.json() : [];
+  renderSubsTable(allSubs);
+  renderPieChart(allSubs);
+}
+
+function renderSubsTable(subs) {
+  const tbody = document.getElementById('subs-table');
+  if (!subs.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Nenhuma assinatura encontrada</td></tr>';
+    return;
+  }
+  tbody.innerHTML = subs.map(s => {
+    const used  = s.capturesThisMonth || 0;
+    const limit = s.capturesLimit;
+    const pct   = limit ? Math.min(100, Math.round(used / limit * 100)) : 0;
+    const isActive = s.active && Date.now() <= s.validUntil;
+    const planColor = { starter: 'badge-yellow', pro: 'badge-green', agency: 'badge-green' }[s.plan] || 'badge-gray';
+    return `<tr>
+      <td style="font-family:monospace;font-weight:700;font-size:12px;color:var(--text-primary)">${escHtml(s.code)}</td>
+      <td><span class="badge ${planColor}">${escHtml(s.plan)}</span></td>
+      <td>
+        <div style="font-size:12px;margin-bottom:4px">${used} / ${limit === null ? '∞' : limit}</div>
+        ${limit ? `<div style="height:4px;background:var(--border-subtle);border-radius:2px;width:80px"><div style="height:100%;width:${pct}%;background:rgba(255,255,255,0.3);border-radius:2px"></div></div>` : ''}
+      </td>
+      <td><span class="badge ${isActive ? 'badge-green' : 'badge-red'}">${isActive ? 'Ativa' : 'Inativa'}</span></td>
+      <td>
+        ${isActive
+          ? `<button class="btn btn-danger" style="padding:5px 10px;font-size:11px" onclick="cancelSub('${escHtml(s.code)}')">Cancelar</button>`
+          : `<span class="text-dim">—</span>`}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPieChart(subs) {
+  const counts = { free: 0, starter: 0, pro: 0, agency: 0 };
+  subs.filter(s => s.active && Date.now() <= s.validUntil).forEach(s => {
+    counts[s.plan] = (counts[s.plan] || 0) + 1;
+  });
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  document.getElementById('ov-subs').textContent = total;
+  if (!total) return;
+
+  // Update pie SVG: starter + pro slices
+  const starterPct = Math.round((counts.starter / total) * 100);
+  const proPct     = Math.round(((counts.pro + counts.agency) / total) * 100);
+  const freePct    = 100 - starterPct - proPct;
+  // circumference of r=15.915 is ~100
+  const C = 100;
+  let offset = 25;
+  const setSeg = (id, pct, off) => {
+    const el = document.getElementById(id);
+    if (el) { el.setAttribute('stroke-dasharray', `${pct} ${C - pct}`); el.setAttribute('stroke-dashoffset', off); }
+    return off - pct;
+  };
+  const off2 = setSeg('pie-starter', starterPct, 25);
+  setSeg('pie-pro', proPct, off2);
+
+  // Update legend counts
+  const legend = document.querySelector('.pie-legend');
+  if (legend) legend.innerHTML = `
+    <div class="pie-legend-item"><div class="pie-dot" style="background:rgba(255,255,255,0.06)"></div>Free <span style="margin-left:4px;color:var(--text-tertiary)">${counts.free}</span></div>
+    <div class="pie-legend-item"><div class="pie-dot" style="background:rgba(255,255,255,0.15)"></div>Starter <span style="margin-left:4px;color:var(--text-tertiary)">${counts.starter}</span></div>
+    <div class="pie-legend-item"><div class="pie-dot" style="background:rgba(255,255,255,0.35)"></div>Pro/Agency <span style="margin-left:4px;color:var(--text-tertiary)">${counts.pro + counts.agency}</span></div>
+  `;
+}
+
+async function cancelSub(code) {
+  if (!confirm(`Cancelar assinatura ${code}?`)) return;
+  const r = await api(`/admin/subscriptions/${code}`, { method: 'DELETE' });
+  if (r.ok) {
+    const idx = allSubs.findIndex(s => s.code === code);
+    if (idx !== -1) allSubs[idx].active = false;
+    renderSubsTable(allSubs);
+  }
+}
 
 async function generateCode() {
   const plan = document.getElementById('gen-plan').value;
@@ -928,6 +1013,11 @@ async function generateCode() {
   if (d.code) {
     el.textContent = d.code;
     el.style.display = 'block';
+    el.title = 'Clique para copiar';
+    el.style.cursor = 'pointer';
+    el.onclick = () => { navigator.clipboard?.writeText(d.code); el.textContent = '✓ Copiado!'; setTimeout(() => { el.textContent = d.code; }, 1500); };
+    // Refresh subs table
+    paneInits['plans'] = false;
   } else {
     el.textContent = d.error || 'Erro ao gerar.';
     el.style.display = 'block';
@@ -999,10 +1089,9 @@ async function submitTemplate(e) {
 
 // ── Errors ────────────────────────────────────────────────────────────────────
 async function initErrors() {
-  const r = await api('/admin/data');
+  const r = await api('/admin/errors');
   if (!r.ok) return;
-  const d = await r.json();
-  allErrors = d.recentErrors || [];
+  allErrors = await r.json();
   renderErrors();
 }
 
@@ -1047,11 +1136,15 @@ function initConfig() {
   document.getElementById('cfg-env').textContent   = 'production';
 }
 
-function confirmAction(action) {
+async function confirmAction(action) {
   const labels = { clearScreenshots: 'limpar a pasta de screenshots', resetCounter: 'resetar o contador de capturas' };
   if (!confirm(`Tem certeza que deseja ${labels[action] || action}?`)) return;
-  if (action === 'clearScreenshots') api('/admin/config', { method: 'PATCH', body: JSON.stringify({ clearScreenshots: true }) });
-  if (action === 'resetCounter')     api('/admin/config', { method: 'PATCH', body: JSON.stringify({ resetCounter: true }) });
+  if (action === 'clearScreenshots') {
+    const r = await api('/admin/storage/cleanup', { method: 'POST' });
+    const d = r.ok ? await r.json() : {};
+    alert(d.message || (r.ok ? 'Feito!' : 'Erro ao limpar.'));
+  }
+  if (action === 'resetCounter') api('/admin/config', { method: 'PATCH', body: JSON.stringify({ resetCounter: true }) });
 }
 
 async function exportData() {
@@ -1069,7 +1162,12 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const d = new Date(ts);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString()) {
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────

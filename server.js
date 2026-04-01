@@ -1216,12 +1216,24 @@ app.get('/admin/data', requireAdmin, (_req, res) => {
     } catch { return 0; }
   })();
   const errors = readJsonFile(ERRORS_FILE, []);
+  const subsData = (() => {
+    try {
+      const s = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'subscriptions.json'), 'utf8'));
+      return Object.values(s).filter(x => x.active && Date.now() <= x.validUntil).length;
+    } catch { return 0; }
+  })();
+  const dailyData = (() => {
+    try {
+      const d = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'daily-usage.json'), 'utf8'));
+      return Object.values(d).reduce((sum, e) => sum + (e.count || 0), 0);
+    } catch { return 0; }
+  })();
   res.json({
-    jobsActive:           0,
-    capturesToday:        0,
+    jobsActive:           getAllJobIds().length,
+    capturesToday:        dailyData,
     capturesTotal:        getCounter(),
     diskUsageMB:          diskMB,
-    activeSubscriptions:  0,
+    activeSubscriptions:  subsData,
     recentErrors:         errors.slice(-20),
     uptime:               Math.floor(process.uptime()),
   });
