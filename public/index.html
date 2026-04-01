@@ -1093,6 +1093,21 @@
     @media (max-width: 480px) {
       .pix-qr-box { width: min(180px, 70vw); height: min(180px, 70vw); }
     }
+
+    /* ── Capture limit banner ────────────────────────────────────────────── */
+    #capture-limit-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+    /* ── Estimation / announcement banners ──────────────────────────────── */
+    @media (max-width: 480px) {
+      .est-banner { flex-wrap: wrap; }
+      #crawl-limit-msg { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+    }
+
+    /* ── Co-summary in checkout modal ───────────────────────────────────── */
+    @media (max-width: 420px) {
+      .co-summary { flex-direction: column; gap: 6px; }
+      .co-summary-price { font-size: 18px; }
+    }
   </style>
 </head>
 <body>

@@ -606,8 +606,12 @@
       .step      { gap: 16px; padding: 24px 0; }
       .step-num  { width: 36px; height: 36px; font-size: 14px; }
       .step-title { font-size: 17px; }
+      /* Browser mockup: remove fixed aspect-ratio so mock cards aren't clipped */
       .browser-mockup { border-radius: 10px; }
-      .browser-content-inner { grid-template-columns: 1fr; gap: 8px; padding: 12px; }
+      .browser-content { aspect-ratio: unset; min-height: 160px; }
+      .browser-content-inner { grid-template-columns: 1fr 1fr 1fr; height: auto; gap: 8px; padding: 12px; }
+      .mock-img  { height: 44px; }
+      .mock-card { padding: 10px; gap: 5px; }
       .metrics-grid { grid-template-columns: 1fr; }
       .cta-card  { padding: 32px 16px; border-radius: 16px; }
       .footer-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -832,7 +836,7 @@
     <div class="section-label">Planos</div>
     <h2 class="section-title">Simples e transparente</h2>
     <p class="section-sub">Comece grátis. Faça upgrade quando precisar de imagens sem marca d'água.</p>
-    <div class="plans-grid" style="grid-template-columns:repeat(4,1fr);">
+    <div class="plans-grid">
       <!-- Free -->
       <div class="plan-card">
         <div class="plan-name">Free</div>
