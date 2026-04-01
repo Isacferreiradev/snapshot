@@ -443,7 +443,7 @@ app.post('/api/create-pix', rlCreatePix, async (req, res) => {
   } catch (err) {
     console.error('[create-pix] erro:', err.message);
     const msg = err.message || '';
-    if (/cpf|cnpj|cpfCnpj/i.test(msg)) return res.status(400).json({ error: 'CPF ou CNPJ inválido.', field: 'cpfCnpj' });
+    if (/cpf|cnpj|cpfCnpj/i.test(msg)) return res.status(400).json({ error: 'CPF ou CNPJ inválido.', field: 'taxId' });
     if (/api.*key|access_token|unauthorized/i.test(msg)) return res.status(503).json({ error: 'Pagamento temporariamente indisponível.' });
     return res.status(500).json({ error: 'Erro ao gerar PIX. Tente novamente.' });
   }
@@ -642,11 +642,20 @@ app.post('/api/start-capture', rlStartCapture, (req, res) => {
   const cfg = { ...(renderConfig || {}), planName: req.planName || 'free' };
 
   // Verificar template autorizado para o plano
-  const reqTemplate    = cfg.template || 'void';
+  const reqTemplate    = cfg.template;
   const unlocked       = req.plan.templatesUnlocked;
-  const templateOk     = unlocked === 'all' || (Array.isArray(unlocked) && unlocked.includes(reqTemplate));
-  if (!templateOk) {
+  const _tplAllowed    = (t) => !t || t === 'void' || unlocked === 'all' || (Array.isArray(unlocked) && unlocked.includes(t));
+  // 'void' and empty = no preference; renderer picks default-dark. Always allowed.
+  if (!_tplAllowed(reqTemplate)) {
     return res.status(403).json({ error: 'Template não disponível no seu plano atual.', requiredPlan: 'starter' });
+  }
+  // Also check per-page template overrides
+  if (cfg.pageTemplates && typeof cfg.pageTemplates === 'object') {
+    for (const tplId of Object.values(cfg.pageTemplates)) {
+      if (!_tplAllowed(tplId)) {
+        return res.status(403).json({ error: 'Template não disponível no seu plano atual.', requiredPlan: 'starter' });
+      }
+    }
   }
 
   // Verificar limite de capturas mensais (SNAP- codes)

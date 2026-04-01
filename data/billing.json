@@ -606,5 +606,20 @@
       "email": "teste@teste.com",
       "cpfCnpj": "52998224725"
     }
+  },
+  "pay_1vkc3jcy9rqgbpql": {
+    "paymentId": "pay_1vkc3jcy9rqgbpql",
+    "customerId": "cus_000168480694",
+    "plan": "starter",
+    "amount": 19.9,
+    "status": "PENDING",
+    "accessCode": null,
+    "createdAt": 1774999694726,
+    "expiresAt": 1806634799000,
+    "customer": {
+      "name": "Teste Silva",
+      "email": "teste@teste.com",
+      "cpfCnpj": "52998224725"
+    }
   }
 }

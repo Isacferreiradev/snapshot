@@ -184,6 +184,16 @@ async function safeRender(opts, rawFallback) {
     return true;
   } catch (err) {
     console.error(`[render] FALHOU ${path.basename(opts.outputPath)}: ${err.message}`);
+    // If watermark is required, don't fall back to raw (would strip watermark).
+    // Try again with the default-dark template as a safe fallback.
+    if (opts.applyWatermark) {
+      try {
+        await renderProfessional({ ...opts, templateId: 'default-dark', renderConfig: { ...(opts.renderConfig || {}), template: 'default-dark' } });
+        return true;
+      } catch (err2) {
+        console.error(`[render] fallback watermark FALHOU: ${err2.message}`);
+      }
+    }
     try { fs.copyFileSync(rawFallback, opts.outputPath); } catch {}
     return false;
   }
