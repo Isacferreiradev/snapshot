@@ -883,7 +883,7 @@
     #history-btn { display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:8px; background:transparent; border:1px solid rgba(255,255,255,0.08); cursor:pointer; opacity:0.3; pointer-events:none; transition:opacity 0.2s,border-color 0.2s; position:relative; }
     #history-btn.has-items { opacity:0.7; pointer-events:auto; }
     #history-btn.has-items:hover { opacity:1; border-color:rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); }
-    #history-dropdown { display:none; position:absolute; top:48px; right:0; width:320px; background:#161616; border:1px solid rgba(255,255,255,0.1); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.8),0 4px 16px rgba(0,0,0,0.5); padding:16px; max-height:400px; overflow-y:auto; z-index:500; }
+    #history-dropdown { display:none; position:absolute; top:48px; right:0; width:320px; max-width:calc(100vw - 28px); background:#161616; border:1px solid rgba(255,255,255,0.1); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.8),0 4px 16px rgba(0,0,0,0.5); padding:16px; max-height:400px; overflow-y:auto; z-index:500; }
     #history-dropdown.open { display:block; animation:fadeIn 0.15s ease; }
     #history-dropdown-title { font-size:11px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:12px; font-weight:600; }
     .hist-job-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; cursor:pointer; border:1px solid transparent; transition:background 0.15s,border-color 0.15s; }
@@ -942,14 +942,18 @@
 
     /* ── Header ─────────────────────────────────────────────────────────── */
     @media (max-width: 768px) {
-      .hdr { padding: 0 12px; gap: 8px; }
+      header   { padding: 0; }
+      .hdr     { padding: 0 14px; }
+      .hdr-right { gap: 8px; }
     }
     @media (max-width: 480px) {
-      .logo { font-size: 15px; }
-      .pill-plano { font-size: 11px; padding: 4px 8px; }
+      .hdr     { padding: 0 12px; }
+      .logo    { font-size: 15px; }
+      .pill-plano { display: none; }
+      .btn-assinar { padding: 6px 10px 6px 8px; font-size: 12px; gap: 4px; }
     }
     @media (max-width: 360px) {
-      .pill-plano { display: none; }
+      .btn-assinar { display: none; }
     }
 
     /* ── S1 — Hero ──────────────────────────────────────────────────────── */
@@ -957,13 +961,16 @@
       .hero-actions { gap: 8px; }
       .hero-actions .btn { flex: 1 1 140px; }
       .stats-row { gap: 16px; flex-wrap: wrap; margin-top: 32px; padding-top: 24px; }
-      .stat-num { font-size: 24px; }
+      .stat-item { flex: 1 1 80px; min-width: 0; }
+      .stat-num  { font-size: 24px; }
+      .stat-lbl  { font-size: 11px; }
     }
     @media (max-width: 480px) {
       .hero-badge  { font-size: 11px; padding: 4px 10px; }
-      .hero-sub    { font-size: 14px; margin: 12px 0 28px; }
+      .hero-sub    { font-size: 14px; margin: 12px 0 24px; }
       .hero-actions { flex-direction: column; }
       .hero-actions .btn { width: 100%; }
+      .stat-num  { font-size: 20px; }
     }
 
     /* ── S3 — Page Selection ────────────────────────────────────────────── */
@@ -1081,9 +1088,10 @@
       .sheet-btn-apply, .sheet-btn-cancel { flex: 1; justify-content: center; }
     }
 
-    /* ── QR code pixel-lock ──────────────────────────────────────────────── */
+    /* ── QR code ────────────────────────────────────────────────────────── */
+    .pix-qr-box { width: 200px; height: 200px; }
     @media (max-width: 480px) {
-      .pix-qr img, #pix-qr-img { max-width: 180px; width: 100%; height: auto; }
+      .pix-qr-box { width: min(180px, 70vw); height: min(180px, 70vw); }
     }
   </style>
 </head>
@@ -1537,10 +1545,10 @@
       <div class="pix-amount" id="pix-amount">R$ --,--</div>
       <div class="pix-plan-name" id="pix-plan-label"></div>
       <div class="pix-qr-wrap">
-        <div id="pix-qr-loading" style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;border-radius:12px;border:2px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);">
+        <div id="pix-qr-loading" class="pix-qr-box" style="display:flex;align-items:center;justify-content:center;border-radius:12px;border:2px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);">
           <div class="pix-spinner"></div>
         </div>
-        <img id="pix-qr-img" src="" alt="QR Code PIX" style="display:none;width:200px;height:200px;border-radius:12px;border:2px solid #fff;background:#fff;">
+        <img id="pix-qr-img" class="pix-qr-box" src="" alt="QR Code PIX" style="display:none;border-radius:12px;border:2px solid #fff;background:#fff;">
       </div>
       <div class="pix-copy-row">
         <div class="pix-code-text" id="pix-code-text">Gerando código PIX…</div>
