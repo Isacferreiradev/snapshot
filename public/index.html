@@ -53,13 +53,13 @@
 
     /* ── Header ── */
     header {
-      height:56px; background:rgba(10,10,10,0.92);
+      background:rgba(10,10,10,0.92);
       backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
       border-bottom:1px solid var(--border-subtle);
-      display:flex; align-items:center; padding:0 24px;
+      display:flex; flex-direction:column;
       position:sticky; top:0; z-index:200;
     }
-    .hdr { display:flex; align-items:center; justify-content:space-between; width:100%; max-width:680px; margin:0 auto; padding:0 24px; }
+    .hdr { display:flex; align-items:center; justify-content:space-between; width:100%; max-width:680px; margin:0 auto; padding:0 24px; height:56px; }
     .logo { font-size:17px; font-weight:700; color:rgba(255,255,255,0.9); text-decoration:none; cursor:pointer; letter-spacing:-0.01em; font-family:var(--font); }
     .hdr-right { display:flex; align-items:center; gap:12px; }
 
@@ -705,8 +705,10 @@
     .pix-start-btn:hover { background:#e8e8e8; }
 
     /* Banner PIX pendente */
-    #pix-pending-banner { display:none; background:#1a1400; border:1px solid rgba(255,200,0,0.2); border-radius:10px; padding:12px 16px; margin:12px 24px; cursor:pointer; font-size:13px; color:rgba(255,200,0,0.8); text-align:center; transition:all 150ms; }
-    #pix-pending-banner:hover { background:#1f1900; }
+    #pix-pending-banner { display:none; width:100%; background:#1a1200; border-bottom:1px solid rgba(255,185,0,0.18); padding:10px 20px; cursor:pointer; font-size:13px; font-weight:500; color:rgba(255,200,0,0.85); text-align:center; transition:background .15s; letter-spacing:.01em; }
+    #pix-pending-banner:hover { background:#201600; }
+    #pix-pending-banner .pix-banner-pulse { display:inline-block; width:7px; height:7px; border-radius:50%; background:#f59e0b; margin-right:7px; vertical-align:middle; animation:pulse 1.5s infinite; }
+    #pix-pending-banner .pix-banner-arrow { margin-left:8px; opacity:.6; }
 
     /* Footer */
     footer { border-top:1px solid var(--border-subtle); padding:28px 0; margin-top:40px; transition:opacity 0.2s ease; }
@@ -1123,8 +1125,10 @@
       </div>
     </div>
   </div>
+  <div id="pix-pending-banner" onclick="reopenPixModal()">
+    <span class="pix-banner-pulse"></span>Você tem um pagamento PIX pendente — clique para ver o QR Code<span class="pix-banner-arrow">→</span>
+  </div>
 </header>
-<div id="pix-pending-banner" onclick="reopenPixModal()">Você tem um pagamento PIX pendente — Ver QR Code</div>
 <div id="capture-limit-banner">
   <span id="cap-limit-text">Você atingiu o limite de capturas do seu plano.</span>
   <button class="cap-limit-btn" onclick="openUpgradeModal('pro','Aumente seu limite de capturas')">Fazer upgrade →</button>
@@ -2186,6 +2190,18 @@
   function showPixScreen(data) {
     currentPixId = data.paymentId;
     localStorage.setItem('snapshot_pending_pix', data.paymentId);
+    // Salvar dados do QR para restaurar se o modal for fechado e reaberto
+    try {
+      localStorage.setItem('snapshot_pix_data', JSON.stringify({
+        paymentId:    data.paymentId,
+        amount:       data.amount,
+        planName:     data.planName,
+        qrCodeBase64: data.qrCodeBase64,
+        copyPasteCode:data.copyPasteCode,
+        expiresAt:    data.expiresAt,
+      }));
+    } catch {}
+
     showPmScreen(3);
 
     // Valor
@@ -2244,11 +2260,17 @@
         const r = await api(`/api/pix-status?paymentId=${encodeURIComponent(pixId)}`, {}, 8000);
         if (r.ok && r.data.status === 'paid' && r.data.accessCode) {
           stopPixPolling();
+          localStorage.removeItem('snapshot_pending_pix');
+          localStorage.removeItem('snapshot_pix_data');
+          document.getElementById('pix-pending-banner').style.display = 'none';
           showSuccessScreen(r.data.accessCode, r.data.plan || selectedPkg);
           return;
         }
         if (r.ok && r.data.status === 'expired') {
           stopPixPolling();
+          localStorage.removeItem('snapshot_pending_pix');
+          localStorage.removeItem('snapshot_pix_data');
+          document.getElementById('pix-pending-banner').style.display = 'none';
           return;
         }
       } catch {}
@@ -2338,24 +2360,44 @@
   window.reopenPixModal = async function() {
     const paymentId = localStorage.getItem('snapshot_pending_pix');
     if (!paymentId) return;
-    // Verificar status
+
+    // Verificar status atual
     const r = await api(`/api/pix-status?paymentId=${encodeURIComponent(paymentId)}`, {}, 5000).catch(()=>({ok:false}));
+
     if (r.ok && r.data.status === 'paid' && r.data.accessCode) {
       showSuccessScreen(r.data.accessCode, r.data.plan);
       document.getElementById('pkg-modal').classList.add('on');
       document.getElementById('pix-pending-banner').style.display = 'none';
+      localStorage.removeItem('snapshot_pending_pix');
+      localStorage.removeItem('snapshot_pix_data');
       return;
     }
-    if (!r.ok || r.data.status === 'expired') {
+    if (r.ok && (r.data.status === 'expired')) {
       localStorage.removeItem('snapshot_pending_pix');
+      localStorage.removeItem('snapshot_pix_data');
       document.getElementById('pix-pending-banner').style.display = 'none';
       return;
     }
-    // Ainda pending — reabrir tela 3 sem chamar create-pix de novo
+
+    // Ainda pending — restaurar tela do QR com os dados salvos
     currentPixId = paymentId;
-    showPmScreen(3);
     document.getElementById('pkg-modal').classList.add('on');
-    startPixPolling(paymentId);
+
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('snapshot_pix_data') || 'null'); } catch {}
+
+    if (saved && saved.qrCodeBase64) {
+      // Temos os dados — restaurar tela completa
+      showPixScreen(saved);
+    } else {
+      // Não temos dados salvos — mostrar tela de espera simples
+      showPmScreen(3);
+      document.getElementById('pix-amount').textContent = 'R$ --,--';
+      document.getElementById('pix-code-text').textContent = 'Recarregue a página para ver o QR Code novamente.';
+      document.getElementById('pix-qr-loading').style.display = 'flex';
+      document.getElementById('pix-qr-img').style.display = 'none';
+      startPixPolling(paymentId);
+    }
   };
 
   window.applyModalCode = async function() {

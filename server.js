@@ -546,7 +546,8 @@ app.post('/api/create-pix', rlCreatePix, async (req, res) => {
     const msg = err.message || '';
     if (/cpf|cnpj|cpfCnpj/i.test(msg)) return res.status(400).json({ error: 'CPF ou CNPJ inválido.', field: 'taxId' });
     if (/api.*key|access_token|unauthorized/i.test(msg)) return res.status(503).json({ error: 'Pagamento temporariamente indisponível.' });
-    return res.status(500).json({ error: 'Erro ao gerar PIX. Tente novamente.' });
+    if (/timeout/i.test(msg)) return res.status(503).json({ error: 'Asaas não respondeu a tempo. Tente novamente.' });
+    return res.status(500).json({ error: 'Erro ao gerar PIX. Tente novamente.', _detail: msg.slice(0, 120) });
   }
 });
 
@@ -2186,6 +2187,25 @@ adminRouter.get('/asaas/balance', async (_req, res) => {
     const r = await adminAsaasReq('GET', '/finance/getCurrentBalance');
     res.json(r.body);
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.get('/asaas/diagnose', async (_req, res) => {
+  const key = process.env.ASAAS_API_KEY || '';
+  const env = process.env.ASAAS_ENV    || '';
+  const base = env === 'production' ? 'https://www.asaas.com' : 'https://sandbox.asaas.com';
+  let balanceResult = null, balanceError = null;
+  try {
+    const r = await adminAsaasReq('GET', '/finance/getCurrentBalance');
+    balanceResult = r;
+  } catch (e) { balanceError = e.message; }
+  res.json({
+    ASAAS_ENV:       env || '(não definida — usando sandbox)',
+    ASAAS_API_KEY:   key ? `${key.slice(0,8)}…${key.slice(-4)} (${key.length} chars)` : '(não definida)',
+    baseUrl:         base,
+    balanceStatus:   balanceResult ? balanceResult.status : 'ERRO',
+    balanceBody:     balanceResult ? balanceResult.body   : null,
+    balanceError,
+  });
 });
 
 adminRouter.get('/asaas/customers', async (req, res) => {

@@ -418,17 +418,5 @@
     "createdAt": 1775537107137,
     "monthResetAt": 1777604400000,
     "checkoutSessionId": null
-  },
-  "SNAP-0394-C2A0-DC50": {
-    "plan": "starter",
-    "stripeSubscriptionId": "pay_yfud8zbmoll4b0pr",
-    "stripeCustomerId": null,
-    "validUntil": 1778181172664,
-    "capturesThisMonth": 0,
-    "capturesLimit": 100,
-    "active": true,
-    "createdAt": 1775589172664,
-    "monthResetAt": 1777604400000,
-    "checkoutSessionId": null
   }
 }

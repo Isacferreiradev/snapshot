@@ -429,22 +429,5 @@
     "activatedAt": 1775537107138,
     "confirmationEmailSent": true,
     "reminderSent": true
-  },
-  "pay_yfud8zbmoll4b0pr": {
-    "paymentId": "pay_yfud8zbmoll4b0pr",
-    "customerId": "cus_000167958869",
-    "plan": "starter",
-    "amount": 19.9,
-    "status": "RECEIVED",
-    "accessCode": "SNAP-0394-C2A0-DC50",
-    "createdAt": 1775589162409,
-    "expiresAt": 1807239599000,
-    "customer": {
-      "name": "WENIA REIS FERREIRA",
-      "email": "aristocrata.black@gmail.com",
-      "cpfCnpj": "94378754568"
-    },
-    "activatedAt": 1775589172665,
-    "confirmationEmailSent": true
   }
 }
