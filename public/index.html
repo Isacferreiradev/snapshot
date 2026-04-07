@@ -2033,6 +2033,7 @@
   window.openPkgModal = function() {
     const head = document.querySelector('.pm-head h2');
     if (head) head.textContent = 'Planos SnapDeck.pro';
+    if (window.Track) Track.trackInitiateCheckout('app', selectedPkg || '');
     showPmScreen(1);
     document.getElementById('pkg-modal').classList.add('on');
   };
@@ -2277,7 +2278,7 @@
           localStorage.removeItem('snapshot_pending_pix');
           localStorage.removeItem('snapshot_pix_data');
           document.getElementById('pix-pending-banner').style.display = 'none';
-          if (window.Track) Track.purchase(r.data.plan || selectedPkg || 'starter');
+          if (window.Track) Track.trackPurchase(null, r.data.plan || selectedPkg || 'starter');
           showSuccessScreen(r.data.accessCode, r.data.plan || selectedPkg);
           return;
         }
@@ -2848,7 +2849,7 @@
     document.querySelectorAll('.tmpl-card').forEach(c => c.classList.remove('sel'));
     if (el) el.classList.add('sel');
     updatePerPageCustomizeBtn();
-    if (window.Track) Track.selectTemplate(name);
+    if (window.Track) Track.trackSelectTemplate(name);
   };
 
   function updatePerPageCustomizeBtn() {
@@ -3179,7 +3180,7 @@
     document.getElementById('prog-curr').textContent  = 'Inicializando…';
     document.getElementById('cap-gallery').innerHTML   = '';
     captureGallery = [];
-    if (window.Track) Track.selectPages();
+    if (window.Track) Track.trackSelectPages();
     show('s5');
     startCapturePoll();
   };
@@ -3278,7 +3279,7 @@
           // [COR-9] Atualizar status do plano após captura
           refreshPlanStatus();
           refreshCapturesRemaining();
-          if (window.Track) Track.viewDownload();
+          if (window.Track) Track.trackViewDownload();
           show('s6');
         }, 400);
       }
@@ -3481,7 +3482,7 @@
     // Se for URL de download direto (não redirecionamento externo), o browser não navega —
     // reabilita o botão após 3s para o usuário poder baixar novamente
     if (checkoutTarget.startsWith('/api/download/')) {
-      if (window.Track) Track.download();
+      if (window.Track) Track.trackDownload();
       window.location.href = checkoutTarget + (checkoutTarget.includes('?') ? '&' : '?') + `mode=${dlModeVal2}`;
       setTimeout(() => {
         btn.disabled    = false;
@@ -3516,7 +3517,7 @@
 
   window.handleWatermarkDownload = function() {
     if (!currentJobId) return;
-    if (window.Track) Track.download();
+    if (window.Track) Track.trackDownload();
     const dlModeEl  = document.querySelector('input[name="dl-mode"]:checked');
     const dlModeVal = dlModeEl ? dlModeEl.value : 'desktop';
     downloadZip(dlModeVal);
@@ -3773,6 +3774,19 @@
     loadPlans();
     loadTemplates();
     refreshCapturesRemaining();
+
+    // Detectar ?checkout=<plan> vindo da landing — abre modal automaticamente
+    const checkoutParam = params.get('checkout');
+    if (checkoutParam) {
+      // Aguardar planos carregarem antes de abrir o modal
+      loadPlans().then(() => {
+        setTimeout(() => openUpgradeModal(checkoutParam, 'Planos SnapDeck.pro'), 300);
+      }).catch(() => {
+        setTimeout(() => openPkgModal(), 400);
+      });
+      // Limpar param da URL sem recarregar
+      history.replaceState({}, '', location.pathname);
+    }
   }
 
   // ── initSubscriptionState — executado ao carregar ─────────────────────────

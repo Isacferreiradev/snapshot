@@ -2,141 +2,175 @@
  * Snapdeck — Módulo central de rastreamento Meta Pixel
  * Pixel ID: 1343135307625371
  *
- * Uso: inclua este arquivo após o snippet do Pixel.
- * Todos os eventos são expostos via window.Track.*
+ * Inclua APÓS o snippet do Pixel. Expõe window.Track.*
+ * Nunca chame fbq() diretamente fora deste módulo.
  */
 (function () {
   'use strict';
 
-  const PLAN_VALUES = { starter: 19.90, pro: 49.90, agency: 97.90 };
+  const PIXEL_ID   = '1343135307625371'; // eslint-disable-line no-unused-vars
+  const PLAN_PRICES = { starter: 19.90, pro: 49.90, agency: 97.90 };
 
-  // ── Deduplicação por sessão ─────────────────────────────────────────────────
-  // Usar sessionStorage para sobreviver a navegações dentro da mesma aba,
-  // mas resetar ao fechar o browser.
-  function _hasFired(key) {
-    try { return sessionStorage.getItem('snap_track_' + key) === '1'; } catch { return false; }
+  // ── Deduplicação ────────────────────────────────────────────────────────────
+  // sessionStorage persiste em navegações na mesma aba, reseta ao fechar.
+  function _fired(key) {
+    try { return sessionStorage.getItem('_t_' + key) === '1'; } catch { return false; }
   }
-  function _markFired(key) {
-    try { sessionStorage.setItem('snap_track_' + key, '1'); } catch {}
+  function _setFired(key) {
+    try { sessionStorage.setItem('_t_' + key, '1'); } catch {}
   }
 
-  /** Dispara fn apenas uma vez por sessão (mesmo que o módulo seja recarregado) */
+  /** Executa fn apenas uma vez por sessão. Retorna true se disparou. */
   function once(key, fn) {
-    if (_hasFired(key)) {
-      console.log('[TRACK] (já disparado, ignorando)', key);
-      return false;
-    }
-    _markFired(key);
+    if (_fired(key)) { _log('(dedup) ' + key); return false; }
+    _setFired(key);
     fn();
     return true;
   }
 
-  // ── Wrapper seguro do fbq ───────────────────────────────────────────────────
-  function safe(method, event, data) {
+  /** Debounce simples: impede duplo-disparo em cliques acidentais (ex: dois eventos click). */
+  const _debounceTs = {};
+  function debounced(key, fn, ms) {
+    ms = ms || 800;
+    const now = Date.now();
+    if (_debounceTs[key] && now - _debounceTs[key] < ms) { _log('(debounce) ' + key); return false; }
+    _debounceTs[key] = now;
+    fn();
+    return true;
+  }
+
+  // ── Logger ───────────────────────────────────────────────────────────────────
+  function _log(event, data) {
+    if (data !== undefined) {
+      console.log('[TRACK]', event, data);
+    } else {
+      console.log('[TRACK]', event);
+    }
+  }
+
+  // ── Wrapper fbq seguro ───────────────────────────────────────────────────────
+  function _fbq(method, event, data) {
     if (typeof fbq === 'undefined') {
-      console.log('[TRACK] fbq não carregado —', method, event, data || '');
+      _log('fbq não disponível —', event + (data ? ' ' + JSON.stringify(data) : ''));
       return;
     }
-    if (data) fbq(method, event, data);
-    else      fbq(method, event);
-    console.log('[TRACK]', event, data !== undefined ? data : '');
+    if (data !== undefined) {
+      fbq(method, event, data);
+    } else {
+      fbq(method, event);
+    }
+    _log(event, data);
   }
 
-  // ── Fonte da compra ─────────────────────────────────────────────────────────
-  // 'landing_direct'  → usuário clicou em "Assinar" na landing
-  // 'product_flow'    → usuário usou o produto antes de comprar
-  function getPurchaseSource() {
-    try { return sessionStorage.getItem('snap_purchase_source') || 'product_flow'; } catch { return 'product_flow'; }
+  // ── Fonte da compra ──────────────────────────────────────────────────────────
+  // Persiste para sobreviver ao redirect landing → /app
+  function _getSource() {
+    try { return sessionStorage.getItem('_snap_src') || 'product_flow'; } catch { return 'product_flow'; }
   }
-  function setPurchaseSource(src) {
-    try { sessionStorage.setItem('snap_purchase_source', src); } catch {}
+  function _setSource(src) {
+    try { sessionStorage.setItem('_snap_src', src); } catch {}
   }
 
-  // ── API pública ─────────────────────────────────────────────────────────────
+  // ── API pública ──────────────────────────────────────────────────────────────
   window.Track = {
 
     /**
-     * Landing page carregada.
-     * Disparo: uma vez na landing.
+     * PageView — disparado automaticamente pelo snippet do Pixel.
+     * Exposto aqui apenas para completude (não precisa ser chamado manualmente).
      */
-    viewContent() {
-      once('ViewContent', () => safe('track', 'ViewContent'));
+    trackPageView() {
+      _fbq('track', 'PageView');
+    },
+
+    /**
+     * Landing carregada — usuário viu o conteúdo comercial.
+     * Disparo: uma vez por sessão, apenas na landing.
+     */
+    trackViewContent() {
+      once('ViewContent', () => _fbq('track', 'ViewContent'));
     },
 
     /**
      * Usuário clicou em CTA de exploração ("Capturar agora", "Testar grátis").
-     * Marca a origem como 'product_flow'.
+     * Marca origem como product_flow.
      * Disparo: uma vez por sessão.
      */
-    startFlow() {
+    trackStartFlow() {
       once('StartFlow', () => {
-        setPurchaseSource('product_flow');
-        safe('trackCustom', 'StartFlow');
+        _setSource('product_flow');
+        _fbq('trackCustom', 'StartFlow');
       });
     },
 
     /**
-     * Usuário confirmou as páginas e iniciou a captura (step 4 → 5).
+     * Usuário confirmou páginas e iniciou captura.
      * Disparo: uma vez por sessão.
      */
-    selectPages() {
-      once('SelectPages', () => safe('trackCustom', 'SelectPages'));
+    trackSelectPages() {
+      once('SelectPages', () => _fbq('trackCustom', 'SelectPages'));
     },
 
     /**
      * Usuário selecionou ou trocou de template.
-     * Pode disparar mais de uma vez (não usa once).
+     * Pode disparar múltiplas vezes (sem once).
      * @param {string} templateId
      */
-    selectTemplate(templateId) {
-      safe('trackCustom', 'SelectTemplate', { template: templateId || 'void' });
+    trackSelectTemplate(templateId) {
+      _fbq('trackCustom', 'SelectTemplate', { template: templateId || 'void' });
     },
 
     /**
-     * Tela de download exibida (captura concluída, step 6).
+     * Tela de download exibida (captura concluída).
      * Disparo: uma vez por sessão.
      */
-    viewDownload() {
-      once('ViewDownload', () => safe('trackCustom', 'ViewDownload'));
+    trackViewDownload() {
+      once('ViewDownload', () => _fbq('trackCustom', 'ViewDownload'));
     },
 
     /**
-     * Usuário clicou no botão de download.
-     * Pode disparar mais de uma vez (não usa once — o usuário pode baixar múltiplos formatos).
+     * Usuário clicou em um botão de download.
+     * Pode disparar múltiplas vezes (usuário pode re-baixar).
      */
-    download() {
-      safe('trackCustom', 'Download');
+    trackDownload() {
+      _fbq('trackCustom', 'Download');
     },
 
     /**
-     * Usuário clicou em "Assinar" / "Começar" diretamente na landing.
-     * Marca origem como 'landing_direct'.
-     * Disparo: uma vez por sessão.
-     * @param {string} plan  ex: 'starter', 'pro'
+     * Usuário clicou em "Assinar" / "Começar" — antes de abrir o modal de pagamento.
+     * source: 'landing' | 'app'
+     * Marca origem para o evento Purchase posterior.
+     * Debounce de 800ms para evitar duplo-disparo no mesmo clique.
+     * @param {string} source  'landing' | 'app'
+     * @param {string} plan    ex: 'starter', 'pro'
      */
-    initiateCheckout(plan) {
-      once('InitiateCheckout', () => {
-        setPurchaseSource('landing_direct');
-        safe('track', 'InitiateCheckout', { content_name: plan });
+    trackInitiateCheckout(source, plan) {
+      debounced('InitiateCheckout', () => {
+        // Marca a origem da compra
+        _setSource(source === 'landing' ? 'landing_direct' : 'product_flow');
+        _fbq('track', 'InitiateCheckout', { source: source, plan: plan || '' });
       });
     },
 
     /**
-     * Pagamento PIX confirmado — EVENTO CRÍTICO.
-     * Diferencia origem: landing_direct vs product_flow.
-     * Disparo: APENAS uma vez por sessão (never duplicado).
-     * @param {string} planKey  ex: 'starter', 'pro'
+     * Pagamento PIX confirmado — evento CRÍTICO.
+     * Nunca duplicado: once() por sessão + flag no servidor.
+     * @param {number|string} value   valor pago (ex: 19.90)
+     * @param {string}        plan    planKey (ex: 'starter')
      */
-    purchase(planKey) {
+    trackPurchase(value, plan) {
       once('Purchase', () => {
-        const value  = PLAN_VALUES[planKey] || PLAN_VALUES.starter;
-        const source = getPurchaseSource();
-        safe('track', 'Purchase', { value, currency: 'BRL', source });
-        // Limpa a origem após a compra para evitar re-atribuição
-        try { sessionStorage.removeItem('snap_purchase_source'); } catch {}
+        const amount = parseFloat(value) || PLAN_PRICES[plan] || PLAN_PRICES.starter;
+        const source = _getSource();
+        _fbq('track', 'Purchase', {
+          value:    amount,
+          currency: 'BRL',
+          source:   source,
+          plan:     plan || '',
+        });
+        try { sessionStorage.removeItem('_snap_src'); } catch {}
       });
     },
   };
 
-  console.log('[TRACK] módulo carregado — pixel 1343135307625371');
+  _log('módulo carregado');
 })();

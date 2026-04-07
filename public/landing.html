@@ -887,7 +887,7 @@
           <li>Desktop + mobile HD</li>
           <li>Código de acesso por e-mail</li>
         </ul>
-        <button class="plan-cta plan-cta-secondary" onclick="checkout('starter')">Começar por R$19,90</button>
+        <button class="plan-cta plan-cta-secondary" onclick="openCheckout('starter')">Começar por R$19,90</button>
       </div>
       <!-- Pro -->
       <div class="plan-card featured">
@@ -902,7 +902,7 @@
           <li>Link compartilhável</li>
           <li>Suporte por e-mail</li>
         </ul>
-        <button class="plan-cta plan-cta-primary" onclick="checkout('pro')">Assinar Pro agora</button>
+        <button class="plan-cta plan-cta-primary" onclick="openCheckout('pro')">Assinar Pro agora</button>
       </div>
       <!-- Agency -->
       <div class="plan-card">
@@ -916,7 +916,7 @@
           <li>Link compartilhável 30 dias</li>
           <li>3 códigos de acesso</li>
         </ul>
-        <button class="plan-cta plan-cta-secondary" onclick="checkout('agency')">Assinar Agency</button>
+        <button class="plan-cta plan-cta-secondary" onclick="openCheckout('agency')">Assinar Agency</button>
       </div>
     </div>
   </div>
@@ -1048,35 +1048,33 @@
 
   // ── ViewContent quando landing carrega ──────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    if (window.Track) Track.viewContent();
+    if (window.Track) Track.trackViewContent();
   });
 
-  // ── Interceptar CTAs de exploração (StartFlow) ───────────────────────────────
+  // ── Interceptar CTAs de exploração → StartFlow ──────────────────────────────
   // Botões que levam para /app sem iniciar pagamento
   document.addEventListener('click', function(e) {
     const btn = e.target.closest('button, a');
     if (!btn) return;
-    const href = btn.getAttribute('href') || '';
-    const onclick = btn.getAttribute('onclick') || '';
-    const isFlowCTA = href === '/app' || onclick.includes("'/app'") || onclick.includes('"/app"');
-    if (isFlowCTA && window.Track) Track.startFlow();
+    const href    = btn.getAttribute('href') || '';
+    const oc      = btn.getAttribute('onclick') || '';
+    const isFlow  = href === '/app' || oc.includes("'/app'") || oc.includes('"/app"');
+    if (isFlow && window.Track) Track.trackStartFlow();
   });
 
-  // ── Checkout helper (InitiateCheckout + compra direta) ───────────────────────
-  async function checkout(plan) {
-    if (window.Track) Track.initiateCheckout(plan);
-    try {
-      const r = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
-      });
-      const d = await r.json();
-      if (d.checkoutUrl) window.location.href = d.checkoutUrl;
-    } catch (e) {
-      alert('Erro ao iniciar pagamento. Tente novamente.');
-    }
+  // ── openCheckout — função global para todos os botões de compra ──────────────
+  // Redireciona para /app com ?checkout=<plan> e fonte marcada.
+  // O app detecta o param e abre o modal automaticamente.
+  function openCheckout(plan) {
+    if (window.Track) Track.trackInitiateCheckout('landing', plan);
+    // Pequeno delay para garantir que o evento seja enviado antes do redirect
+    setTimeout(() => {
+      window.location.href = '/app?checkout=' + encodeURIComponent(plan);
+    }, 120);
   }
+
+  // Alias legado (mantém compatibilidade com qualquer onclick="checkout(...)" residual)
+  function checkout(plan) { openCheckout(plan); }
 </script>
 </body>
 </html>
