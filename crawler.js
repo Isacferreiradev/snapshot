@@ -79,8 +79,26 @@ function normalizeUrl(raw, origin) {
     const u = new URL(raw, origin);
     if (u.origin !== origin) return null;
     u.hash = '';
-    return u.href;
+    // Strip tracking params
+    for (const k of [...u.searchParams.keys()]) {
+      if (/^utm_|^(fbclid|gclid|ref|source|mc_eid|_ga)$/.test(k)) u.searchParams.delete(k);
+    }
+    // Normalize trailing slash: treat /pricing and /pricing/ as the same
+    let href = u.href;
+    if (href.endsWith('/') && u.pathname !== '/') href = href.slice(0, -1);
+    return href.toLowerCase();
   } catch { return null; }
+}
+
+/** Deduplica array de páginas por URL normalizada (chamado no server antes de enviar ao frontend) */
+function deduplicatePages(pages) {
+  const seen   = new Set();
+  const unique = [];
+  for (const p of pages) {
+    const key = normalizeUrl(p.url, new URL(p.url).origin) || p.url.toLowerCase().trim();
+    if (!seen.has(key)) { seen.add(key); unique.push(p); }
+  }
+  return unique;
 }
 
 /** Captura thumbnail leve: 800x500, jpeg q50, sem fullPage, timeout 5s */
@@ -249,4 +267,4 @@ async function crawlSite(rawUrl, jobId, maxPages) {
   ]);
 }
 
-module.exports = { crawlSite, groupPages, rankPages };
+module.exports = { crawlSite, groupPages, rankPages, deduplicatePages };

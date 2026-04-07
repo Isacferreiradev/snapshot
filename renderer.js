@@ -26,7 +26,7 @@ function getWatermarkHtml(options) {
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:multiply;opacity:0.28;">
     <defs>
       <pattern id="wmM" x="0" y="0" width="380" height="190" patternUnits="userSpaceOnUse">
-        <text x="190" y="95" font-size="20" font-family="Arial,sans-serif" font-weight="bold" fill="#111111" transform="rotate(-25 190 95)" text-anchor="middle" dominant-baseline="middle">SNAPSHOT.PRO</text>
+        <text x="190" y="95" font-size="20" font-family="Arial,sans-serif" font-weight="bold" fill="#111111" transform="rotate(-25 190 95)" text-anchor="middle" dominant-baseline="middle">SNAPDECK.PRO</text>
       </pattern>
     </defs>
     <rect width="100%" height="100%" fill="url(#wmM)" />
@@ -34,7 +34,7 @@ function getWatermarkHtml(options) {
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:screen;opacity:0.22;">
     <defs>
       <pattern id="wmS" x="0" y="0" width="380" height="190" patternUnits="userSpaceOnUse">
-        <text x="190" y="95" font-size="20" font-family="Arial,sans-serif" font-weight="bold" fill="#ffffff" transform="rotate(-25 190 95)" text-anchor="middle" dominant-baseline="middle">SNAPSHOT.PRO</text>
+        <text x="190" y="95" font-size="20" font-family="Arial,sans-serif" font-weight="bold" fill="#ffffff" transform="rotate(-25 190 95)" text-anchor="middle" dominant-baseline="middle">SNAPDECK.PRO</text>
       </pattern>
     </defs>
     <rect width="100%" height="100%" fill="url(#wmS)" />

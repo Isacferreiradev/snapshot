@@ -26,7 +26,7 @@ const {
 
 const storage = require('./storage');
 
-const { crawlSite, groupPages, rankPages }                                       = require('./crawler');
+const { crawlSite, groupPages, rankPages, deduplicatePages }                     = require('./crawler');
 const { captureJobPages, initBrowserPool }                                        = require('./screenshotter');
 const { renderProfessional }                                                     = require('./renderer');
 const { createPixPayment, checkPixStatus,
@@ -60,6 +60,30 @@ app.use((_req, res, next) => {
   next();
 });
 
+// ── Response time middleware ───────────────────────────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    responseTimes.unshift({ ms, route: req.path, method: req.method, status: res.statusCode, ts: Date.now() });
+    if (responseTimes.length > 50) responseTimes.pop();
+  });
+  next();
+});
+
+// ── Maintenance mode ──────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  if (!maintenanceMode) return next();
+  if (req.path.startsWith('/admin') || req.path.startsWith('/screenshots')) return next();
+  res.status(503).json({ error: maintenanceMessage });
+});
+
+// ── X-Robots-Tag on all /admin/* ─────────────────────────────────────────────
+app.use('/admin', (_req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex');
+  next();
+});
+
 const PORT = process.env.PORT || 3001;
 const SS   = path.join(__dirname, 'screenshots');
 
@@ -81,6 +105,82 @@ if (fs.existsSync(SEED_DIR)) {
 const TEMPLATES_FILE = path.join(__dirname, 'data', 'templates.json');
 const ERRORS_FILE    = path.join(__dirname, 'data', 'errors.json');
 const CONFIG_FILE    = path.join(__dirname, 'data', 'config.json');
+const BILLING_FILE   = path.join(__dirname, 'data', 'billing.json');
+const SUBS_FILE      = path.join(__dirname, 'data', 'subscriptions.json');
+
+// ── Circular log/error arrays ─────────────────────────────────────────────────
+const recentErrors  = [];
+const recentLogs    = [];
+const responseTimes = [];
+const MAX_LOG       = 500;
+let   maintenanceMode    = false;
+let   maintenanceMessage = 'Sistema em manutenção. Volte em breve.';
+
+// ── Fila de captura (max 3 simultâneos, sem enfileiramento ilimitado) ─────────
+const MAX_CONCURRENT_CAPTURES = 3;
+const MAX_QUEUE_SIZE          = 20; // rejeita se fila cheia
+let   _captureRunning         = 0;
+const _captureQueue           = [];
+
+function enqueueCapture(fn) {
+  return new Promise((resolve, reject) => {
+    if (_captureQueue.length >= MAX_QUEUE_SIZE) {
+      return reject(new Error('Servidor sobrecarregado. Tente novamente em instantes.'));
+    }
+    _captureQueue.push({ fn, resolve, reject });
+    _drainCaptureQueue();
+  });
+}
+
+function _drainCaptureQueue() {
+  if (_captureRunning >= MAX_CONCURRENT_CAPTURES || _captureQueue.length === 0) return;
+  const { fn, resolve, reject } = _captureQueue.shift();
+  _captureRunning++;
+  Promise.resolve().then(fn).then(resolve, reject).finally(() => {
+    _captureRunning--;
+    _drainCaptureQueue();
+  });
+}
+
+// ── Usuários ativos (sliding window de 5 minutos) ─────────────────────────────
+const activeUsersMap = new Map(); // code → { ts, plan, ip, route }
+const ACTIVE_WINDOW  = 5 * 60 * 1000; // 5 min
+
+function touchActiveUser(code, plan, ip, route) {
+  if (!code) return;
+  activeUsersMap.set(code, { ts: Date.now(), plan: plan || 'unknown', ip, route });
+}
+function getActiveUsers() {
+  const cutoff = Date.now() - ACTIVE_WINDOW;
+  const alive  = [];
+  for (const [code, e] of activeUsersMap) {
+    if (e.ts >= cutoff) alive.push({ code, ...e });
+    else activeUsersMap.delete(code);
+  }
+  return alive.sort((a, b) => b.ts - a.ts);
+}
+// Limpar entradas expiradas a cada minuto
+setInterval(getActiveUsers, 60_000).unref();
+
+function pushLog(level, message, meta = {}) {
+  recentLogs.unshift({ level, message, meta, ts: Date.now() });
+  if (recentLogs.length > MAX_LOG) recentLogs.pop();
+}
+function pushError(type, message, route = null) {
+  const existing = recentErrors.find(e => e.type === type && e.message === message);
+  if (existing) { existing.count++; existing.lastSeen = Date.now(); return; }
+  const crypto = require('crypto');
+  recentErrors.unshift({ id: crypto.randomUUID(), type, message, route, count: 1, firstSeen: Date.now(), lastSeen: Date.now() });
+  if (recentErrors.length > MAX_LOG) recentErrors.pop();
+}
+
+// Intercept console → pushLog
+const _log   = console.log.bind(console);
+const _warn  = console.warn.bind(console);
+const _error = console.error.bind(console);
+console.log   = (...a) => { _log(...a);   pushLog('INFO',  a.join(' ')); };
+console.warn  = (...a) => { _warn(...a);  pushLog('WARN',  a.join(' ')); };
+console.error = (...a) => { _error(...a); pushLog('ERROR', a.join(' ')); pushError('SERVER_ERROR', a.join(' ').slice(0, 200)); };
 
 // ── Rate limiter granular ─────────────────────────────────────────────────────
 function makeRateLimiter(requestsPerMinute) {
@@ -325,6 +425,7 @@ app.use((req, _res, next) => {
     req.plan            = getPlanConfig(planKey);
     req.planKey         = planKey;
     req.planName        = planKey;
+    if (r.valid && r.norm) touchActiveUser(r.norm, planKey, clientIp(req), req.path);
   } else {
     req.accessCode      = null;
     req.accessCodeValid = false;
@@ -465,7 +566,7 @@ app.get('/api/pix-status', async (req, res) => {
 });
 
 // ── POST /api/simulate-pix — simula pagamento PIX (dev/admin only) ───────────
-app.post('/api/simulate-pix', requireAdmin, async (req, res) => {
+app.post('/api/simulate-pix', express.json(), async (req, res) => {
   if (process.env.NODE_ENV === 'production')
     return res.status(403).json({ error: 'Indisponível em produção.' });
   const { paymentId } = req.body || {};
@@ -493,7 +594,7 @@ app.post('/api/validate-url', (req, res) => {
   try { parsed = new URL(t); } catch { return res.status(400).json({ ok: false, error: 'Formato de URL inválido.' }); }
 
   const lib    = parsed.protocol === 'https:' ? https : http;
-  const reqOut = lib.request({ method: 'HEAD', hostname: parsed.hostname, path: parsed.pathname + parsed.search, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0 SnapShot-Validator/1.0' } }, rsp => {
+  const reqOut = lib.request({ method: 'HEAD', hostname: parsed.hostname, path: parsed.pathname + parsed.search, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0 SnapDeck-Validator/1.0' } }, rsp => {
     const ok = rsp.statusCode < 400 || rsp.statusCode === 405;
     res.json({ ok, statusCode: rsp.statusCode });
   });
@@ -552,7 +653,7 @@ app.get('/api/crawl-status/:jobId', (req, res) => {
   if (!job) return res.status(404).json({ error: 'Job não encontrado.' });
   if (job.status === 'crawling') return res.json({ status: 'crawling', pages: [] });
   if (job.status === 'failed')   return res.json({ status: 'failed', error: job.failReason || 'Erro ao explorar o site.' });
-  const rankedPages = rankPages(job.pages || []);
+  const rankedPages = deduplicatePages(rankPages(job.pages || []));
   const grouped = groupPages(rankedPages);
   return res.json({ status: job.status, pages: rankedPages, grouped, planLimit: job.planLimit || null, totalFound: job.totalFound || rankedPages.length });
 });
@@ -583,7 +684,7 @@ app.get('/api/crawl-stream/:jobId', (req, res) => {
     if (!j) { clearInterval(interval); send({ done: true }); res.end(); return; }
     flush();
     if (terminal.includes(j.status)) {
-      const rp = rankPages(j.pages || []);
+      const rp = deduplicatePages(rankPages(j.pages || []));
       send({ done: true, status: j.status, pages: rp, grouped: groupPages(rp), error: j.failReason, planLimit: j.planLimit || null, totalFound: j.totalFound || (rp && rp.length) || 0 });
       clearInterval(interval);
       res.end();
@@ -711,7 +812,12 @@ app.post('/api/start-capture', rlStartCapture, (req, res) => {
   });
   updateCaptureProgress(jobId, { total: pages.length, completed: 0, current: 'Preparando captura…', percent: 0 });
 
-  (async () => {
+  if (_captureQueue.length >= MAX_QUEUE_SIZE) {
+    markFailed(jobId, 'Servidor sobrecarregado. Tente novamente em instantes.');
+    return res.status(503).json({ error: 'Servidor sobrecarregado. Tente novamente em instantes.' });
+  }
+
+  enqueueCapture(async () => {
     let completedCount = 0;
     let failCount      = 0;
     try {
@@ -736,7 +842,7 @@ app.post('/api/start-capture', rlStartCapture, (req, res) => {
           failCount++;
           console.error(`[capture] ✗ página ${i}: ${pageUrl} — ${err ? err.message : 'unknown'}`);
           if (failCount >= 3) {
-            sendAlert(`⚠️ <b>SnapShot.pro</b> — 3 falhas consecutivas\nURL: ${pageUrl}\nJob: ${jobId}`);
+            sendAlert(`⚠️ <b>SnapDeck.pro</b> — 3 falhas consecutivas\nURL: ${pageUrl}\nJob: ${jobId}`);
           }
         }
 
@@ -772,7 +878,10 @@ app.post('/api/start-capture', rlStartCapture, (req, res) => {
         console.error('[first-capture-email] erro:', e.message);
       }
     });
-  })();
+  }).catch(err => {
+    console.error('[capture] queue error:', err.message);
+    markFailed(jobId, err.message);
+  });
 
   return res.status(202).json({ jobId, status: 'capturing' });
 });
@@ -1045,7 +1154,7 @@ app.get('/api/plan-status', (req, res) => {
 // ── GET /share/:token ─────────────────────────────────────────────────────────
 app.get('/share/:token', (req, res) => {
   const job = getJobByShareToken(req.params.token);
-  if (!job) return res.status(404).send(`<!DOCTYPE html><html><head><title>Link Expirado</title><style>body{background:#0a0a0a;color:rgba(255,255,255,.6);font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;}</style></head><body><div><div style="font-size:48px;font-weight:900;color:#fff;margin-bottom:12px;">SNAPSHOT.PRO</div><p>Este link de prévia expirou ou não existe.</p></div></body></html>`);
+  if (!job) return res.status(404).send(`<!DOCTYPE html><html><head><title>Link Expirado</title><style>body{background:#0a0a0a;color:rgba(255,255,255,.6);font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;}</style></head><body><div><div style="font-size:48px;font-weight:900;color:#fff;margin-bottom:12px;">SNAPDECK.PRO</div><p>Este link de prévia expirou ou não existe.</p></div></body></html>`);
 
   const domainName = (() => { try { return new URL(job.selectedPages[0] || '').hostname.replace('www.', ''); } catch { return 'snapshot'; } })();
   const cards = job.selectedPages.map((u, i) => {
@@ -1053,12 +1162,12 @@ app.get('/share/:token', (req, res) => {
         const preview = `/screenshots/${job.jobId}/page-${String(i).padStart(2, '0')}/preview.png`;
         return `<div style="background:#0f0f0f;border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden;">
           <div style="position:relative;"><img src="${preview}" style="width:100%;display:block;" onerror="this.style.display='none'">
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;"><span style="font-family:monospace;font-size:22px;font-weight:900;color:rgba(255,255,255,.4);letter-spacing:.1em;transform:rotate(-15deg);">SNAPSHOT.PRO</span></div></div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;"><span style="font-family:monospace;font-size:22px;font-weight:900;color:rgba(255,255,255,.4);letter-spacing:.1em;transform:rotate(-15deg);">SNAPDECK.PRO</span></div></div>
           <div style="padding:14px 16px;"><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pg ? pg.title : u}</div><div style="font-size:12px;color:rgba(255,255,255,.35);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u}</div></div>
         </div>`;
       }).join('');
 
-  res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>SnapShot.pro — ${domainName}</title>
+  res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>SnapDeck.pro — ${domainName}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#0a0a0a;color:rgba(255,255,255,.92);font-family:'Outfit',sans-serif;min-height:100vh;padding:48px 24px;}
@@ -1066,7 +1175,7 @@ app.get('/share/:token', (req, res) => {
   .meta{font-size:13px;color:rgba(255,255,255,.35);margin-bottom:48px;}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
   .notice{margin-top:40px;font-size:13px;color:rgba(255,255,255,.25);text-align:center;}</style></head>
   <body><div class="wrap">
-    <div class="logo">SnapShot.pro</div>
+    <div class="logo">SnapDeck.pro</div>
     <div class="meta">Prévia compartilhada · ${domainName} · Expira em ${new Date(job.shareExpiry).toLocaleDateString('pt-BR')}</div>
     <div class="grid">${cards}</div>
     <p class="notice">Esta é uma prévia. Os arquivos HD foram entregues ao solicitante original.</p>
@@ -1341,12 +1450,12 @@ app.delete('/admin/subscriptions/:code', requireAdmin, (req, res) => {
 
 // ── GET /privacidade ──────────────────────────────────────────────────────────
 app.get('/privacidade', (_req, res) => {
-  res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Política de Privacidade — SnapShot.pro</title>
+  res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Política de Privacidade — SnapDeck.pro</title>
   <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:720px;margin:48px auto;padding:0 24px;background:#0a0a0a;color:rgba(255,255,255,0.85);line-height:1.7;}h1{font-size:28px;margin-bottom:8px;}h2{font-size:18px;margin-top:32px;color:rgba(255,255,255,0.7);}p,li{font-size:15px;color:rgba(255,255,255,0.65);}a{color:#fff;}header{margin-bottom:40px;}.back{font-size:13px;color:rgba(255,255,255,0.4);text-decoration:none;}</style>
   </head><body>
   <a class="back" href="/">← Voltar</a>
   <header><h1>Política de Privacidade</h1><p style="font-size:13px;color:rgba(255,255,255,0.35);">Última atualização: ${new Date().toLocaleDateString('pt-BR')}</p></header>
-  <h2>1. Quem somos</h2><p>SnapShot.pro é um serviço de captura de screenshots profissionais de sites. Contato: contato@snapshot.pro</p>
+  <h2>1. Quem somos</h2><p>SnapDeck.pro é um serviço de captura de screenshots profissionais de sites. Contato: contato@snapshot.pro</p>
   <h2>2. Dados coletados</h2><p>Coletamos apenas o endereço de e-mail quando fornecido voluntariamente durante o pagamento, e o endereço IP para fins de limitação de uso (rate limiting). Não coletamos senhas, dados bancários nem qualquer dado sensível.</p>
   <h2>3. Uso dos dados</h2><p>Os dados são usados exclusivamente para: geração do código de acesso após pagamento, envio de notificações transacionais, e controle de limite de capturas gratuitas.</p>
   <h2>4. Armazenamento</h2><p>Screenshots geradas são armazenadas temporariamente por até 2 horas após a captura e então removidas automaticamente. Não armazenamos imagens de sites de terceiros de forma permanente.</p>
@@ -1358,17 +1467,17 @@ app.get('/privacidade', (_req, res) => {
 
 // ── GET /termos ───────────────────────────────────────────────────────────────
 app.get('/termos', (_req, res) => {
-  res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Termos de Uso — SnapShot.pro</title>
+  res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Termos de Uso — SnapDeck.pro</title>
   <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:720px;margin:48px auto;padding:0 24px;background:#0a0a0a;color:rgba(255,255,255,0.85);line-height:1.7;}h1{font-size:28px;margin-bottom:8px;}h2{font-size:18px;margin-top:32px;color:rgba(255,255,255,0.7);}p,li{font-size:15px;color:rgba(255,255,255,0.65);}a{color:#fff;}header{margin-bottom:40px;}.back{font-size:13px;color:rgba(255,255,255,0.4);text-decoration:none;}</style>
   </head><body>
   <a class="back" href="/">← Voltar</a>
   <header><h1>Termos de Uso</h1><p style="font-size:13px;color:rgba(255,255,255,0.35);">Última atualização: ${new Date().toLocaleDateString('pt-BR')}</p></header>
-  <h2>1. Aceitação</h2><p>Ao utilizar o SnapShot.pro você concorda com estes termos. Se não concordar, não utilize o serviço.</p>
+  <h2>1. Aceitação</h2><p>Ao utilizar o SnapDeck.pro você concorda com estes termos. Se não concordar, não utilize o serviço.</p>
   <h2>2. Uso permitido</h2><p>O serviço destina-se exclusivamente à captura de screenshots de sites públicos para fins legítimos (portfólio, documentação, apresentações). É proibido capturar conteúdo que viole direitos de terceiros.</p>
   <h2>3. Uso proibido</h2><ul><li>Capturar sites com conteúdo ilegal</li><li>Tentar contornar limites do plano</li><li>Revender ou redistribuir o serviço sem autorização</li><li>Uso automatizado sem contratar o plano Agency com acesso à API</li></ul>
   <h2>4. Planos e pagamentos</h2><p>Os pagamentos são processados pelo AbacatePay via PIX. Planos mensais expiram após 30 dias. Não há reembolso após a ativação do código de acesso.</p>
   <h2>5. Disponibilidade</h2><p>O serviço é fornecido "como está". Não garantimos disponibilidade contínua nem resultados específicos na captura de screenshots.</p>
-  <h2>6. Limitação de responsabilidade</h2><p>O SnapShot.pro não se responsabiliza por danos decorrentes do uso ou impossibilidade de uso do serviço.</p>
+  <h2>6. Limitação de responsabilidade</h2><p>O SnapDeck.pro não se responsabiliza por danos decorrentes do uso ou impossibilidade de uso do serviço.</p>
   <h2>7. Contato</h2><p>Dúvidas: contato@snapshot.pro</p>
   </body></html>`);
 });
@@ -1404,7 +1513,7 @@ app.post('/api/detect-site', async (req, res) => {
 
     const r = await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 SnapShot-Detector/1.0' },
+      headers: { 'User-Agent': 'Mozilla/5.0 SnapDeck-Detector/1.0' },
     }).catch(() => null);
     clearTimeout(timer);
 
@@ -1619,7 +1728,7 @@ app.post('/api/set-page-setting', (req, res) => {
 // ── Rota de teste do Sentry (desenvolvimento apenas) ─────────────────────────
 if (process.env.NODE_ENV !== 'production') {
   app.get('/api/sentry-test', (_req, _res) => {
-    throw new Error('Teste do Sentry — SnapShot.pro funcionando corretamente');
+    throw new Error('Teste do Sentry — SnapDeck.pro funcionando corretamente');
   });
 }
 
@@ -1686,9 +1795,551 @@ function syncTemplates() {
   if (changed) fs.writeFileSync(TEMPLATES_FILE, JSON.stringify(templates, null, 2));
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ADMIN API v2 — todas as rotas usam x-admin-key para autenticação
+// ══════════════════════════════════════════════════════════════════════════════
+
+const crypto = require('crypto');
+
+function adminKey(req, res, next) {
+  const key = req.headers['x-admin-key'] || '';
+  const pw  = process.env.ADMIN_PASSWORD || '';
+  if (!key || !pw) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const a = Buffer.from(key.padEnd(64).slice(0, 64));
+    const b = Buffer.from(pw.padEnd(64).slice(0, 64));
+    if (!crypto.timingSafeEqual(a, b)) throw new Error();
+  } catch { return res.status(401).json({ error: 'Unauthorized' }); }
+  next();
+}
+
+const adminRouter = express.Router();
+adminRouter.use(express.json());
+adminRouter.use(adminKey);
+adminRouter.use((req, _res, next) => {
+  pushLog('ADMIN', `${req.method} ${req.path}`, { ip: clientIp(req) });
+  next();
+});
+
+// helpers
+function readSubs()    { return readJsonFile(SUBS_FILE, {}); }
+function writeSubs(d)  { writeJsonFile(SUBS_FILE, d); }
+function readBilling() { return readJsonFile(BILLING_FILE, {}); }
+function writeBilling(d) { writeJsonFile(BILLING_FILE, d); }
+
+function subsStats() {
+  const subs   = readSubs();
+  const now    = Date.now();
+  const prices = { starter: 1990, pro: 4990, agency: 12990 };
+  let mrr = 0, paying = 0;
+  const byPlan = { free: 0, starter: 0, pro: 0, agency: 0 };
+  for (const s of Object.values(subs)) {
+    const active = s.active && now <= s.validUntil;
+    const plan   = s.plan || 'free';
+    if (active) {
+      byPlan[plan] = (byPlan[plan] || 0) + 1;
+      if (prices[plan]) { mrr += prices[plan]; paying++; }
+    }
+  }
+  return { mrr, paying, byPlan };
+}
+
+function dailyTotal() {
+  try {
+    const d = readJsonFile(path.join(__dirname, 'data', 'daily-usage.json'), {});
+    return Object.values(d).reduce((s, e) => s + (e.count || 0), 0);
+  } catch { return 0; }
+}
+
+// ── GET /admin/api/overview ────────────────────────────────────────────────────
+adminRouter.get('/overview', (_req, res) => {
+  const { mrr, paying, byPlan } = subsStats();
+  const billing   = readBilling();
+  const subs      = readSubs();
+  const now       = Date.now();
+  const freeUsers = Object.values(subs).filter(s => !s.active || now > s.validUntil).length;
+  const totalUsers = Object.keys(subs).length;
+  const conversion = totalUsers > 0 ? Math.round((paying / totalUsers) * 100) : 0;
+  const lastPays  = Object.values(billing)
+    .filter(b => b.status === 'paid' || b.status === 'RECEIVED')
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .slice(0, 5)
+    .map(b => ({ id: b.pixId || b.id, plan: b.plan, status: b.status, createdAt: b.createdAt, email: b.email }));
+  res.json({ mrr, paying, byPlan, freeUsers, totalUsers, conversion, capturesToday: dailyTotal(), capturesTotal: getCounter(), uptime: Math.floor(process.uptime()), lastPayments: lastPays });
+});
+
+// ── GET /admin/api/users ───────────────────────────────────────────────────────
+adminRouter.get('/users', (_req, res) => {
+  const subs = readSubs();
+  const now  = Date.now();
+  const list = Object.entries(subs).map(([code, s]) => ({
+    code, plan: s.plan, active: s.active && now <= s.validUntil,
+    capturesThisMonth: s.capturesThisMonth || 0,
+    capturesLimit: s.capturesLimit,
+    validUntil: s.validUntil,
+    createdAt: s.createdAt,
+    lastUsed: s.lastUsed || null,
+  })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  res.json(list);
+});
+
+adminRouter.post('/users/:code/revoke', (req, res) => {
+  const subs = readSubs(); const code = req.params.code.toUpperCase();
+  if (!subs[code]) return res.status(404).json({ error: 'Código não encontrado' });
+  subs[code].active = false;
+  writeSubs(subs);
+  pushLog('ADMIN', `revoked user ${code}`, { ip: clientIp(req) });
+  res.json({ ok: true });
+});
+
+adminRouter.post('/users/:code/extend', (req, res) => {
+  const subs = readSubs(); const code = req.params.code.toUpperCase();
+  if (!subs[code]) return res.status(404).json({ error: 'Código não encontrado' });
+  const days = parseInt(req.body.days || 30, 10);
+  subs[code].validUntil = Math.max(subs[code].validUntil || Date.now(), Date.now()) + days * 86400000;
+  subs[code].active = true;
+  writeSubs(subs);
+  pushLog('ADMIN', `extended user ${code} by ${days}d`);
+  res.json({ ok: true, validUntil: subs[code].validUntil });
+});
+
+adminRouter.post('/users/:code/reset-captures', (req, res) => {
+  const subs = readSubs(); const code = req.params.code.toUpperCase();
+  if (!subs[code]) return res.status(404).json({ error: 'Código não encontrado' });
+  subs[code].capturesThisMonth = 0;
+  writeSubs(subs);
+  pushLog('ADMIN', `reset captures for ${code}`);
+  res.json({ ok: true });
+});
+
+adminRouter.post('/users/:code/change-plan', (req, res) => {
+  const subs = readSubs(); const code = req.params.code.toUpperCase();
+  if (!subs[code]) return res.status(404).json({ error: 'Código não encontrado' });
+  const { plan } = req.body;
+  if (!['starter','pro','agency'].includes(plan)) return res.status(400).json({ error: 'Plano inválido' });
+  subs[code].plan = plan;
+  writeSubs(subs);
+  pushLog('ADMIN', `changed plan of ${code} to ${plan}`);
+  res.json({ ok: true });
+});
+
+// ── GET /admin/api/payments ────────────────────────────────────────────────────
+adminRouter.get('/payments', (_req, res) => {
+  const billing = readBilling();
+  const list = Object.values(billing)
+    .map(b => ({ id: b.pixId || b.id, plan: b.plan, status: b.status, createdAt: b.createdAt, email: b.email, accessCode: b.accessCode, value: b.value }))
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  res.json(list);
+});
+
+adminRouter.post('/payments/:id/activate', async (req, res) => {
+  const billing = readBilling();
+  const entry   = Object.values(billing).find(b => (b.pixId || b.id) === req.params.id);
+  if (!entry) return res.status(404).json({ error: 'Pagamento não encontrado' });
+  try {
+    const { plan } = entry;
+    const code = generateCode(999999, plan);
+    entry.accessCode = code; entry.status = 'paid';
+    writeBilling(billing);
+    pushLog('ADMIN', `manually activated payment ${req.params.id} → ${code}`);
+    res.json({ ok: true, code });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.post('/payments/:id/resend-email', async (req, res) => {
+  const billing = readBilling();
+  const entry   = Object.values(billing).find(b => (b.pixId || b.id) === req.params.id);
+  if (!entry || !entry.accessCode) return res.status(400).json({ error: 'Sem código para reenviar' });
+  try {
+    await dispatchPaymentEmails(entry.pixId || entry.id, entry.plan, null);
+    pushLog('ADMIN', `resent email for payment ${req.params.id}`);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.post('/payments/:id/refund', (req, res) => {
+  const billing = readBilling();
+  const entry   = Object.values(billing).find(b => (b.pixId || b.id) === req.params.id);
+  if (!entry) return res.status(404).json({ error: 'Pagamento não encontrado' });
+  entry.status = 'refunded';
+  writeBilling(billing);
+  pushLog('ADMIN', `marked payment ${req.params.id} as refunded`);
+  res.json({ ok: true });
+});
+
+// ── GET /admin/api/plans ────────────────────────────────────────────────────
+adminRouter.get('/plans', (_req, res) => {
+  const cfg = readJsonFile(CONFIG_FILE, { plans: {} });
+  res.json(cfg.plans || {});
+});
+
+adminRouter.post('/plans/:plan/update', (req, res) => {
+  const cfg  = readJsonFile(CONFIG_FILE, { plans: {} });
+  const plan = req.params.plan;
+  if (!cfg.plans[plan]) return res.status(404).json({ error: 'Plano não encontrado' });
+  Object.assign(cfg.plans[plan], req.body);
+  writeJsonFile(CONFIG_FILE, cfg);
+  reloadConfig();
+  pushLog('ADMIN', `updated plan ${plan}`, { changes: req.body });
+  res.json(cfg.plans[plan]);
+});
+
+// ── GET /admin/api/usage ────────────────────────────────────────────────────
+adminRouter.get('/usage', (_req, res) => {
+  const daily = readJsonFile(path.join(__dirname, 'data', 'daily-usage.json'), {});
+  const subs  = readSubs();
+  const top   = Object.entries(subs)
+    .map(([code, s]) => ({ code, total: s.capturesThisMonth || 0 }))
+    .sort((a, b) => b.total - a.total).slice(0, 10);
+  const active = Object.values(subs).filter(s => (s.capturesThisMonth || 0) > 0);
+  const avg    = active.length ? Math.round(active.reduce((s, x) => s + x.capturesThisMonth, 0) / active.length) : 0;
+  res.json({ daily, topUsers: top, avgCapturesPerUser: avg, totalToday: dailyTotal() });
+});
+
+// ── GET /admin/api/jobs ──────────────────────────────────────────────────────
+adminRouter.get('/jobs', (req, res) => {
+  const filter = req.query.status;
+  const ids    = getAllJobIds();
+  const list   = ids.map(id => {
+    const j = getJob(id);
+    return {
+      jobId: id, url: j.url || (j.pages && j.pages[0] && j.pages[0].url) || '—',
+      status: j.status, template: j.renderConfig && j.renderConfig.template,
+      plan: j.capturedWithPlan || j.planKey || 'free',
+      pages: j.selectedPages ? j.selectedPages.length : 0,
+      ts: j.createdAt || 0,
+      duration: j.completedAt && j.createdAt ? Math.round((j.completedAt - j.createdAt) / 1000) : null,
+    };
+  }).filter(j => !filter || filter === 'all' || j.status === filter)
+    .sort((a, b) => b.ts - a.ts).slice(0, 50);
+  res.json(list);
+});
+
+adminRouter.post('/jobs/:jobId/cancel', (req, res) => {
+  const { jobId } = req.params;
+  if (!validateJobId(jobId)) return res.status(400).json({ error: 'jobId inválido' });
+  const job = getJob(jobId);
+  if (!job) return res.status(404).json({ error: 'Job não encontrado' });
+  markFailed(jobId, 'Cancelado pelo admin');
+  storage.deleteJobDirAsync && storage.deleteJobDirAsync(jobId);
+  pushLog('ADMIN', `cancelled job ${jobId}`);
+  res.json({ ok: true });
+});
+
+adminRouter.get('/jobs/:jobId/inspect', (req, res) => {
+  const { jobId } = req.params;
+  if (!validateJobId(jobId)) return res.status(400).json({ error: 'jobId inválido' });
+  const job = getJob(jobId);
+  if (!job) return res.status(404).json({ error: 'Job não encontrado' });
+  res.json(job);
+});
+
+// ── GET /admin/api/errors ────────────────────────────────────────────────────
+adminRouter.get('/errors', (req, res) => {
+  const type = req.query.type;
+  const list = type ? recentErrors.filter(e => e.type === type) : recentErrors;
+  res.json(list);
+});
+
+adminRouter.post('/errors/clear', (_req, res) => {
+  recentErrors.length = 0;
+  writeJsonFile(ERRORS_FILE, []);
+  pushLog('ADMIN', 'cleared all errors');
+  res.json({ ok: true });
+});
+
+// ── GET /admin/api/logs ──────────────────────────────────────────────────────
+adminRouter.get('/logs', (req, res) => {
+  const level  = req.query.level;
+  const limit  = Math.min(parseInt(req.query.limit || 200, 10), 500);
+  const list   = level ? recentLogs.filter(l => l.level === level) : recentLogs;
+  res.json(list.slice(0, limit));
+});
+
+// ── GET /admin/api/status ────────────────────────────────────────────────────
+adminRouter.get('/status', (_req, res) => {
+  const diskMB = (() => {
+    try {
+      let total = 0;
+      const walk = dir => { for (const f of fs.readdirSync(dir)) { const p = path.join(dir, f); try { const s = fs.statSync(p); if (s.isDirectory()) walk(p); else total += s.size; } catch {} } };
+      walk(SS); return Math.round(total / 1024 / 1024);
+    } catch { return 0; }
+  })();
+  const avgResponseMs = responseTimes.length
+    ? Math.round(responseTimes.slice(0, 10).reduce((s, r) => s + r.ms, 0) / Math.min(responseTimes.length, 10))
+    : 0;
+  const lastWebhook = Object.values(readBilling()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+  res.json({
+    api:         { status: 'ok', avgResponseMs },
+    browserPool: { active: getAllJobIds().filter(id => { const j = getJob(id); return j && j.status === 'capturing'; }).length },
+    storage:     { diskMB, jobsOnDisk: storage.listJobDirsOnDisk ? storage.listJobDirsOnDisk().length : 0 },
+    uptime:      Math.floor(process.uptime()),
+    lastWebhook: lastWebhook ? { ts: lastWebhook.createdAt, plan: lastWebhook.plan } : null,
+    recentErrors: recentErrors.length,
+    recentLogs:   recentLogs.length,
+    responseTimes: responseTimes.slice(0, 10),
+  });
+});
+
+adminRouter.post('/status/ping', async (_req, res) => {
+  const start = Date.now();
+  res.json({ ok: true, ms: Date.now() - start, ts: Date.now() });
+});
+
+// ── Controles ────────────────────────────────────────────────────────────────
+adminRouter.post('/controls/clear-jobs', (_req, res) => {
+  const ids = getAllJobIds();
+  ids.forEach(id => markFailed(id, 'Limpo pelo admin'));
+  pushLog('ADMIN', `cleared ${ids.length} jobs from memory`);
+  res.json({ ok: true, cleared: ids.length });
+});
+
+adminRouter.post('/controls/cleanup-storage', (_req, res) => {
+  storage.runCleanup(() => getAllJobIds());
+  pushLog('ADMIN', 'ran storage cleanup');
+  res.json({ ok: true, message: 'Cleanup executado.' });
+});
+
+adminRouter.post('/controls/reload-config', (_req, res) => {
+  reloadConfig();
+  pushLog('ADMIN', 'reloaded config.json');
+  res.json({ ok: true });
+});
+
+adminRouter.get('/controls/export-backup', (_req, res) => {
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="snapdeck-backup-${new Date().toISOString().slice(0,10)}.zip"`);
+  const arch = archiver('zip', { zlib: { level: 6 } });
+  arch.on('error', err => { if (!res.headersSent) res.status(500).end(); console.error('[backup]', err.message); });
+  arch.pipe(res);
+  const dataDir = path.join(__dirname, 'data');
+  for (const f of fs.readdirSync(dataDir)) {
+    if (f.endsWith('.json')) arch.file(path.join(dataDir, f), { name: f });
+  }
+  arch.finalize();
+  pushLog('ADMIN', 'exported backup ZIP');
+});
+
+adminRouter.post('/controls/generate-code', (req, res) => {
+  const { plan, captures } = req.body || {};
+  if (!plan) return res.status(400).json({ error: 'Plano obrigatório' });
+  const count = captures ? parseInt(captures, 10) : 999999;
+  try {
+    const code = generateCode(count, plan);
+    pushLog('ADMIN', `generated code ${code} for plan ${plan}`);
+    res.json({ code, plan, captures: count });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.post('/controls/maintenance-mode', (req, res) => {
+  const { enabled, message } = req.body || {};
+  maintenanceMode    = !!enabled;
+  if (message) maintenanceMessage = String(message);
+  pushLog('ADMIN', `maintenance mode ${maintenanceMode ? 'ON' : 'OFF'}`, { message: maintenanceMessage });
+  res.json({ ok: true, maintenanceMode, maintenanceMessage });
+});
+
+adminRouter.get('/controls/maintenance-status', (_req, res) => {
+  res.json({ maintenanceMode, maintenanceMessage });
+});
+
+// ── GET /admin/api/active-users ────────────────────────────────────────────
+adminRouter.get('/active-users', (_req, res) => {
+  const users = getActiveUsers();
+  res.json({ count: users.length, users, windowMs: ACTIVE_WINDOW });
+});
+
+// ── Asaas proxy (admin-only) ──────────────────────────────────────────────────
+function adminAsaasReq(method, endpoint, body) {
+  return new Promise((resolve, reject) => {
+    const base = process.env.ASAAS_ENV === 'production'
+      ? 'https://www.asaas.com'
+      : 'https://sandbox.asaas.com';
+    const url  = new URL(`/api/v3${endpoint}`, base);
+    const opts = {
+      hostname: url.hostname,
+      path:     url.pathname + url.search,
+      method,
+      headers: {
+        'access_token': process.env.ASAAS_API_KEY || '',
+        'Content-Type': 'application/json',
+        'User-Agent':   'SnapDeck-Admin/2.0',
+      },
+    };
+    const req = https.request(opts, r => {
+      let data = '';
+      r.on('data', c => data += c);
+      r.on('end', () => {
+        try { resolve({ status: r.statusCode, body: JSON.parse(data) }); }
+        catch { resolve({ status: r.statusCode, body: { raw: data } }); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Asaas timeout')); });
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+
+adminRouter.get('/asaas/balance', async (_req, res) => {
+  try {
+    const r = await adminAsaasReq('GET', '/finance/getCurrentBalance');
+    res.json(r.body);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.get('/asaas/customers', async (req, res) => {
+  try {
+    const qs = new URLSearchParams({
+      limit:  req.query.limit  || 20,
+      offset: req.query.offset || 0,
+      ...(req.query.name  && { name:  req.query.name }),
+      ...(req.query.email && { email: req.query.email }),
+    });
+    const r = await adminAsaasReq('GET', `/customers?${qs}`);
+    res.json(r.body);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.get('/asaas/charges', async (req, res) => {
+  try {
+    const qs = new URLSearchParams({
+      limit:  req.query.limit  || 20,
+      offset: req.query.offset || 0,
+      ...(req.query.status   && { status:   req.query.status }),
+      ...(req.query.customer && { customer: req.query.customer }),
+      ...(req.query.dueDateGe && { dueDateGe: req.query.dueDateGe }),
+      ...(req.query.dueDateLe && { dueDateLe: req.query.dueDateLe }),
+    });
+    const r = await adminAsaasReq('GET', `/payments?${qs}`);
+    res.json(r.body);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.get('/asaas/charges/:id', async (req, res) => {
+  try {
+    const r = await adminAsaasReq('GET', `/payments/${req.params.id}`);
+    res.json(r.body);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.get('/asaas/stats', async (_req, res) => {
+  try {
+    const [bal, recv, pend] = await Promise.all([
+      adminAsaasReq('GET', '/finance/getCurrentBalance'),
+      adminAsaasReq('GET', '/payments?status=RECEIVED&limit=100'),
+      adminAsaasReq('GET', '/payments?status=PENDING&limit=100'),
+    ]);
+    res.json({
+      balance:       bal.body.balance  || 0,
+      totalReceived: recv.body.totalCount || 0,
+      totalPending:  pend.body.totalCount || 0,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.use('/admin/api', adminRouter);
+
+// ── Reconciliação de pagamentos PENDING ───────────────────────────────────────
+// Escaneia billing.json a cada 3 minutos buscando pagamentos PENDING há > 2 min
+// e consulta o Asaas para ver se já foram pagos. Garante que nenhum cliente
+// pague e fique sem código por falha/atraso de webhook.
+async function reconcilePayments() {
+  const billing = readBilling();
+  const now     = Date.now();
+  const TWO_MIN = 2 * 60 * 1000;
+  let activated = 0;
+
+  for (const [id, entry] of Object.entries(billing)) {
+    if (entry.status === 'RECEIVED' || entry.status === 'CONFIRMED' || entry.status === 'paid') continue;
+    if (entry.status === 'REFUNDED' || entry.status === 'OVERDUE') continue;
+    if (!entry.createdAt || (now - entry.createdAt) < TWO_MIN) continue;
+
+    try {
+      const result = await checkPixStatus(id);
+      if (result.status === 'paid' && result.accessCode) {
+        activated++;
+        console.log(`[reconcile] ✓ ativado: ${id} → ${result.accessCode}`);
+        setImmediate(() => dispatchPaymentEmails(id, result.plan || entry.plan || 'starter', null));
+      }
+    } catch (e) {
+      // ignora erros individuais — tenta novamente no próximo ciclo
+    }
+  }
+
+  if (activated > 0) {
+    pushLog('INFO', `[reconcile] ${activated} pagamento(s) ativados`);
+    sendAlert(`✅ Reconciliação: ${activated} pagamento(s) ativados automaticamente`).catch(() => {});
+  }
+}
+
+// ── Backup automático dos dados a cada 6h ────────────────────────────────────
+function autoBackup() {
+  try {
+    const backupDir = path.join(__dirname, 'data', 'backups');
+    fs.mkdirSync(backupDir, { recursive: true });
+    const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const files = ['subscriptions.json', 'billing.json', 'config.json', 'daily-usage.json'];
+    let copied  = 0;
+    for (const f of files) {
+      const src = path.join(__dirname, 'data', f);
+      if (fs.existsSync(src)) {
+        fs.copyFileSync(src, path.join(backupDir, `${ts}__${f}`));
+        copied++;
+      }
+    }
+    // Manter apenas os últimos 48 backups por arquivo (12 dias a cada 6h)
+    const all = fs.readdirSync(backupDir).sort();
+    const byFile = {};
+    for (const f of all) {
+      const key = f.split('__')[1] || f;
+      if (!byFile[key]) byFile[key] = [];
+      byFile[key].push(f);
+    }
+    for (const [, list] of Object.entries(byFile)) {
+      if (list.length > 48) {
+        list.slice(0, list.length - 48).forEach(old => {
+          try { fs.unlinkSync(path.join(backupDir, old)); } catch {}
+        });
+      }
+    }
+    pushLog('INFO', `[backup] ${copied} arquivo(s) copiados`);
+  } catch (e) {
+    console.error('[backup] erro:', e.message);
+  }
+}
+
+// ── Verificação de integridade na startup ────────────────────────────────────
+function verifyDataIntegrity() {
+  const critical = [SUBS_FILE, BILLING_FILE];
+  for (const f of critical) {
+    if (!fs.existsSync(f)) {
+      console.warn(`[integrity] AVISO: ${path.basename(f)} não encontrado — criando vazio.`);
+      fs.writeFileSync(f, '{}');
+      continue;
+    }
+    try {
+      const raw = fs.readFileSync(f, 'utf8');
+      JSON.parse(raw); // valida JSON
+    } catch (e) {
+      const backup = f + '.corrupt.' + Date.now();
+      console.error(`[integrity] CRÍTICO: ${path.basename(f)} corrompido — salvo como ${path.basename(backup)}`);
+      try { fs.renameSync(f, backup); } catch {}
+      fs.writeFileSync(f, '{}');
+      sendAlert(`🚨 <b>CRÍTICO</b> — ${path.basename(f)} corrompido! Backup em ${path.basename(backup)}`).catch(() => {});
+    }
+  }
+  console.log('[integrity] verificação concluída.');
+}
+
 app.listen(PORT, async () => {
-  console.log(`SnapShot.pro rodando em http://localhost:${PORT}`);
+  console.log(`SnapDeck.pro rodando em http://localhost:${PORT}`);
+  verifyDataIntegrity();
+  autoBackup(); // backup imediato na startup
   syncTemplates();
   await initBrowserPool();
   storage.startCleanupScheduler(() => getAllJobIds());
+  setInterval(reconcilePayments, 3 * 60 * 1000).unref();  // a cada 3 min
+  setInterval(autoBackup,        6 * 60 * 60 * 1000).unref(); // a cada 6h
+  console.log('[scheduler] reconciliação de pagamentos e backup automático iniciados.');
 });

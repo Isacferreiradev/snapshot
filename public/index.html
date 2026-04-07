@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SnapShot.pro — Screenshots Profissionais</title>
+  <title>SnapDeck.pro — Screenshots Profissionais</title>
   <meta name="description" content="Screenshots profissionais de qualquer site. Escolha as páginas, selecione um template e baixe o ZIP.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,7 +107,7 @@
 
     /* ═══════════ S1: HERO ═══════════ */
     #s1 { padding:0; }
-    .s-inner--hero { padding:72px 0 120px; }
+    .s-inner--hero { padding:96px 0 120px; }
     .s-inner--mid  { padding:80px 0; }
     .s-inner--tall { padding:48px 0 100px; }
     .hero-badge {
@@ -1098,7 +1098,7 @@
 <!-- Header -->
 <header>
   <div class="hdr">
-    <a class="logo" onclick="resetAll(event)" href="/app">SnapShot<span style="color:rgba(255,255,255,0.35)">.</span>pro</a>
+    <a class="logo" onclick="resetAll(event)" href="/app">SnapDeck<span style="color:rgba(255,255,255,0.35)">.</span>pro</a>
     <div class="hdr-right" style="position:relative;">
       <div id="history-btn" title="Histórico desta sessão" onclick="toggleHistoryDropdown(event)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -1178,7 +1178,7 @@
         </div>
         <div class="stat-item">
           <span class="stat-num" id="quota-num">3</span>
-          <span class="stat-lbl" id="quota-lbl">capturas restantes</span>
+          <span class="stat-lbl" id="quota-lbl">capturas restantes hoje</span>
         </div>
       </div>
     </div>
@@ -1465,7 +1465,7 @@
   <footer>
     <div class="ftr">
       <a href="/app" class="ftr-logo" onclick="resetAll(event)">snapshot.pro</a>
-      <span class="ftr-copy">&copy; 2026 SnapShot.pro</span>
+      <span class="ftr-copy">&copy; 2026 SnapDeck.pro</span>
     </div>
   </footer>
 </div>
@@ -1486,7 +1486,7 @@
 
     <!-- Tela 1: Seleção de plano -->
     <div class="pm-screen active" id="pm-screen-1">
-      <div class="pm-head"><h2>Planos SnapShot.pro</h2></div>
+      <div class="pm-head"><h2>Planos SnapDeck.pro</h2></div>
       <p class="pm-sub">Sem marcas d'água, todos os templates e exportação em alta resolução.</p>
       <div class="pm-grid" id="pm-grid"><!-- rendered by JS --></div>
       <button class="btn btn-p btn-full" id="pm-buy-btn" onclick="handlePkgPurchase()" style="margin-top:4px;">
@@ -1556,6 +1556,7 @@
       <div class="pix-waiting"><div class="pix-dot"></div><div class="pix-dot"></div><div class="pix-dot"></div><span>Aguardando pagamento…</span></div>
       <div class="pix-timer" id="pix-timer"></div>
       <button class="pix-dev-btn" id="pix-dev-btn" onclick="simulatePixPayment()" style="display:none;">⚡ Simular pagamento (dev)</button>
+      <p style="margin-top:14px;font-size:11px;color:rgba(255,255,255,0.3);text-align:center">Pagou e não recebeu o código? <a href="mailto:suporte@snapdeck.pro" style="color:rgba(255,255,255,0.45);text-decoration:underline">suporte@snapdeck.pro</a></p>
     </div>
 
     <!-- Tela 4: Confirmação -->
@@ -1684,7 +1685,8 @@
   }
   function showError(msg) {
     const el = document.getElementById('url-err');
-    el.textContent = msg; el.classList.add('on');
+    el.innerHTML = `${escHtmlInline(msg)} <span style="opacity:.55;font-size:.9em">— dúvidas? <a href="mailto:suporte@snapdeck.pro" style="color:inherit;text-decoration:underline">suporte@snapdeck.pro</a></span>`;
+    el.classList.add('on');
   }
 
   // ── abrirModalUpgrade — alias que preserva o comportamento existente ─────
@@ -1824,7 +1826,9 @@
   }
   async function loadStats() {
     // Mostra capturas do próprio usuário, não o total global
-    const r = await api('/api/plan-status', {}, 5000);
+    const _code = activeCode || localStorage.getItem('snapshot_access_code') || '';
+    const _headers = _code ? { headers: { 'x-access-code': _code } } : {};
+    const r = await api('/api/plan-status', _headers, 5000);
     if (!r.ok) return;
     const d = r.data;
     const el  = document.getElementById('stats-num');
@@ -1867,8 +1871,25 @@
       currentPlan = Object.assign({}, currentPlan, d);
       // Atualizar pill do header
       updatePlanPill(d);
-      // Atualizar métrica da homepage
+      // Atualizar métrica da homepage (quota-num e stats-num)
       atualizarMetricaCapturas(d);
+      // Atualizar stats-num (capturas usadas hoje / este mês)
+      const statsEl  = document.getElementById('stats-num');
+      const statsLbl = statsEl && statsEl.nextElementSibling;
+      if (statsEl) {
+        let val = 0;
+        if (d.plan === 'free') {
+          val = d.capturesUsedToday || 0;
+          if (statsLbl) statsLbl.textContent = 'capturas hoje';
+        } else {
+          const used = (d.capturesPerMonth > 0)
+            ? Math.max(0, d.capturesPerMonth - Math.max(0, d.capturesRemaining || 0))
+            : (d.capturesUsed || 0);
+          val = used;
+          if (statsLbl) statsLbl.textContent = 'capturas este mês';
+        }
+        statsEl.textContent = val;
+      }
     } catch {}
   }
 
@@ -1993,7 +2014,7 @@
   // ── Modal: abrir / fechar ────────────────────────────────────────────────
   window.openPkgModal = function() {
     const head = document.querySelector('.pm-head h2');
-    if (head) head.textContent = 'Planos SnapShot.pro';
+    if (head) head.textContent = 'Planos SnapDeck.pro';
     showPmScreen(1);
     document.getElementById('pkg-modal').classList.add('on');
   };
@@ -2001,7 +2022,7 @@
   // ── Modal de upgrade contextual ──────────────────────────────────────────
   window.openUpgradeModal = function(highlightPlan, reason) {
     const head = document.querySelector('.pm-head h2');
-    if (head) head.textContent = reason || 'Planos SnapShot.pro';
+    if (head) head.textContent = reason || 'Planos SnapDeck.pro';
     showPmScreen(1);
     document.getElementById('pkg-modal').classList.add('on');
     setTimeout(() => {
@@ -3139,6 +3160,33 @@
           requestAnimationFrame(() => thumb.classList.add('in'));
         }
       }
+      if (status === 'failed') {
+        clearInterval(capTimer);
+        // Não volta para homepage — mostra erro inline em s5
+        const errMsg = (r.data && r.data.error) || 'A captura não foi concluída.';
+        document.getElementById('prog-fill').style.background = 'rgba(239,68,68,0.6)';
+        document.getElementById('prog-curr').textContent      = 'Falhou';
+        const capWrap = document.querySelector('.cap-wrap');
+        if (capWrap) {
+          const existing = capWrap.querySelector('.cap-error-box');
+          if (existing) existing.remove();
+          const box = document.createElement('div');
+          box.className = 'cap-error-box';
+          box.style.cssText = 'margin-top:24px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:18px 20px;text-align:left';
+          box.innerHTML = `
+            <div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:6px;">A captura não foi concluída</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:12px;">${escHtmlInline(errMsg)}</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+              <button onclick="tentarNovamenteCaptura()" style="background:#fff;color:#0a0a0a;border:none;border-radius:8px;padding:9px 18px;font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">Tentar novamente</button>
+              <button onclick="show('s1')" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 18px;font-family:Outfit,sans-serif;font-size:13px;cursor:pointer;">Capturar outro site</button>
+            </div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.07);padding-top:12px">
+              Problema persistindo? Fale com a gente: <a href="mailto:suporte@snapdeck.pro" style="color:rgba(255,255,255,0.5);text-decoration:underline">suporte@snapdeck.pro</a>
+            </div>`;
+          capWrap.appendChild(box);
+        }
+        return;
+      }
       if (status === 'ready') {
         clearInterval(capTimer);
         // Force progress to 100% before transitioning
@@ -3176,6 +3224,36 @@
       }
     }, 800);
   }
+
+  function escHtmlInline(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  window.tentarNovamenteCaptura = async function() {
+    const box = document.querySelector('.cap-error-box');
+    if (box) box.remove();
+    document.getElementById('prog-fill').style.background = '';
+    document.getElementById('prog-fill').style.width      = '0%';
+    document.getElementById('prog-curr').textContent      = 'Inicializando…';
+    document.getElementById('prog-done').textContent      = '0';
+    document.getElementById('cap-gallery').innerHTML      = '';
+    // Re-inicia a captura com o mesmo jobId e configuração
+    const btn = document.getElementById('s4-confirm-btn');
+    const txt = document.getElementById('s4-confirm-text');
+    if (btn) { btn.disabled = true; }
+    const renderConfig = {
+      template:    currentTemplate,
+      pageTemplates: Object.keys(pageTemplates).length ? { ...pageTemplates } : undefined,
+    };
+    const r = await post('/api/start-capture', { jobId, renderConfig }, 10000);
+    if (btn) { btn.disabled = false; }
+    if (!r.ok) {
+      showError(humanError((r.data && r.data.error) || 'Erro ao reiniciar captura.'));
+      show('s1');
+      return;
+    }
+    startCapturePoll();
+  };
 
   function updateDownloadPanel() {
     const hasWm      = applyWatermark; // reliable — set from server via capture-progress polling
@@ -3274,7 +3352,7 @@
       card.innerHTML = `
         <div class="prev-img">
           <img src="${previewSrc}" alt="" loading="lazy" onerror="this.parentElement.style.background='#1a1a1a'">
-          <div class="wm-overlay"><span>SNAPSHOT.PRO</span></div>
+          <div class="wm-overlay"><span>SNAPDECK.PRO</span></div>
         </div>
         <div class="prev-body">
           <div class="prev-title">${esc(pg.title||pg.url)}</div>
@@ -3339,7 +3417,18 @@
     }
     const dlModeEl2  = document.querySelector('input[name="dl-mode"]:checked');
     const dlModeVal2 = dlModeEl2 ? dlModeEl2.value : 'full';
-    window.location.href = r.data.checkoutUrl + `?mode=${dlModeVal2}`;
+    const checkoutTarget = r.data.checkoutUrl;
+    // Se for URL de download direto (não redirecionamento externo), o browser não navega —
+    // reabilita o botão após 3s para o usuário poder baixar novamente
+    if (checkoutTarget.startsWith('/api/download/')) {
+      window.location.href = checkoutTarget + (checkoutTarget.includes('?') ? '&' : '?') + `mode=${dlModeVal2}`;
+      setTimeout(() => {
+        btn.disabled    = false;
+        txt.textContent = 'Baixar novamente';
+      }, 3000);
+      return;
+    }
+    window.location.href = checkoutTarget + `?mode=${dlModeVal2}`;
   };
 
   async function downloadZip(mode) {

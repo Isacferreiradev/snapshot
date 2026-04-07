@@ -138,6 +138,7 @@ async function screenshotLimited(page, filePath) {
     clip: { x: 0, y: 0, width: DESKTOP_VP.width, height: Math.min(totalH, 900 * 5) },
     timeout: SHOT_TIMEOUT,
   });
+  await assertScreenshotSize(filePath, page, { w: DESKTOP_VP.width, h: Math.min(totalH, 900 * 5) });
 }
 
 async function screenshotMobileLimited(page, filePath) {
@@ -149,6 +150,21 @@ async function screenshotMobileLimited(page, filePath) {
     clip: { x: 0, y: 0, width: MOBILE_VP.width, height: Math.min(totalH, 844 * 5) },
     timeout: SHOT_TIMEOUT,
   });
+  await assertScreenshotSize(filePath, page, { w: MOBILE_VP.width, h: Math.min(totalH, 844 * 5) });
+}
+
+/** Verifica se o screenshot tem tamanho mínimo razoável. Se for muito pequeno, aguarda e tenta uma vez mais. */
+async function assertScreenshotSize(filePath, page, clip) {
+  const MIN_BYTES = 15000;
+  const stat = fs.statSync(filePath);
+  if (stat.size >= MIN_BYTES) return;
+  console.warn(`[screenshotter] Screenshot suspeito (${stat.size} bytes) — aguardando 2s e retentando: ${filePath}`);
+  await new Promise(r => setTimeout(r, 2000));
+  await page.screenshot({ path: filePath, type: 'png', clip, timeout: SHOT_TIMEOUT });
+  const stat2 = fs.statSync(filePath);
+  if (stat2.size < MIN_BYTES) {
+    console.warn(`[screenshotter] Screenshot ainda pequeno após retry (${stat2.size} bytes) — continuando mesmo assim`);
+  }
 }
 
 async function setupPage(browser, vp, ua, hostname) {
