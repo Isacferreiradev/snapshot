@@ -463,7 +463,8 @@
       "cpfCnpj": "94378754568"
     },
     "activatedAt": 1775590783455,
-    "confirmationEmailSent": true
+    "confirmationEmailSent": true,
+    "reminderSent": true
   },
   "pay_ttbgylui54rbmlsm": {
     "paymentId": "pay_ttbgylui54rbmlsm",
@@ -478,6 +479,7 @@
       "name": "WENIA REIS FERREIRA",
       "email": "aristocrata.black@gmail.com",
       "cpfCnpj": "94378754568"
-    }
+    },
+    "reminderSent": true
   }
 }

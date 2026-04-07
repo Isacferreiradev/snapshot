@@ -5,6 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SnapDeck.pro — Screenshots profissionais do seu site</title>
   <meta name="description" content="Capture screenshots profissionais do seu site em segundos. Templates premium, comparação A/B, exportação social. Comece grátis.">
+
+  <!-- Open Graph / Facebook / WhatsApp -->
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://snapdeck.pro/">
+  <meta property="og:title"       content="SnapDeck.pro — Screenshots profissionais do seu site">
+  <meta property="og:description" content="Cole qualquer URL e receba screenshots profissionais prontos para usar em 60 segundos. Sem instalar nada.">
+  <meta property="og:image"       content="https://snapdeck.pro/og-image.png">
+  <meta property="og:locale"      content="pt_BR">
+  <meta name="twitter:card"       content="summary_large_image">
+
+  <!-- Meta Pixel -->
+  <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+    document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1343135307625371');
+    fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1343135307625371&ev=PageView&noscript=1"/></noscript>
+  <script src="/tracking.js" defer></script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1022,8 +1046,25 @@
   }, { threshold: 0.3 });
   tObserver.observe(templatesEl);
 
-  // ── Checkout helper ─────────────────────────────────────────────────────────
+  // ── ViewContent quando landing carrega ──────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.Track) Track.viewContent();
+  });
+
+  // ── Interceptar CTAs de exploração (StartFlow) ───────────────────────────────
+  // Botões que levam para /app sem iniciar pagamento
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('button, a');
+    if (!btn) return;
+    const href = btn.getAttribute('href') || '';
+    const onclick = btn.getAttribute('onclick') || '';
+    const isFlowCTA = href === '/app' || onclick.includes("'/app'") || onclick.includes('"/app"');
+    if (isFlowCTA && window.Track) Track.startFlow();
+  });
+
+  // ── Checkout helper (InitiateCheckout + compra direta) ───────────────────────
   async function checkout(plan) {
+    if (window.Track) Track.initiateCheckout(plan);
     try {
       const r = await fetch('/api/checkout', {
         method: 'POST',

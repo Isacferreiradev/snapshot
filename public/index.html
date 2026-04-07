@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SnapDeck.pro — Screenshots Profissionais</title>
   <meta name="description" content="Screenshots profissionais de qualquer site. Escolha as páginas, selecione um template e baixe o ZIP.">
+  <!-- Meta Pixel -->
+  <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+    document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1343135307625371');
+    fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1343135307625371&ev=PageView&noscript=1"/></noscript>
+  <script src="/tracking.js" defer></script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -2263,6 +2277,7 @@
           localStorage.removeItem('snapshot_pending_pix');
           localStorage.removeItem('snapshot_pix_data');
           document.getElementById('pix-pending-banner').style.display = 'none';
+          if (window.Track) Track.purchase(r.data.plan || selectedPkg || 'starter');
           showSuccessScreen(r.data.accessCode, r.data.plan || selectedPkg);
           return;
         }
@@ -2833,6 +2848,7 @@
     document.querySelectorAll('.tmpl-card').forEach(c => c.classList.remove('sel'));
     if (el) el.classList.add('sel');
     updatePerPageCustomizeBtn();
+    if (window.Track) Track.selectTemplate(name);
   };
 
   function updatePerPageCustomizeBtn() {
@@ -3163,6 +3179,7 @@
     document.getElementById('prog-curr').textContent  = 'Inicializando…';
     document.getElementById('cap-gallery').innerHTML   = '';
     captureGallery = [];
+    if (window.Track) Track.selectPages();
     show('s5');
     startCapturePoll();
   };
@@ -3261,6 +3278,7 @@
           // [COR-9] Atualizar status do plano após captura
           refreshPlanStatus();
           refreshCapturesRemaining();
+          if (window.Track) Track.viewDownload();
           show('s6');
         }, 400);
       }
@@ -3463,6 +3481,7 @@
     // Se for URL de download direto (não redirecionamento externo), o browser não navega —
     // reabilita o botão após 3s para o usuário poder baixar novamente
     if (checkoutTarget.startsWith('/api/download/')) {
+      if (window.Track) Track.download();
       window.location.href = checkoutTarget + (checkoutTarget.includes('?') ? '&' : '?') + `mode=${dlModeVal2}`;
       setTimeout(() => {
         btn.disabled    = false;
@@ -3497,6 +3516,7 @@
 
   window.handleWatermarkDownload = function() {
     if (!currentJobId) return;
+    if (window.Track) Track.download();
     const dlModeEl  = document.querySelector('input[name="dl-mode"]:checked');
     const dlModeVal = dlModeEl ? dlModeEl.value : 'desktop';
     downloadZip(dlModeVal);

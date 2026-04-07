@@ -1266,7 +1266,15 @@ function readJsonFile(filePath, fallback) {
   try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); } catch { return fallback; }
 }
 function writeJsonFile(filePath, data) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  const tmp = filePath + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  try {
+    fs.renameSync(tmp, filePath);
+  } catch {
+    // fallback para Windows quando rename falha (arquivo em uso)
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    try { fs.unlinkSync(tmp); } catch {}
+  }
 }
 
 // ── GET /admin ────────────────────────────────────────────────────────────────
@@ -2264,7 +2272,10 @@ app.use('/admin/api', adminRouter);
 // Escaneia billing.json a cada 3 minutos buscando pagamentos PENDING há > 2 min
 // e consulta o Asaas para ver se já foram pagos. Garante que nenhum cliente
 // pague e fique sem código por falha/atraso de webhook.
+let _reconcileRunning = false;
 async function reconcilePayments() {
+  if (_reconcileRunning) return; // evita sobreposição de ciclos
+  _reconcileRunning = true;
   const billing = readBilling();
   const now     = Date.now();
   const TWO_MIN = 2 * 60 * 1000;
@@ -2291,6 +2302,7 @@ async function reconcilePayments() {
     pushLog('INFO', `[reconcile] ${activated} pagamento(s) ativados`);
     sendAlert(`✅ Reconciliação: ${activated} pagamento(s) ativados automaticamente`).catch(() => {});
   }
+  _reconcileRunning = false;
 }
 
 // ── Backup automático dos dados a cada 6h ────────────────────────────────────
