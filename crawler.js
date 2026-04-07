@@ -209,15 +209,25 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
       pageType: inferPageType(normalSeed),
     }];
 
-    // ── Remaining pages ────────────────────────────────────────────────────
-    for (let i = 1; i < toVisit.length; i++) {
-      const { url } = toVisit[i];
-      if (url === normalSeed) continue;
+    // ── Remaining pages (paralelo, até 4 thumbnails simultâneas) ─────────────
+    const THUMB_CONCURRENCY = 4;
+    let thumbActive = 0;
+    const thumbQueue = [];
+    const thumbAcquire = () => {
+      if (thumbActive < THUMB_CONCURRENCY) { thumbActive++; return Promise.resolve(); }
+      return new Promise(resolve => thumbQueue.push(() => { thumbActive++; resolve(); }));
+    };
+    const thumbRelease = () => { thumbActive--; if (thumbQueue.length > 0) thumbQueue.shift()(); };
+
+    await Promise.allSettled(toVisit.slice(1).map(async ({ url }, idx) => {
+      const i = idx + 1;
+      if (url === normalSeed) return;
       const fname     = `page-${String(i).padStart(3, '0')}.jpg`;
       const thumbPath = path.join(thumbDir, fname);
       const thumbUrl  = `/screenshots/${jobId}/thumbs/${fname}`;
-      log(`Miniatura ${i}/${toVisit.length - 1}: ${url}`);
+      await thumbAcquire();
       try {
+        log(`Miniatura ${i}/${toVisit.length - 1}: ${url}`);
         let pg;
         try {
           pg = await browser.newPage();
@@ -244,7 +254,8 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
           if (pg) await pg.close().catch(() => {});
         }
       } catch { /* página falhou — continua */ }
-    }
+      finally { thumbRelease(); }
+    }));
 
     log(`Exploração finalizada — ${results.length} página(s) dentro do limite, ${totalFound} descobertas no total.`);
     const rawPages = results.length > 0

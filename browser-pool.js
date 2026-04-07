@@ -2,8 +2,7 @@
 
 const puppeteer = require('puppeteer');
 
-const POOL_SIZE      = 2;
-const POOL_KEEPALIVE = 60000;
+const POOL_SIZE = 3;
 
 const pool = [];
 let poolReady = false;
@@ -33,15 +32,7 @@ async function launchBrowser() {
 
 async function _spawnEntry() {
   const browser = await launchBrowser();
-  const entry = { browser, busy: false, keepAliveTimer: null, temp: false };
-  entry.keepAliveTimer = setInterval(async () => {
-    if (entry.busy) return;
-    try {
-      const page = await browser.newPage();
-      await page.goto('about:blank', { timeout: 3000 }).catch(() => {});
-      await page.close().catch(() => {});
-    } catch {}
-  }, POOL_KEEPALIVE);
+  const entry = { browser, busy: false, temp: false };
   pool.push(entry);
   return entry;
 }
@@ -64,7 +55,6 @@ async function initBrowserPool() {
         await entry.browser.pages(); // ping: lança se o browser morreu
       } catch (err) {
         console.log(`[pool] health check falhou para browser ${i} — reiniciando: ${err.message}`);
-        clearInterval(entry.keepAliveTimer);
         pool.splice(i, 1);
         i--;
         try {
@@ -100,7 +90,6 @@ async function releaseBrowserToPool(entry) {
     entry.busy = false;
   } catch {
     console.log('[pool] browser crashou, substituindo…');
-    clearInterval(entry.keepAliveTimer);
     pool.splice(idx, 1);
     try { await _spawnEntry(); } catch {}
   }

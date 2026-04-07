@@ -16,9 +16,9 @@ const MOBILE_UA  = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) Apple
 // ── Timeouts ──────────────────────────────────────────────────────────────────
 const NAV_DCL_TIMEOUT  = 10000;
 const SELECTOR_TIMEOUT = 6000;
-const RACE_SLEEP       = 5000;
-const POST_LOAD_WAIT   = 600;
-const OVERLAY_TIMEOUT  = 2000;
+const RACE_SLEEP       = 2000;
+const POST_LOAD_WAIT   = 300;
+const OVERLAY_TIMEOUT  = 800;
 const SHOT_TIMEOUT     = 10000;
 const GLOBAL_PAGE_TIMEOUT = 45000;
 const GLOBAL_JOB_TIMEOUT  = 300000;
@@ -218,15 +218,19 @@ async function safeRender(opts, rawFallback) {
   }
 }
 
-// ── Semáforo ──────────────────────────────────────────────────────────────────
+// ── Semáforo (promise-queue, sem busy-wait) ───────────────────────────────────
 function makeSemaphore(limit) {
   let active = 0;
+  const queue = [];
   return {
-    async acquire() {
-      while (active >= limit) await new Promise(r => setTimeout(r, 100));
-      active++;
+    acquire() {
+      if (active < limit) { active++; return Promise.resolve(); }
+      return new Promise(resolve => queue.push(() => { active++; resolve(); }));
     },
-    release() { active--; },
+    release() {
+      active--;
+      if (queue.length > 0) queue.shift()();
+    },
   };
 }
 
@@ -252,40 +256,44 @@ async function _capturePageWithBrowser(browser, validated, dir, cfg, applyWaterm
 
   let dp, mp;
   try {
-    // Desktop
-    dp = await setupPage(browser, desktopVp, DESKTOP_UA, hostname);
-    await navigateFast(dp, validated, captureStrategy);
-    await Promise.race([dismissOverlays(dp), new Promise(r => setTimeout(r, OVERLAY_TIMEOUT))]);
+    // Desktop + Mobile em paralelo
+    [dp, mp] = await Promise.all([
+      setupPage(browser, desktopVp, DESKTOP_UA, hostname),
+      includeMobile ? setupPage(browser, mobileVp, MOBILE_UA, hostname) : Promise.resolve(null),
+    ]);
+    await Promise.all([
+      navigateFast(dp, validated, captureStrategy),
+      mp ? navigateFast(mp, validated, captureStrategy) : Promise.resolve(),
+    ]);
+    await Promise.all([
+      Promise.race([dismissOverlays(dp), new Promise(r => setTimeout(r, OVERLAY_TIMEOUT))]),
+      mp ? Promise.race([dismissOverlays(mp), new Promise(r => setTimeout(r, OVERLAY_TIMEOUT))]) : Promise.resolve(),
+    ]);
     if (!viewportOnly) await triggerLazyLoad(dp);
     const pageTitle = await dp.title().catch(() => validated);
-    if (viewportOnly) {
-      await dp.screenshot({ path: desktopRaw, type: 'png',
-        clip: { x: 0, y: 0, width: desktopVp.width, height: 900 }, timeout: SHOT_TIMEOUT });
-    } else {
-      await screenshotLimited(dp, desktopRaw);
-    }
-    await dp.close().catch(() => {}); dp = null;
 
-    // Mobile (skip se plano não permite)
-    if (includeMobile) {
-      mp = await setupPage(browser, mobileVp, MOBILE_UA, hostname);
-      await navigateFast(mp, validated, captureStrategy);
-      await Promise.race([dismissOverlays(mp), new Promise(r => setTimeout(r, OVERLAY_TIMEOUT))]);
-      if (viewportOnly) {
-        await mp.screenshot({ path: mobileRaw, type: 'png',
-          clip: { x: 0, y: 0, width: mobileVp.width, height: 844 }, timeout: SHOT_TIMEOUT });
-      } else {
-        await screenshotMobileLimited(mp, mobileRaw);
-      }
-      await mp.close().catch(() => {}); mp = null;
-    }
+    // Screenshots em paralelo
+    await Promise.all([
+      viewportOnly
+        ? dp.screenshot({ path: desktopRaw, type: 'png', clip: { x: 0, y: 0, width: desktopVp.width, height: 900 }, timeout: SHOT_TIMEOUT })
+        : screenshotLimited(dp, desktopRaw),
+      mp
+        ? (viewportOnly
+            ? mp.screenshot({ path: mobileRaw, type: 'png', clip: { x: 0, y: 0, width: mobileVp.width, height: 844 }, timeout: SHOT_TIMEOUT })
+            : screenshotMobileLimited(mp, mobileRaw))
+        : Promise.resolve(),
+    ]);
+    await Promise.all([dp.close().catch(() => {}), mp ? mp.close().catch(() => {}) : Promise.resolve()]);
+    dp = null; mp = null;
 
-    // Render templates
-    const deskOk = await safeRender({ screenshotPath: desktopRaw, deviceType: 'desktop', renderConfig: pageCfg, outputPath: desktopOut, pageUrl: validated, pageTitle, applyWatermark: !!applyWatermark }, desktopRaw);
-    const mobOk  = includeMobile
-      ? await safeRender({ screenshotPath: mobileRaw, deviceType: 'mobile', renderConfig: pageCfg, outputPath: mobileOut, pageUrl: validated, pageTitle, applyWatermark: !!applyWatermark }, mobileRaw)
-      : false;
-    await safeRender({ screenshotPath: desktopRaw, deviceType: 'desktop', renderConfig: pageCfg, outputPath: previewOut, pageUrl: validated, pageTitle, applyWatermark: !!applyWatermark }, desktopRaw);
+    // Renders em paralelo (desktop, mobile, preview)
+    const [deskOk, mobOk] = await Promise.all([
+      safeRender({ screenshotPath: desktopRaw, deviceType: 'desktop', renderConfig: pageCfg, outputPath: desktopOut, pageUrl: validated, pageTitle, applyWatermark: !!applyWatermark }, desktopRaw),
+      includeMobile
+        ? safeRender({ screenshotPath: mobileRaw, deviceType: 'mobile', renderConfig: pageCfg, outputPath: mobileOut, pageUrl: validated, pageTitle, applyWatermark: !!applyWatermark }, mobileRaw)
+        : Promise.resolve(false),
+      safeRender({ screenshotPath: desktopRaw, deviceType: 'desktop', renderConfig: pageCfg, outputPath: previewOut, pageUrl: validated, pageTitle, applyWatermark: !!applyWatermark }, desktopRaw),
+    ]);
 
     if (cfg && cfg.socialExport) {
       const socialDir = path.join(dir, 'social');

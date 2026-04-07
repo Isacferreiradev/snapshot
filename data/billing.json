@@ -445,6 +445,39 @@
       "cpfCnpj": "94378754568"
     },
     "activatedAt": 1775589172665,
+    "confirmationEmailSent": true,
+    "reminderSent": true
+  },
+  "pay_26dv3aup9b1yd2fa": {
+    "paymentId": "pay_26dv3aup9b1yd2fa",
+    "customerId": "cus_000167958869",
+    "plan": "starter",
+    "amount": 19.9,
+    "status": "RECEIVED",
+    "accessCode": "SNAP-B9A2-6E14-BDBA",
+    "createdAt": 1775590780513,
+    "expiresAt": 1807239599000,
+    "customer": {
+      "name": "WENIA REIS FERREIRA",
+      "email": "aristocrata.black@gmail.com",
+      "cpfCnpj": "94378754568"
+    },
+    "activatedAt": 1775590783455,
     "confirmationEmailSent": true
+  },
+  "pay_ttbgylui54rbmlsm": {
+    "paymentId": "pay_ttbgylui54rbmlsm",
+    "customerId": "cus_000167958869",
+    "plan": "pro",
+    "amount": 49.9,
+    "status": "PENDING",
+    "accessCode": null,
+    "createdAt": 1775590852077,
+    "expiresAt": 1807239599000,
+    "customer": {
+      "name": "WENIA REIS FERREIRA",
+      "email": "aristocrata.black@gmail.com",
+      "cpfCnpj": "94378754568"
+    }
   }
 }
