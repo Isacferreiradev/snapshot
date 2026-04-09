@@ -476,9 +476,6 @@
       gap: 20px;
       margin-top: 56px;
     }
-    @media (max-width: 900px) {
-      .plans-grid { grid-template-columns: repeat(2, 1fr); }
-    }
     .plan-card {
       background: var(--card-bg);
       border: 1px solid var(--border-subtle);
@@ -593,51 +590,150 @@
     .footer-links a { font-size: 13px; color: var(--text-tertiary); text-decoration: none; transition: color var(--transition); }
     .footer-links a:hover { color: var(--text-secondary); }
 
-    /* ── Responsive ──────────────────────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════════════════
+       RESPONSIVE — MOBILE FIRST
+       ═══════════════════════════════════════════════════════════════════════ */
     html, body { overflow-x: hidden; }
     img { max-width: 100%; height: auto; }
 
-    @media (max-width: 900px) {
-      .plans-grid { grid-template-columns: repeat(2, 1fr); }
+    /* ── Global responsive container ── */
+    .container { padding: 0 clamp(14px, 4vw, 32px); }
+    .header    { padding: 0 clamp(14px, 4vw, 32px); }
+
+    /* ═══ ≤ 1024px — Desktop small ═══════════════════════════════════════ */
+    @media (max-width: 1024px) {
+      .plans-grid     { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+      .templates-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
     }
 
+    /* ═══ ≤ 768px — Tablet ═══════════════════════════════════════════════ */
     @media (max-width: 768px) {
-      .header    { padding: 0 16px; }
-      .container { padding: 0 16px; }
       section    { padding: 56px 0; }
       .hero      { padding: 60px 0 48px; }
       .metrics   { padding: 40px 0; }
-      .metrics-grid { grid-template-columns: 1fr; }
-      .metric-card  { padding: 28px 20px; }
-      .ba-grid      { grid-template-columns: 1fr; }
+
+      /* Grids */
+      .metrics-grid   { grid-template-columns: 1fr; }
+      .metric-card    { padding: 28px 20px; }
+      .ba-grid        { grid-template-columns: 1fr; }
       .templates-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-      .plans-grid   { grid-template-columns: 1fr; }
-      .plan-card    { padding: 24px 20px; }
-      .cta-card     { padding: 40px 20px; }
-      .cta-card p   { font-size: 15px; }
+      .plans-grid     { grid-template-columns: 1fr; gap: 14px; }
+      .plan-card      { padding: 24px 20px; }
+
+      /* CTA */
+      .cta-card   { padding: 40px 20px; }
+      .cta-card p { font-size: 15px; }
+
+      /* Header */
       .header-nav .btn-ghost { display: none; }
+
+      /* Checkout modal */
+      .pm-inner   { padding: 24px 18px; margin: 12px; border-radius: 16px; }
+      .pm-grid    { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .pkg-card   { padding: 16px 14px; }
+      .co-row     { grid-template-columns: 1fr; gap: 10px; }
+
+      /* Touch targets */
+      .btn-hero, .btn-hero-ghost { padding: 14px 24px; min-height: 48px; }
+      .plan-cta   { min-height: 46px; }
+      summary     { padding: 18px 0; min-height: 48px; }
     }
 
+    /* ═══ ≤ 480px — Mobile ═══════════════════════════════════════════════ */
     @media (max-width: 480px) {
-      .header    { padding: 0 14px; }
-      .container { padding: 0 14px; }
       section    { padding: 40px 0; }
       .hero      { padding: 40px 0 36px; }
-      .hero-cta  { flex-direction: column; align-items: stretch; }
-      .btn-hero, .btn-hero-ghost { width: 100%; text-align: center; padding: 13px 20px; font-size: 15px; }
-      .templates-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .plans-grid     { grid-template-columns: 1fr; }
-      .step      { gap: 16px; padding: 24px 0; }
-      .step-num  { width: 36px; height: 36px; font-size: 14px; }
+
+      /* Typography */
+      .section-sub   { font-size: 15px; }
+      .section-title { margin-bottom: 12px; }
+      .section-label { font-size: 11px; margin-bottom: 10px; }
+
+      /* Hero CTA — stack buttons */
+      .hero-cta { flex-direction: column; align-items: stretch; }
+      .btn-hero, .btn-hero-ghost {
+        width: 100%; text-align: center;
+        padding: 14px 20px; font-size: 15px; min-height: 48px;
+      }
+
+      /* Steps */
+      .step       { gap: 16px; padding: 24px 0; }
+      .step-num   { width: 36px; height: 36px; font-size: 14px; }
       .step-title { font-size: 17px; }
+      .steps::before { left: 17px; }
+
+      /* Browser mockup */
       .browser-mockup { border-radius: 10px; }
-      .browser-content { aspect-ratio: unset; min-height: 160px; }
-      .browser-content-inner { grid-template-columns: 1fr 1fr 1fr; height: auto; gap: 8px; padding: 12px; }
+      .browser-content { aspect-ratio: unset; min-height: 140px; }
+      .browser-content-inner { gap: 8px; padding: 12px; }
       .mock-img  { height: 44px; }
       .mock-card { padding: 10px; gap: 5px; }
+
+      /* Metrics */
       .metrics-grid { grid-template-columns: 1fr; }
-      .cta-card  { padding: 32px 16px; border-radius: 16px; }
+
+      /* Plans */
+      .plans-grid { grid-template-columns: 1fr; }
+      .plan-card  { padding: 22px 18px; }
+
+      /* CTA card */
+      .cta-card { padding: 32px 16px; border-radius: 16px; }
+
+      /* Footer */
       .footer-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+
+      /* Checkout modal */
+      .pm-inner   { padding: 18px 14px; margin: 0 8px; }
+      .pm-grid    { grid-template-columns: 1fr; gap: 8px; }
+      .pm-head h2 { font-size: 18px; }
+      .pm-sub     { font-size: 13px; margin-bottom: 16px; }
+      .pkg-card   { padding: 14px 12px; }
+      .pkg-cap    { font-size: 24px; }
+      .co-summary { flex-direction: column; gap: 6px; align-items: flex-start; }
+      .co-summary-price { font-size: 20px; }
+
+      /* PIX */
+      .pix-copy-row { flex-direction: column; gap: 6px; }
+      .pix-copy-btn { width: 100%; text-align: center; min-height: 44px; }
+      .pix-code-text { width: 100%; }
+      .pix-qr-box { width: min(180px, 70vw); height: min(180px, 70vw); }
+    }
+
+    /* ═══ ≤ 380px — Small mobile ═════════════════════════════════════════ */
+    @media (max-width: 380px) {
+      .hero-badge { font-size: 11px; padding: 4px 10px; }
+      .hero-sub   { font-size: 14px; }
+
+      /* Browser mockup — 2 col on tiny */
+      .browser-content-inner { grid-template-columns: 1fr 1fr; }
+      .browser-content-inner .mock-card:nth-child(3) { display: none; }
+
+      /* Template info */
+      .template-info { padding: 10px 12px; }
+      .template-name { font-size: 13px; }
+
+      /* Plan card touch */
+      .plan-cta { min-height: 48px; font-size: 14px; }
+
+      /* PM code row */
+      .pm-code-row { flex-direction: column; gap: 6px; }
+      .pm-code-row input { width: 100%; }
+      .pm-code-row .btn-g { width: 100%; height: 44px !important; }
+
+      /* FAQ */
+      .faq-body { font-size: 14px; }
+    }
+
+    /* ═══ ≤ 320px — Ultra small ══════════════════════════════════════════ */
+    @media (max-width: 320px) {
+      .hero h1 { font-size: 28px; }
+      .hero-sub { font-size: 13px; margin: 8px 0 20px; }
+      .hero-cta { margin-bottom: 32px; }
+      .logo { font-size: 15px; }
+      .metric-num { font-size: 28px; }
+      .metric-card { padding: 20px 14px; }
+      .templates-grid { grid-template-columns: 1fr; gap: 10px; }
+      .plan-price { font-size: 32px; }
     }
 
     /* ── Checkout Modal ──────────────────────────────────────────────────────── */

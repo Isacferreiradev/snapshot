@@ -297,6 +297,166 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .asaas-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#00d4a0;background:rgba(0,212,160,.08);border:1px solid rgba(0,212,160,.2);border-radius:4px;padding:2px 6px}
 .pag-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--bd);font-size:12px;color:var(--mu)}
 .pag-btns{display:flex;gap:4px}
+
+/* ─── HAMBURGER TOGGLE ────────────────────────────────────────────────────── */
+.sb-toggle{display:none;position:fixed;top:10px;left:10px;z-index:201;width:40px;height:40px;border-radius:var(--r);background:var(--sf);border:1px solid var(--bd2);color:var(--tx);cursor:pointer;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:all .15s}
+.sb-toggle:hover{background:var(--sf3);border-color:var(--bd3)}
+.sb-overlay{display:none;position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.5);backdrop-filter:blur(4px)}
+.sb-overlay.open{display:block}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE FIRST
+   ═══════════════════════════════════════════════════════════════════════════ */
+html,body{overflow-x:hidden}
+img{max-width:100%;height:auto}
+
+/* ═══ ≤ 1280px — Large desktop ═══════════════════════════════════════════ */
+@media(max-width:1280px){
+  .kpi-grid{grid-template-columns:repeat(4,1fr);gap:10px}
+  .main{padding:24px 24px}
+}
+
+/* ═══ ≤ 1024px — Desktop small / Tablet landscape ════════════════════════ */
+@media(max-width:1024px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .controls-grid{grid-template-columns:repeat(2,1fr)}
+  .health-grid{grid-template-columns:repeat(2,1fr)}
+  .three-col{grid-template-columns:1fr 1fr}
+  .main{padding:20px 20px}
+}
+
+/* ═══ ≤ 768px — Tablet / Mobile landscape ════════════════════════════════ */
+@media(max-width:768px){
+  /* Sidebar off-canvas */
+  .sidebar{transform:translateX(-100%);transition:transform .25s ease;z-index:100;width:260px}
+  .sidebar.open{transform:translateX(0)}
+  .sb-toggle{display:flex}
+  
+  /* Main full-width */
+  .main{margin-left:0;padding:60px 16px 24px}
+  
+  /* Topbar reset */
+  .topbar{left:0}
+  .topbar-inner{padding:8px 16px}
+  
+  /* KPI */
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .kpi-val{font-size:20px}
+  .kpi-card{padding:14px 16px}
+  
+  /* Grids */
+  .two-col{grid-template-columns:1fr}
+  .three-col{grid-template-columns:1fr}
+  .controls-grid{grid-template-columns:1fr 1fr}
+  .health-grid{grid-template-columns:1fr 1fr}
+  
+  /* Page header */
+  .page-header{flex-direction:column;gap:12px;align-items:stretch}
+  .page-actions{justify-content:flex-start;flex-wrap:wrap}
+  .page-title{font-size:18px}
+  
+  /* Form */
+  .form-row{grid-template-columns:1fr}
+  
+  /* Tables */
+  .tbl-wrap{-webkit-overflow-scrolling:touch}
+  td,th{padding:9px 12px;font-size:12px}
+  .truncate{max-width:140px}
+  
+  /* Stat row */
+  .stat-row{flex-direction:column;gap:8px}
+  .stat-pill{min-width:auto}
+  
+  /* Modal */
+  .modal-box{max-width:calc(100vw - 24px);margin:12px;max-height:88vh}
+  #modal-overlay{padding:12px}
+  
+  /* CMD palette */
+  .cmd-box{max-width:calc(100vw - 24px)}
+  #cmd-overlay{padding-top:10vh}
+  
+  /* Login card */
+  .lcard{max-width:calc(100vw - 32px);margin:0 16px}
+  .lform{padding:20px}
+  .linfogrid{padding:0 20px 20px}
+  .ltopbar{padding:0 16px}
+  .ltopbar-right{display:none}
+  
+  /* Toast */
+  #toast-wrap{right:12px;left:12px;bottom:12px}
+  .toast{min-width:auto;width:100%}
+  
+  /* Buttons - touch targets */
+  .btn{height:36px;padding:0 14px;font-size:12px}
+  .btn.sm{height:32px}
+  .btn.xs{height:28px}
+  .lbtn{height:46px;font-size:15px}
+  .sb-logout{height:36px;font-size:12px}
+}
+
+/* ═══ ≤ 600px — Mobile landscape / Small tablet ══════════════════════════ */
+@media(max-width:600px){
+  .controls-grid{grid-template-columns:1fr}
+  .health-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi-val{font-size:18px}
+  .kpi-label{font-size:10px}
+  .card-head{padding:12px 16px}
+  .card-body{padding:16px}
+  .search-bar{padding:8px 12px}
+}
+
+/* ═══ ≤ 480px — Mobile ═══════════════════════════════════════════════════ */
+@media(max-width:480px){
+  .main{padding:56px 12px 20px}
+  
+  /* KPI */
+  .kpi-grid{grid-template-columns:1fr;gap:6px}
+  .kpi-card{padding:12px 14px}
+  .kpi-val{font-size:22px}
+  
+  /* Login */
+  .lcard{border-radius:14px}
+  .lcard-brand{padding:20px 18px 16px;gap:10px}
+  .lcard-title{font-size:14px}
+  .lmetrics{grid-template-columns:1fr}
+  .lmetric{padding:10px 14px}
+  .lform{padding:16px 18px}
+  .linfogrid{grid-template-columns:1fr;padding:0 18px 18px;gap:6px}
+  .field-input{font-size:16px;padding:12px}
+  
+  /* Page header */
+  .page-title{font-size:16px}
+  .page-sub{font-size:11px}
+  
+  /* Table cells */
+  td,th{padding:8px 10px;font-size:11px}
+  
+  /* Modal */
+  .modal-box{border-radius:var(--r);max-height:92vh}
+  .modal-head{padding:14px 16px}
+  .modal-body{padding:16px}
+  
+  /* CMD palette */
+  .cmd-box{border-radius:12px}
+  .cmd-item{padding:10px 12px;font-size:12px}
+  
+  /* Sidebar */
+  .sidebar{width:calc(100vw - 60px);max-width:280px}
+  
+  /* Pag row */
+  .pag-row{flex-wrap:wrap;gap:8px;justify-content:center}
+}
+
+/* ═══ ≤ 360px — Small mobile ═════════════════════════════════════════════ */
+@media(max-width:360px){
+  .main{padding:52px 10px 16px}
+  .sb-toggle{width:36px;height:36px;font-size:16px;top:8px;left:8px}
+  .lcard-brand{flex-direction:column;align-items:flex-start}
+  .lbottom{font-size:9px}
+  .page-actions{flex-direction:column}
+  .page-actions .btn,.page-actions .inp{width:100%}
+}
 </style>
 </head>
 <body>
@@ -368,6 +528,10 @@ tr:hover td{background:rgba(255,255,255,.015)}
 
 <!-- ─── APP ───────────────────────────────────────────────────────────────── -->
 <div id="app">
+  <button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()" aria-label="Menu">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+  <div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
   <div class="layout">
     <aside class="sidebar" id="sidebar"></aside>
     <main class="main" id="main"></main>
@@ -608,6 +772,21 @@ function navigate(id) {
   if (nav) nav.classList.add('active');
   const pane = PANES.find(p => p.id === id);
   renderPane(id);
+  closeSidebar();
+}
+
+// ─── SIDEBAR TOGGLE ──────────────────────────────────────────────────────────
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sb-overlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('open');
+}
+function closeSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sb-overlay');
+  if (sb) sb.classList.remove('open');
+  if (ov) ov.classList.remove('open');
 }
 
 // ─── LIVE USERS POLLING ───────────────────────────────────────────────────────
