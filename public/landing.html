@@ -630,7 +630,6 @@
       .step      { gap: 16px; padding: 24px 0; }
       .step-num  { width: 36px; height: 36px; font-size: 14px; }
       .step-title { font-size: 17px; }
-      /* Browser mockup: remove fixed aspect-ratio so mock cards aren't clipped */
       .browser-mockup { border-radius: 10px; }
       .browser-content { aspect-ratio: unset; min-height: 160px; }
       .browser-content-inner { grid-template-columns: 1fr 1fr 1fr; height: auto; gap: 8px; padding: 12px; }
@@ -640,6 +639,97 @@
       .cta-card  { padding: 32px 16px; border-radius: 16px; }
       .footer-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
     }
+
+    /* ── Checkout Modal ──────────────────────────────────────────────────────── */
+    #pkg-modal { display:none; position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.82); backdrop-filter:blur(8px); align-items:center; justify-content:center; }
+    #pkg-modal.on { display:flex; }
+    .pm-inner { background:#141414; border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:32px; max-width:860px; width:100%; margin:16px; box-shadow:0 24px 72px rgba(0,0,0,0.7); position:relative; max-height:92vh; overflow-y:auto; }
+    .pm-screen { display:none; }
+    .pm-screen.active { display:block; }
+    .pm-close-btn { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.07); border:none; color:rgba(255,255,255,0.5); font-size:16px; cursor:pointer; padding:6px 10px; border-radius:8px; line-height:1; transition:all 150ms; }
+    .pm-close-btn:hover { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); }
+    .pm-head h2 { font-size:20px; font-weight:700; margin-bottom:6px; color:rgba(255,255,255,0.95); }
+    .pm-sub { font-size:14px; color:rgba(255,255,255,0.5); margin-bottom:24px; }
+    .pm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+    @media(max-width:600px) { .pm-grid { grid-template-columns:1fr; } }
+    .pkg-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:22px 18px; cursor:pointer; transition:all 150ms; text-align:left; position:relative; }
+    .pkg-card:hover { border-color:rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); }
+    .pkg-card.sel { border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.07); box-shadow:0 0 0 1px rgba(255,255,255,0.15); }
+    .pkg-badge { font-size:10px; font-weight:700; letter-spacing:0.06em; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.5); margin-bottom:14px; display:inline-block; text-transform:uppercase; }
+    .pkg-badge.best { background:rgba(100,220,130,0.18); color:#7eed9f; }
+    .pkg-cap { font-size:32px; font-weight:800; letter-spacing:-0.03em; color:rgba(255,255,255,0.95); line-height:1; }
+    .pkg-cap-label { font-size:11px; color:rgba(255,255,255,0.32); margin:5px 0 12px; }
+    .pkg-price { font-size:16px; font-weight:700; color:rgba(255,255,255,0.95); margin-bottom:16px; }
+    .pkg-chk { position:absolute; top:14px; right:14px; width:20px; height:20px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 150ms; }
+    .pkg-card.sel .pkg-chk { opacity:1; }
+    .pkg-feats { list-style:none; text-align:left; display:flex; flex-direction:column; gap:8px; margin-top:6px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.07); }
+    .pkg-feats li { font-size:12.5px; color:rgba(255,255,255,0.6); display:flex; align-items:flex-start; gap:8px; line-height:1.4; }
+    .pkg-feats li::before { content:'✓'; color:#4ade80; font-size:11px; font-weight:700; flex-shrink:0; margin-top:1px; }
+    .pm-divider { display:flex; align-items:center; gap:12px; margin:20px 0 16px; font-size:12px; color:rgba(255,255,255,0.32); }
+    .pm-divider::before,.pm-divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.07); }
+    .pm-code-label { font-size:12px; font-weight:500; color:rgba(255,255,255,0.32); margin-bottom:8px; }
+    .pm-code-row { display:flex; gap:8px; margin-bottom:8px; }
+    .pm-code-row input { flex:1; background:#0a0a0a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:11px 14px; color:rgba(255,255,255,0.9); font-family:inherit; font-size:14px; outline:none; }
+    .pm-code-row .btn-g { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:rgba(255,255,255,0.8); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:all 150ms; }
+    .pm-code-row .btn-g:hover { background:rgba(255,255,255,0.13); }
+    .code-status { font-size:12px; }
+    .code-status.ok  { color:#4ade80; }
+    .code-status.bad { color:#f87171; }
+    .btn-buy-main { width:100%; background:#fff; color:#0a0a0a; border:none; border-radius:10px; padding:14px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; transition:background 150ms; margin-top:4px; }
+    .btn-buy-main:hover { background:#e8e8e8; }
+    .co-back { background:none; border:none; color:rgba(255,255,255,0.4); font-family:inherit; font-size:13px; cursor:pointer; padding:0; margin-bottom:20px; display:flex; align-items:center; gap:6px; transition:color 150ms; }
+    .co-back:hover { color:rgba(255,255,255,0.8); }
+    .co-summary { background:#0f0f0f; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px 18px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; }
+    .co-summary-name { font-size:15px; font-weight:700; color:rgba(255,255,255,0.95); }
+    .co-summary-price { font-size:22px; font-weight:800; letter-spacing:-0.02em; color:rgba(255,255,255,0.95); }
+    .co-summary-sub { font-size:11px; color:rgba(255,255,255,0.35); margin-top:2px; }
+    .co-form { display:flex; flex-direction:column; gap:12px; margin-bottom:20px; }
+    .co-field { display:flex; flex-direction:column; gap:5px; }
+    .co-label { font-size:11px; font-weight:600; color:rgba(255,255,255,0.4); letter-spacing:0.05em; text-transform:uppercase; }
+    .co-input { background:#0a0a0a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:11px 14px; color:rgba(255,255,255,0.9); font-family:inherit; font-size:14px; outline:none; transition:border-color 150ms; }
+    .co-input:focus { border-color:rgba(255,255,255,0.35); }
+    .co-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media(max-width:420px) { .co-row { grid-template-columns:1fr; } }
+    .co-submit { width:100%; background:#fff; color:#0a0a0a; border:none; border-radius:10px; padding:14px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; transition:background 150ms; margin-top:4px; }
+    .co-submit:hover { background:#e8e8e8; }
+    .co-submit:disabled { background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.4); cursor:not-allowed; }
+    .co-err { font-size:12px; color:#f87171; min-height:16px; margin-top:2px; }
+    .pix-field-error { font-size:12px; color:#ef4444; display:none; margin-top:4px; }
+    .pix-amount { font-size:36px; font-weight:800; letter-spacing:-0.03em; color:#fff; text-align:center; margin-bottom:4px; }
+    .pix-plan-name { font-size:13px; color:rgba(255,255,255,0.4); text-align:center; margin-bottom:24px; }
+    .pix-qr-wrap { display:flex; justify-content:center; margin-bottom:20px; }
+    .pix-qr-box { width:200px; height:200px; }
+    .pix-copy-row { display:flex; align-items:center; gap:8px; margin-bottom:20px; }
+    .pix-code-text { flex:1; font-family:monospace; font-size:11px; color:rgba(255,255,255,0.45); background:#0a0a0a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px 12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pix-copy-btn { flex-shrink:0; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.7); font-family:inherit; font-size:12px; font-weight:600; padding:10px 14px; cursor:pointer; white-space:nowrap; transition:all 150ms; }
+    .pix-copy-btn:hover { background:rgba(255,255,255,0.13); }
+    .pix-instruction { text-align:center; font-size:13px; color:rgba(255,255,255,0.4); margin-bottom:20px; line-height:1.5; }
+    .pix-timer { text-align:center; font-size:12px; color:rgba(255,255,255,0.28); margin-bottom:16px; }
+    .pix-timer.warn { color:#f87171; }
+    .pix-waiting { display:flex; align-items:center; justify-content:center; gap:8px; font-size:12px; color:rgba(255,255,255,0.3); margin-bottom:12px; }
+    .pix-dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.3); animation:dot-blink 1.4s ease-in-out infinite; }
+    .pix-dot:nth-child(2){ animation-delay:.2s; }
+    .pix-dot:nth-child(3){ animation-delay:.4s; }
+    @keyframes dot-blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+    .pix-dev-btn { display:block; width:100%; margin-top:8px; background:none; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; padding:10px; color:rgba(255,255,255,0.3); font-family:inherit; font-size:12px; cursor:pointer; transition:all 150ms; }
+    .pix-dev-btn:hover { border-color:rgba(255,255,255,0.3); color:rgba(255,255,255,0.6); }
+    .pix-spinner { width:20px; height:20px; border:2px solid rgba(255,255,255,0.1); border-top-color:rgba(255,255,255,0.6); border-radius:50%; animation:spin .8s linear infinite; display:inline-block; margin:0 auto; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .pix-success-wrap { text-align:center; padding:8px 0; }
+    .check-svg-wrap { width:80px; height:80px; margin:0 auto 24px; }
+    .check-circle-anim { stroke:#4ade80; stroke-width:2.5; fill:none; stroke-dasharray:166; stroke-dashoffset:166; stroke-linecap:round; animation:stroke-anim .6s cubic-bezier(.65,0,.45,1) .2s forwards; }
+    .check-mark-anim { stroke:#4ade80; stroke-width:2.5; fill:none; stroke-dasharray:48; stroke-dashoffset:48; stroke-linecap:round; stroke-linejoin:round; animation:stroke-anim .4s cubic-bezier(.65,0,.45,1) .7s forwards; }
+    .check-bg-circle { fill:rgba(74,222,128,0.06); }
+    @keyframes stroke-anim { to { stroke-dashoffset:0; } }
+    .pix-success-title { font-size:24px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px; color:rgba(255,255,255,0.95); }
+    .pix-success-sub { font-size:14px; color:rgba(255,255,255,0.45); margin-bottom:28px; }
+    .pix-access-box { background:#0f0f0f; border:1px solid rgba(255,255,255,0.15); border-radius:12px; padding:20px; margin-bottom:20px; }
+    .pix-access-code { font-family:monospace; font-size:19px; font-weight:700; letter-spacing:0.15em; color:#fff; word-break:break-all; margin-bottom:12px; }
+    .pix-access-copy { width:100%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:10px; color:rgba(255,255,255,0.7); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:all 150ms; }
+    .pix-access-copy:hover { background:rgba(255,255,255,0.13); }
+    .pix-save-warn { font-size:12px; color:rgba(255,255,255,0.28); margin-bottom:24px; line-height:1.5; }
+    .pix-start-btn { width:100%; background:#fff; color:#0a0a0a; border:none; border-radius:10px; padding:14px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; transition:background 150ms; }
+    .pix-start-btn:hover { background:#e8e8e8; }
   </style>
 </head>
 <body>
@@ -1062,19 +1152,480 @@
     if (isFlow && window.Track) Track.trackStartFlow();
   });
 
-  // ── openCheckout — função global para todos os botões de compra ──────────────
-  // Redireciona para /app com ?checkout=<plan> e fonte marcada.
-  // O app detecta o param e abre o modal automaticamente.
+  // ── openCheckout — abre modal de checkout direto na landing ─────────────────
   function openCheckout(plan) {
     if (window.Track) Track.trackInitiateCheckout('landing', plan);
-    // Pequeno delay para garantir que o evento seja enviado antes do redirect
-    setTimeout(() => {
-      window.location.href = '/app?checkout=' + encodeURIComponent(plan);
-    }, 120);
+    landingLoadPlans().then(() => {
+      if (plan) {
+        landingSelectPlan(plan);
+        landingShowScreen(2);
+      } else {
+        landingShowScreen(1);
+      }
+      document.getElementById('pkg-modal').classList.add('on');
+    });
+  }
+  function checkout(plan) { openCheckout(plan); }
+</script>
+
+<!-- ═══ PURCHASE MODAL ═══ -->
+<div id="pkg-modal" onclick="landingClosePkgModal(event)">
+  <div class="pm-inner">
+    <button class="pm-close-btn" onclick="landingClosePkgModal()">✕</button>
+
+    <!-- Tela 1: Seleção de plano -->
+    <div class="pm-screen active" id="pm-screen-1">
+      <div class="pm-head"><h2>Planos SnapDeck.pro</h2></div>
+      <p class="pm-sub">Sem marcas d'água, todos os templates e exportação em alta resolução.</p>
+      <div class="pm-grid" id="pm-grid"></div>
+      <button class="btn-buy-main" id="pm-buy-btn" onclick="landingHandlePurchase()">
+        <span id="pm-buy-text">Escolha um plano</span>
+      </button>
+      <div class="pm-divider">Já assinou?</div>
+      <div class="pm-code-label">Insira seu código de acesso</div>
+      <div class="pm-code-row">
+        <input id="pm-code-input" type="text" placeholder="SNAP-XXXX-XXXX-XXXX" style="text-transform:uppercase;letter-spacing:0.06em;" autocomplete="off">
+        <button class="btn-g" style="height:48px;width:90px;flex-shrink:0;" onclick="landingApplyCode()">Aplicar</button>
+      </div>
+      <div class="code-status" id="pm-code-status"></div>
+    </div>
+
+    <!-- Tela 2: Formulário de checkout -->
+    <div class="pm-screen" id="pm-screen-2">
+      <button class="co-back" onclick="landingShowScreen(1)">← Voltar aos planos</button>
+      <div class="co-summary" id="co-summary">
+        <div>
+          <div class="co-summary-name" id="co-plan-name">—</div>
+          <div class="co-summary-sub">Assinatura mensal · Cancele quando quiser</div>
+        </div>
+        <div class="co-summary-price" id="co-plan-price">R$ —,—</div>
+      </div>
+      <form class="co-form" id="co-form" onsubmit="return false;">
+        <div id="pix-general-error" class="co-err" style="display:none;margin-bottom:4px;"></div>
+        <div class="co-field">
+          <label class="co-label">Nome completo</label>
+          <input class="co-input" id="co-name" type="text" placeholder="Seu nome completo" autocomplete="name" required>
+        </div>
+        <div class="co-field">
+          <label class="co-label">E-mail</label>
+          <input class="co-input" id="co-email" type="email" placeholder="seu@email.com" autocomplete="email" required>
+        </div>
+        <div class="co-row">
+          <div class="co-field">
+            <label class="co-label">CPF ou CNPJ</label>
+            <input class="co-input" id="co-cpf" type="text" placeholder="000.000.000-00" maxlength="18" autocomplete="off">
+            <span class="pix-field-error" id="pix-taxid-error"></span>
+          </div>
+          <div class="co-field">
+            <label class="co-label">Telefone</label>
+            <input class="co-input" id="co-phone" type="tel" placeholder="(11) 99999-9999" maxlength="15" autocomplete="tel">
+            <span class="pix-field-error" id="pix-cellphone-error"></span>
+          </div>
+        </div>
+        <div class="co-err" id="co-err"></div>
+        <button class="co-submit" id="co-submit-btn" onclick="landingSubmitForm()">Gerar QR Code PIX</button>
+      </form>
+    </div>
+
+    <!-- Tela 3: QR Code PIX -->
+    <div class="pm-screen" id="pm-screen-3">
+      <div class="pix-amount" id="pix-amount">R$ --,--</div>
+      <div class="pix-plan-name" id="pix-plan-label"></div>
+      <div class="pix-qr-wrap">
+        <div id="pix-qr-loading" class="pix-qr-box" style="display:flex;align-items:center;justify-content:center;border-radius:12px;border:2px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);">
+          <div class="pix-spinner"></div>
+        </div>
+        <img id="pix-qr-img" class="pix-qr-box" src="" alt="QR Code PIX" style="display:none;border-radius:12px;border:2px solid #fff;background:#fff;">
+      </div>
+      <div class="pix-copy-row">
+        <div class="pix-code-text" id="pix-code-text">Gerando código PIX…</div>
+        <button class="pix-copy-btn" onclick="landingCopyPix()">Copiar código PIX</button>
+      </div>
+      <p class="pix-instruction">Abra seu banco, escaneie o QR Code ou cole o código, e confirme o pagamento.</p>
+      <div class="pix-waiting"><div class="pix-dot"></div><div class="pix-dot"></div><div class="pix-dot"></div><span>Aguardando pagamento…</span></div>
+      <div class="pix-timer" id="pix-timer"></div>
+      <button class="pix-dev-btn" id="pix-dev-btn" onclick="landingSimulatePix()" style="display:none;">⚡ Simular pagamento (dev)</button>
+      <p style="margin-top:14px;font-size:11px;color:rgba(255,255,255,0.3);text-align:center">Pagou e não recebeu o código? <a href="mailto:suporte@snapdeck.pro" style="color:rgba(255,255,255,0.45);text-decoration:underline">suporte@snapdeck.pro</a></p>
+    </div>
+
+    <!-- Tela 4: Confirmação -->
+    <div class="pm-screen" id="pm-screen-4">
+      <div class="pix-success-wrap">
+        <div class="check-svg-wrap">
+          <svg viewBox="0 0 80 80" width="80" height="80">
+            <circle cx="40" cy="40" r="36" class="check-bg-circle"/>
+            <circle cx="40" cy="40" r="36" class="check-circle-anim"/>
+            <polyline points="24,41 35,52 56,30" class="check-mark-anim"/>
+          </svg>
+        </div>
+        <div class="pix-success-title">Pagamento confirmado!</div>
+        <div class="pix-success-sub">Seu plano foi ativado. Verifique seu e-mail.</div>
+        <div class="pix-access-box">
+          <div class="pix-access-code" id="success-code"></div>
+          <button class="pix-access-copy" onclick="landingCopyCode()">Copiar código de acesso</button>
+        </div>
+        <p class="pix-save-warn">Salve este código. Ele é seu acesso permanente e pode ser inserido em qualquer dispositivo.</p>
+        <button class="pix-start-btn" onclick="landingStartUsing()">Começar a usar →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  let _packages    = [];
+  let _selectedPkg = '';
+  let _currentPixId  = null;
+  let _pixBrCode     = '';
+  let _pixPolling    = null;
+  let _pixTimer      = null;
+  let _successCode   = '';
+  let _successPlan   = '';
+  let _plansLoaded   = false;
+
+  // ── HTTP helpers ────────────────────────────────────────────────────────────
+  async function _api(url, opts, ms) {
+    const ctl = new AbortController();
+    const tid = setTimeout(() => ctl.abort(), ms || 35000);
+    try {
+      const r = await fetch(url, { ...opts, signal: ctl.signal });
+      const d = await r.json().catch(() => ({}));
+      return { ok: r.ok, status: r.status, data: d };
+    } catch(e) {
+      return { ok: false, status: 0, data: { error: 'Erro de conexão. Verifique sua internet.' } };
+    } finally { clearTimeout(tid); }
+  }
+  function _post(url, body, ms) {
+    return _api(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, ms);
   }
 
-  // Alias legado (mantém compatibilidade com qualquer onclick="checkout(...)" residual)
-  function checkout(plan) { openCheckout(plan); }
+  // ── Tela ────────────────────────────────────────────────────────────────────
+  window.landingShowScreen = function(n) {
+    document.querySelectorAll('#pkg-modal .pm-screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById('pm-screen-' + n);
+    if (el) el.classList.add('active');
+  };
+
+  window.landingClosePkgModal = function(e) {
+    if (!e || e.target === document.getElementById('pkg-modal')) {
+      document.getElementById('pkg-modal').classList.remove('on');
+      _stopPixPolling();
+    }
+  };
+
+  // ── Planos ──────────────────────────────────────────────────────────────────
+  const PLAN_BENEFITS = {
+    starter: ['Sem marca d\'água','32 templates profissionais','60 capturas por mês','Até 10 páginas por crawl','Desktop + Mobile · Alta resolução'],
+    pro:     ['Sem marca d\'água','32 templates profissionais','Capturas ilimitadas','Até 20 páginas por crawl','Exportação social · Link compartilhável'],
+    agency:  ['Sem marca d\'água','32 templates profissionais','Capturas ilimitadas','Crawl ilimitado','Até 5 URLs por job · Link 30 dias'],
+  };
+
+  window.landingLoadPlans = async function() {
+    if (_plansLoaded) return;
+    const r = await _api('/api/plans', {}, 5000);
+    if (!r.ok || !r.data.plans) return;
+    _packages   = r.data.plans;
+    _plansLoaded = true;
+    _renderGrid();
+  };
+
+  function _renderGrid() {
+    const grid = document.getElementById('pm-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    _packages.forEach((plan, i) => {
+      const isPro = plan.key === 'pro';
+      const card  = document.createElement('div');
+      card.className = 'pkg-card' + (i === 0 ? ' sel' : '');
+      if (i === 0) { _selectedPkg = plan.key; _updateBuyBtn(plan); }
+      card.dataset.pkg = plan.key;
+      const capAmt     = plan.capturesPerMonth !== undefined ? plan.capturesPerMonth : plan.monthlyCaptures;
+      const capDisplay = capAmt === -1 ? '∞' : (capAmt != null ? capAmt : '—');
+      const feats      = PLAN_BENEFITS[plan.key] || [];
+      const featsHtml  = feats.map(f => `<li>${f}</li>`).join('');
+      card.innerHTML = `
+        <div class="pkg-badge${isPro?' best':''}">${isPro?'Popular':plan.name}</div>
+        <div class="pkg-cap">${capDisplay}</div>
+        <div class="pkg-cap-label">${capAmt === -1 ? 'capturas ilimitadas' : 'capturas/mês'}</div>
+        <div class="pkg-price">${plan.priceLabel}</div>
+        <ul class="pkg-feats">${featsHtml}</ul>
+        <div class="pkg-chk"><svg viewBox="0 0 10 10" fill="none" width="10" height="10"><path d="M1.5 5l2.5 2.5 4.5-5" stroke="#0a0a0a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.pkg-card').forEach(c => c.classList.remove('sel'));
+        card.classList.add('sel');
+        _selectedPkg = plan.key;
+        _updateBuyBtn(plan);
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  function _updateBuyBtn(plan) {
+    const t = document.getElementById('pm-buy-text');
+    if (t) t.textContent = `Assinar ${plan.name} — ${plan.priceLabel}`;
+  }
+
+  window.landingSelectPlan = function(planKey) {
+    landingLoadPlans().then(() => {
+      _selectedPkg = planKey;
+      document.querySelectorAll('.pkg-card').forEach(c => {
+        const isTarget = c.dataset.pkg === planKey;
+        c.classList.toggle('sel', isTarget);
+        if (isTarget) {
+          const plan = _packages.find(p => p.key === planKey);
+          if (plan) _updateBuyBtn(plan);
+        }
+      });
+    });
+  };
+
+  window.landingHandlePurchase = function() {
+    if (!_selectedPkg) return;
+    const pkg = _packages.find(p => p.key === _selectedPkg) || {};
+    document.getElementById('co-plan-name').textContent  = `Plano ${pkg.name || _selectedPkg}`;
+    document.getElementById('co-plan-price').textContent = pkg.priceLabel || '';
+    document.getElementById('co-err').textContent = '';
+    landingShowScreen(2);
+  };
+
+  // ── Código de acesso ────────────────────────────────────────────────────────
+  window.landingApplyCode = async function() {
+    const code   = (document.getElementById('pm-code-input').value || '').trim().toUpperCase();
+    const status = document.getElementById('pm-code-status');
+    if (!code) return;
+    const r = await _post('/api/validate-code', { code }, 8000);
+    if (!r.ok || !r.data.valid) {
+      status.textContent = r.data.reason || 'Código inválido. Verifique e tente novamente.';
+      status.className = 'code-status bad';
+      return;
+    }
+    const planKey = (r.data.info && r.data.info.plan) || 'starter';
+    localStorage.setItem('snapshot_access_code', code);
+    localStorage.setItem('snapshot_plan', planKey);
+    const remaining = r.data.info && r.data.info.remaining;
+    const remText   = remaining === null ? 'ilimitadas' : `${remaining} disponível(is)`;
+    status.textContent = `✓ ${planKey} — ${remText}`;
+    status.className = 'code-status ok';
+    setTimeout(() => { window.location.href = '/app'; }, 1200);
+  };
+
+  // ── Formulário PIX ──────────────────────────────────────────────────────────
+  function _clearErrors() {
+    ['pix-general-error','pix-taxid-error','pix-cellphone-error','co-err'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = '';
+      if (el.tagName !== 'DIV') el.style.display = 'none';
+      else el.style.display = 'none';
+    });
+  }
+  function _showFieldError(field, msg) {
+    if (field === 'taxId') {
+      const el = document.getElementById('pix-taxid-error');
+      if (el) { el.textContent = msg; el.style.display = 'block'; }
+    } else if (field === 'cellphone') {
+      const el = document.getElementById('pix-cellphone-error');
+      if (el) { el.textContent = msg; el.style.display = 'block'; }
+    } else {
+      const el = document.getElementById('pix-general-error');
+      if (el) { el.textContent = msg; el.style.display = 'block'; }
+    }
+  }
+
+  window.landingSubmitForm = async function() {
+    const name  = (document.getElementById('co-name').value  || '').trim();
+    const email = (document.getElementById('co-email').value || '').trim();
+    const cpf   = (document.getElementById('co-cpf').value   || '').trim();
+    const phone = (document.getElementById('co-phone').value || '').trim();
+    const errEl = document.getElementById('co-err');
+
+    _clearErrors();
+
+    if (!name)  { errEl.textContent = 'Informe seu nome completo.'; return; }
+    if (!email || !email.includes('@')) { errEl.textContent = 'E-mail inválido.'; return; }
+    const cpfDigits = cpf.replace(/\D/g, '');
+    if (!cpf) { _showFieldError('taxId', 'CPF ou CNPJ é obrigatório.'); return; }
+    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) { _showFieldError('taxId', 'CPF deve ter 11 dígitos ou CNPJ 14 dígitos.'); return; }
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (!phone) { _showFieldError('cellphone', 'Telefone é obrigatório.'); return; }
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) { _showFieldError('cellphone', 'Telefone deve ter 10 ou 11 dígitos.'); return; }
+
+    const btn = document.getElementById('co-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Gerando QR Code…';
+
+    try {
+      const r = await _post('/api/create-pix', {
+        plan: _selectedPkg,
+        customer: { name, email, cpfCnpj: cpf, cellphone: phone },
+      }, 15000);
+      btn.disabled = false;
+      btn.textContent = 'Gerar QR Code PIX';
+      if (r.ok && r.data.paymentId) {
+        _showPixScreen(r.data);
+      } else {
+        const field = r.data && r.data.field;
+        const msg   = (r.data && r.data.error) || 'Erro ao gerar PIX. Tente novamente.';
+        _showFieldError(field || null, msg);
+      }
+    } catch {
+      btn.disabled = false;
+      btn.textContent = 'Gerar QR Code PIX';
+      _showFieldError(null, 'Erro de conexão. Tente novamente.');
+    }
+  };
+
+  // ── Tela do QR Code ─────────────────────────────────────────────────────────
+  function _showPixScreen(data) {
+    _currentPixId = data.paymentId;
+    localStorage.setItem('snapshot_pending_pix', data.paymentId);
+    try { localStorage.setItem('snapshot_pix_data', JSON.stringify(data)); } catch {}
+
+    landingShowScreen(3);
+
+    const amount = data.amount || 0;
+    document.getElementById('pix-amount').textContent = `R$ ${Number(amount).toFixed(2).replace('.',',')}`;
+    document.getElementById('pix-plan-label').textContent = data.planName || _selectedPkg || '';
+
+    const qrImg     = document.getElementById('pix-qr-img');
+    const qrLoading = document.getElementById('pix-qr-loading');
+    if (data.qrCodeBase64) {
+      qrImg.src = `data:image/png;base64,${data.qrCodeBase64}`;
+      qrImg.style.display = 'block';
+      if (qrLoading) qrLoading.style.display = 'none';
+    }
+
+    _pixBrCode = data.copyPasteCode || '';
+    document.getElementById('pix-code-text').textContent = _pixBrCode;
+
+    const devBtn = document.getElementById('pix-dev-btn');
+    if (devBtn) devBtn.style.display = '';
+
+    _startPixTimer(data.expiresAt);
+    _startPixPolling(data.paymentId);
+  }
+
+  function _startPixTimer(expiresAt) {
+    clearInterval(_pixTimer);
+    const el = document.getElementById('pix-timer');
+    if (!el) return;
+    const update = () => {
+      const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+      if (diff === 0) { el.textContent = 'PIX expirado — gere um novo'; el.classList.add('warn'); clearInterval(_pixTimer); return; }
+      const m = Math.floor(diff / 60), s = diff % 60;
+      el.textContent = `Expira em: ${m}:${String(s).padStart(2,'0')}`;
+      diff <= 300 ? el.classList.add('warn') : el.classList.remove('warn');
+    };
+    update();
+    _pixTimer = setInterval(update, 1000);
+  }
+
+  function _startPixPolling(pixId) {
+    _stopPixPolling();
+    const poll = async () => {
+      try {
+        const r = await _api(`/api/pix-status?paymentId=${encodeURIComponent(pixId)}`, {}, 8000);
+        if (r.ok && r.data.status === 'paid' && r.data.accessCode) {
+          _stopPixPolling();
+          localStorage.removeItem('snapshot_pending_pix');
+          localStorage.removeItem('snapshot_pix_data');
+          if (window.Track) Track.trackPurchase(null, r.data.plan || _selectedPkg || 'starter');
+          _showSuccessScreen(r.data.accessCode, r.data.plan || _selectedPkg);
+          return;
+        }
+        if (r.ok && r.data.status === 'expired') {
+          _stopPixPolling();
+          localStorage.removeItem('snapshot_pending_pix');
+          localStorage.removeItem('snapshot_pix_data');
+          return;
+        }
+      } catch {}
+      _pixPolling = setTimeout(poll, 2000);
+    };
+    _pixPolling = setTimeout(poll, 2000);
+  }
+
+  function _stopPixPolling() {
+    if (_pixPolling)  { clearTimeout(_pixPolling);  _pixPolling  = null; }
+    if (_pixTimer)    { clearInterval(_pixTimer);   _pixTimer    = null; }
+  }
+
+  window.landingCopyPix = function() {
+    if (!_pixBrCode) return;
+    navigator.clipboard.writeText(_pixBrCode).catch(()=>{});
+    const el = document.querySelector('#pm-screen-3 .pix-copy-btn');
+    if (el) { el.textContent = 'Copiado!'; setTimeout(() => { el.textContent = 'Copiar código PIX'; }, 2000); }
+  };
+
+  window.landingSimulatePix = async function() {
+    if (!_currentPixId) return;
+    const btn = document.getElementById('pix-dev-btn');
+    if (btn) btn.textContent = 'Simulando…';
+    try {
+      const r = await _post('/api/simulate-pix', { paymentId: _currentPixId }, 10000);
+      if (r.ok && r.data.accessCode) {
+        _stopPixPolling();
+        _showSuccessScreen(r.data.accessCode, r.data.plan || _selectedPkg);
+      } else {
+        if (btn) btn.textContent = '⚡ Simular pagamento (dev)';
+      }
+    } catch { if (btn) btn.textContent = '⚡ Simular pagamento (dev)'; }
+  };
+
+  // ── Tela de sucesso ─────────────────────────────────────────────────────────
+  function _showSuccessScreen(code, plan) {
+    _stopPixPolling();
+    _currentPixId = null;
+    _successCode  = code;
+    _successPlan  = plan;
+    localStorage.removeItem('snapshot_pending_pix');
+    localStorage.setItem('snapshot_access_code', code);
+    localStorage.setItem('snapshot_plan', plan || 'starter');
+    document.getElementById('success-code').textContent = code;
+    landingShowScreen(4);
+    const closeBtn = document.querySelector('#pkg-modal .pm-close-btn');
+    if (closeBtn) closeBtn.style.display = 'none';
+  }
+
+  window.landingCopyCode = function() {
+    if (!_successCode) return;
+    navigator.clipboard.writeText(_successCode).catch(()=>{});
+    const btn = document.querySelector('#pm-screen-4 .pix-access-copy');
+    if (btn) { btn.textContent = '✓ Copiado!'; setTimeout(() => { btn.textContent = 'Copiar código de acesso'; }, 2000); }
+  };
+
+  window.landingStartUsing = function() {
+    window.location.href = '/app';
+  };
+
+  // ── Input masks ─────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function() {
+    const cpfEl = document.getElementById('co-cpf');
+    if (cpfEl) cpfEl.addEventListener('input', function() {
+      let v = this.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+      else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+      else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+      this.value = v;
+    });
+    const phoneEl = document.getElementById('co-phone');
+    if (phoneEl) phoneEl.addEventListener('input', function() {
+      let v = this.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 10) v = v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+      else if (v.length > 6) v = v.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+      else if (v.length > 2) v = v.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+      else if (v.length > 0) v = v.replace(/(\d{0,2})/, '($1');
+      this.value = v;
+    });
+
+    // Pré-carregar planos em background
+    landingLoadPlans();
+  });
+
+})();
 </script>
 </body>
 </html>

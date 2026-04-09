@@ -1114,7 +1114,7 @@
 <!-- Header -->
 <header>
   <div class="hdr">
-    <a class="logo" onclick="resetAll(event)" href="/app">SnapDeck<span style="color:rgba(255,255,255,0.35)">.</span>pro</a>
+    <a class="logo" href="/">SnapDeck<span style="color:rgba(255,255,255,0.35)">.</span>pro</a>
     <div class="hdr-right" style="position:relative;">
       <div id="history-btn" title="Histórico desta sessão" onclick="toggleHistoryDropdown(event)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -2106,6 +2106,7 @@
     const el = document.getElementById(`pm-screen-${n}`);
     if (el) el.classList.add('active');
   }
+  window.showPmScreen = showPmScreen;
 
   // ── Assinar: ir para formulário de checkout ───────────────────────────────
   window.handlePkgPurchase = function() {
@@ -3046,10 +3047,19 @@
     listEl.style.display = 'flex';
     listEl.innerHTML = '';
 
-    // Build template <options> string once
+    // Build template <options> string — free plan only sees free templates, rest locked
+    const planKey    = (currentPlan && currentPlan.plan) || 'free';
+    const planCfgNow = (currentPlan && currentPlan.templatesUnlocked);
+    const freeTplIds = ['browser-clean','minimal-clean','social-basic','mobile-simple','gradient-basic','default-dark'];
+    const unlockedIds = planCfgNow === 'all' ? 'all'
+                      : (Array.isArray(planCfgNow) ? planCfgNow : freeTplIds);
     const optionsHtml = allTemplates
       .filter(t => t.active !== false)
-      .map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`)
+      .map(t => {
+        const isLocked = unlockedIds !== 'all' && !unlockedIds.includes(t.id);
+        if (isLocked) return `<option value="${esc(t.id)}" disabled style="color:rgba(255,255,255,0.3);">🔒 ${esc(t.name)}</option>`;
+        return `<option value="${esc(t.id)}">${esc(t.name)}</option>`;
+      })
       .join('');
 
     Array.from(selected).forEach(url => {

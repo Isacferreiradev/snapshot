@@ -229,6 +229,8 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
       try {
         log(`Miniatura ${i}/${toVisit.length - 1}: ${url}`);
         let pg;
+        let pageTitle = url;
+        let finalUrl  = url;
         try {
           pg = await browser.newPage();
           pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
@@ -244,16 +246,24 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
               new Promise(r => setTimeout(r, THUMB_TIMEOUT - 500)),
             ]);
           } catch {}
-          const pageTitle = await pg.title().catch(() => url);
-          const finalUrl  = pg.url();
+          pageTitle = await pg.title().catch(() => url);
+          finalUrl  = pg.url();
           await pg.screenshot({ path: thumbPath, type: 'jpeg', quality: 50,
             clip: { x: 0, y: 0, width: 800, height: 500 }, timeout: 4000 }).catch(() => {});
           await pg.close().catch(() => {}); pg = null;
-          results.push({ url: finalUrl, title: pageTitle || finalUrl, thumbnailPath: thumbPath, thumbnailUrl: thumbUrl, pageType: inferPageType(finalUrl) });
-        } finally {
+        } catch { /* falha na navegação — ainda adiciona a página com placeholder */ }
+        finally {
           if (pg) await pg.close().catch(() => {});
         }
-      } catch { /* página falhou — continua */ }
+        // Sempre adiciona a página ao resultado, mesmo sem thumbnail
+        results.push({
+          url: finalUrl,
+          title: pageTitle || finalUrl,
+          thumbnailPath: thumbPath,
+          thumbnailUrl: thumbUrl,
+          pageType: inferPageType(finalUrl),
+        });
+      } catch { /* erro fatal inesperado — página ignorada */ }
       finally { thumbRelease(); }
     }));
 

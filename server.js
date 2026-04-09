@@ -303,8 +303,12 @@ async function dispatchPaymentEmails(pixId, plan, webhookEventData) {
     const emailTo  = cust.email  || evCust.email  || evCust.email_address || null;
     const custName = cust.name   || evCust.name   || evCust.full_name    || null;
 
+    // Webhook envia valor em centavos; billing entry guarda em reais
     const amountCents = webhookEventData && webhookEventData.amount;
-    const amountFmt   = amountCents ? `R$ ${(amountCents / 100).toFixed(2).replace('.', ',')}` : null;
+    const amountReais = entry && entry.amount;
+    const amountFmt   = amountCents
+      ? `R$ ${(amountCents / 100).toFixed(2).replace('.', ',')}`
+      : (amountReais ? `R$ ${Number(amountReais).toFixed(2).replace('.', ',')}` : null);
 
     console.log(`[mailer] dispatchPaymentEmails — pixId:${pixId} emailTo:${emailTo || '(nenhum)'} plano:${plan} valor:${amountFmt}`);
 
