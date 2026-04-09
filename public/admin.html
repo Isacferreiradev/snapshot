@@ -1414,6 +1414,7 @@ async function clearErrors() {
 
 // ─── PANE: STATUS ─────────────────────────────────────────────────────────────
 async function status() {
+  clearInterval(_queueStatsInterval); // reset polling quando recarrega a página
   const d = await apiGet('/status');
   const avg = d.api?.avgResponseMs || 0;
   const avgColor = avg < 50 ? 'gr' : avg < 200 ? 'yw' : 'rd';
@@ -1462,6 +1463,18 @@ async function status() {
     </div>
 
     <div class="mt20">
+      <div class="card" id="queue-stats-card">
+        <div class="card-head"><div class="card-title">Fila de Captura</div><button class="btn sm" onclick="refreshQueueStats()">↻</button></div>
+        <div id="queue-stats-body" style="padding:16px 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+          <div class="health-item"><div class="health-label">Rodando</div><div class="health-val" id="qs-running">—</div><div class="health-sub" id="qs-running-sub">de — máx</div></div>
+          <div class="health-item"><div class="health-label">Na fila</div><div class="health-val" id="qs-waiting">—</div><div class="health-sub" id="qs-waiting-sub">de — máx</div></div>
+          <div class="health-item"><div class="health-label">Concorrência</div><div class="health-val" id="qs-max">—</div><div class="health-sub">MAX_CONCURRENT</div></div>
+          <div class="health-item"><div class="health-label">Capacidade</div><div class="health-val" id="qs-cap">—</div><div class="health-sub" id="qs-cap-sub">vagas disponíveis</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt20">
       <div class="card">
         <div class="card-head"><div class="card-title">Últimas requisições</div></div>
         <div class="tbl-wrap">
@@ -1481,12 +1494,36 @@ async function status() {
         </div>
       </div>
     </div>`;
+  startQueueStatsPolling();
 }
 
 async function pingNow() {
   const t0 = Date.now();
   await apiPost('/status/ping');
   toast(`Pong! ${Date.now()-t0}ms`, 'success');
+}
+
+let _queueStatsInterval = null;
+async function refreshQueueStats() {
+  try {
+    const d = await apiGet('/api/queue');
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('qs-running',     d.running);
+    set('qs-running-sub', `de ${d.maxConcurrent} máx`);
+    set('qs-waiting',     d.waiting);
+    set('qs-waiting-sub', `de ${d.maxQueueSize} máx`);
+    set('qs-max',         d.maxConcurrent);
+    const free = d.maxQueueSize - d.waiting;
+    set('qs-cap',         free);
+    set('qs-cap-sub',     free > 0 ? 'vagas disponíveis' : 'fila cheia!');
+    const capEl = document.getElementById('qs-cap');
+    if (capEl) capEl.style.color = free === 0 ? '#f87171' : free <= 3 ? '#fbbf24' : '';
+  } catch {}
+}
+function startQueueStatsPolling() {
+  clearInterval(_queueStatsInterval);
+  refreshQueueStats();
+  _queueStatsInterval = setInterval(refreshQueueStats, 5000);
 }
 
 // ─── PANE: CONTROLS ───────────────────────────────────────────────────────────

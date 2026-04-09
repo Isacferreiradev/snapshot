@@ -6,6 +6,7 @@ const storage = require('./storage');
 const { renderProfessional, renderSocialExport, renderComparison } = require('./renderer');
 const { getBrowserFromPool, releaseBrowserToPool, initBrowserPool } = require('./browser-pool');
 const { validateUrl, installSsrfInterceptor } = require('./security');
+const { appendCrawlLog } = require('./jobs');
 
 // ── Viewport / UA ─────────────────────────────────────────────────────────────
 const DESKTOP_VP = { width: 1440, height: 900, deviceScaleFactor: 2 };
@@ -21,7 +22,12 @@ const POST_LOAD_WAIT   = 300;
 const OVERLAY_TIMEOUT  = 800;
 const SHOT_TIMEOUT     = 10000;
 const GLOBAL_PAGE_TIMEOUT = 45000;
-const GLOBAL_JOB_TIMEOUT  = 300000;
+const GLOBAL_JOB_TIMEOUT  = 120000; // 2 min por job (reduzido de 5min)
+
+// ── Retry ─────────────────────────────────────────────────────────────────────
+const RETRY_MAX   = 2;    // tentativas extras após 1ª falha (total = 3)
+const RETRY_DELAY = 2000; // ms entre tentativas
+const RETRY_RE    = /timeout|ECONNRESET|ECONNREFUSED|net::ERR_TIMED_OUT|net::ERR_CONNECTION/i;
 
 // ── Concorrência ──────────────────────────────────────────────────────────────
 const MAX_CONCURRENT = 3;
@@ -338,21 +344,35 @@ async function captureJobPages(urls, jobId, cfg, onProgress, applyWatermark, pag
 
         await sem.acquire();
         let poolEntry;
-        try {
-          poolEntry = await getBrowserFromPool();
-          const result = await Promise.race([
-            _capturePageWithBrowser(poolEntry.browser, validated, dir, cfg || {}, applyWatermark, captureStrategy, aboveFoldOnly),
-            new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout por página')), GLOBAL_PAGE_TIMEOUT)),
-          ]);
-          results[i] = result;
-          if (onProgress) onProgress(i, result, null);
-        } catch (err) {
-          results[i] = null;
-          if (onProgress) onProgress(i, null, err);
-        } finally {
-          sem.release();
-          if (poolEntry) await releaseBrowserToPool(poolEntry);
+        let lastErr;
+        let captured = false;
+        for (let attempt = 1; attempt <= RETRY_MAX + 1; attempt++) {
+          try {
+            if (attempt > 1) appendCrawlLog(jobId, `[Worker] Retry ${attempt - 1}/${RETRY_MAX}: ${url}`);
+            poolEntry = await getBrowserFromPool();
+            const result = await Promise.race([
+              _capturePageWithBrowser(poolEntry.browser, validated, dir, cfg || {}, applyWatermark, captureStrategy, aboveFoldOnly),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout por página')), GLOBAL_PAGE_TIMEOUT)),
+            ]);
+            await releaseBrowserToPool(poolEntry); poolEntry = null;
+            results[i] = result;
+            if (onProgress) onProgress(i, result, null);
+            captured = true;
+            break;
+          } catch (err) {
+            lastErr = err;
+            if (poolEntry) { await releaseBrowserToPool(poolEntry); poolEntry = null; }
+            const isRetriable = RETRY_RE.test(err.message || '');
+            appendCrawlLog(jobId, `[Worker] Falha tentativa ${attempt}: ${err.message ? err.message.slice(0,80) : 'erro desconhecido'}`);
+            if (!isRetriable || attempt > RETRY_MAX) break;
+            await new Promise(r => setTimeout(r, RETRY_DELAY));
+          }
         }
+        if (!captured) {
+          results[i] = null;
+          if (onProgress) onProgress(i, null, lastErr);
+        }
+        sem.release();
       }));
       return results;
     })(),

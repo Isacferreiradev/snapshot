@@ -100,6 +100,13 @@ function markFailed(jobId, reason) {
   if (job) { job.status = 'failed'; job.failReason = reason || 'Erro ao processar.'; }
 }
 
+function markQueued(jobId, position) {
+  const job = jobs.get(jobId);
+  if (!job) return;
+  job.status = 'queued';
+  job.captureProgress = { ...job.captureProgress, queuePosition: position };
+}
+
 function updateCrawlResult(jobId, pages) {
   const job = jobs.get(jobId);
   if (job) { job.pages = pages; job.status = 'selecting'; }
@@ -234,7 +241,7 @@ setInterval(() => {
 }, CLEANUP_MS);
 
 module.exports = {
-  createJob, markPaid, markDownloaded, markReady, markFailed,
+  createJob, markPaid, markDownloaded, markReady, markFailed, markQueued,
   countActiveJobsByIp,
   updateCrawlResult, updateSelectedPages, updateRenderConfig,
   updateCaptureProgress, updatePageStatus,

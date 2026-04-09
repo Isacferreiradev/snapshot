@@ -481,21 +481,5 @@
       "cpfCnpj": "94378754568"
     },
     "reminderSent": true
-  },
-  "pay_ybgcgfhu9431jnnt": {
-    "paymentId": "pay_ybgcgfhu9431jnnt",
-    "customerId": "cus_000167958869",
-    "plan": "starter",
-    "amount": 19.9,
-    "status": "PENDING",
-    "accessCode": null,
-    "createdAt": 1775754364930,
-    "expiresAt": 1807412399000,
-    "customer": {
-      "name": "WENIA REIS DOS SANTOS",
-      "email": "aristocrata.black@gmail.com",
-      "cpfCnpj": "94378754568"
-    },
-    "reminderSent": true
   }
 }

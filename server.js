@@ -16,7 +16,7 @@ const helmet   = require('helmet');
 const { validateUrl: secValidateUrl, validateJobId, sanitizeFilename, hasPrototypePollution, sanitizeBody } = require('./security');
 
 const {
-  createJob, markPaid, markDownloaded, markReady, markFailed,
+  createJob, markPaid, markDownloaded, markReady, markFailed, markQueued,
   updateCrawlResult, updateSelectedPages, updateRenderConfig,
   updateCaptureProgress, appendCrawlLog, addGalleryItem,
   getJob, getJobByShareToken, getAllJobIds, countActiveJobsByIp,
@@ -116,26 +116,44 @@ const MAX_LOG       = 500;
 let   maintenanceMode    = false;
 let   maintenanceMessage = 'Sistema em manutenção. Volte em breve.';
 
-// ── Fila de captura (max 3 simultâneos, sem enfileiramento ilimitado) ─────────
-const MAX_CONCURRENT_CAPTURES = 3;
-const MAX_QUEUE_SIZE          = 20; // rejeita se fila cheia
+// ── Fila de captura — controle de concorrência ────────────────────────────────
+const MAX_CONCURRENT_CAPTURES = parseInt(process.env.MAX_CONCURRENT_CAPTURES || '2', 10);
+const MAX_QUEUE_SIZE          = 20;
 let   _captureRunning         = 0;
 const _captureQueue           = [];
 
-function enqueueCapture(fn) {
+function _getQueueStats() {
+  return { waiting: _captureQueue.length, running: _captureRunning, maxConcurrent: MAX_CONCURRENT_CAPTURES, maxQueueSize: MAX_QUEUE_SIZE };
+}
+
+function enqueueCapture(jobId, fn) {
   return new Promise((resolve, reject) => {
     if (_captureQueue.length >= MAX_QUEUE_SIZE) {
-      return reject(new Error('Servidor sobrecarregado. Tente novamente em instantes.'));
+      const err = new Error('Servidor ocupado. Tente novamente em instantes.');
+      err.queueFull = true;
+      return reject(err);
     }
-    _captureQueue.push({ fn, resolve, reject });
+    const position = _captureRunning + _captureQueue.length + 1;
+    if (jobId) {
+      markQueued(jobId, position);
+      appendCrawlLog(jobId, `[Queue] Job enfileirado — posição ${position}`);
+    }
+    _captureQueue.push({ jobId, fn, resolve, reject });
     _drainCaptureQueue();
   });
 }
 
 function _drainCaptureQueue() {
   if (_captureRunning >= MAX_CONCURRENT_CAPTURES || _captureQueue.length === 0) return;
-  const { fn, resolve, reject } = _captureQueue.shift();
+  const { jobId, fn, resolve, reject } = _captureQueue.shift();
   _captureRunning++;
+  // Atualizar posição de fila dos jobs restantes
+  _captureQueue.forEach((item, i) => {
+    if (item.jobId) {
+      markQueued(item.jobId, _captureRunning + i + 1);
+    }
+  });
+  if (jobId) appendCrawlLog(jobId, `[Worker] Iniciando captura`);
   Promise.resolve().then(fn).then(resolve, reject).finally(() => {
     _captureRunning--;
     _drainCaptureQueue();
@@ -544,7 +562,7 @@ app.post('/api/create-pix', rlCreatePix, async (req, res) => {
 
     const config  = readJsonFile(CONFIG_FILE, { plans: {} });
     const planName = (config.plans && config.plans[plan] && config.plans[plan].name) || plan;
-    return res.json({ ...result, planName });
+    return res.json({ ...result, planName, devMode: process.env.ASAAS_ENV !== 'production' });
   } catch (err) {
     console.error('[create-pix] erro:', err.message);
     const msg = err.message || '';
@@ -572,8 +590,8 @@ app.get('/api/pix-status', async (req, res) => {
 
 // ── POST /api/simulate-pix — simula pagamento PIX (dev/admin only) ───────────
 app.post('/api/simulate-pix', express.json(), async (req, res) => {
-  if (process.env.NODE_ENV === 'production')
-    return res.status(403).json({ error: 'Indisponível em produção.' });
+  if (process.env.ASAAS_ENV === 'production')
+    return res.status(403).json({ error: 'Indisponível em produção. Use ASAAS_ENV=sandbox para simular.' });
   const { paymentId } = req.body || {};
   if (!paymentId) return res.status(400).json({ error: 'paymentId obrigatório.' });
   try {
@@ -817,12 +835,15 @@ app.post('/api/start-capture', rlStartCapture, (req, res) => {
   });
   updateCaptureProgress(jobId, { total: pages.length, completed: 0, current: 'Preparando captura…', percent: 0 });
 
+  // Verificar capacidade da fila ANTES de enfileirar (para poder responder 503 imediatamente)
   if (_captureQueue.length >= MAX_QUEUE_SIZE) {
-    markFailed(jobId, 'Servidor sobrecarregado. Tente novamente em instantes.');
-    return res.status(503).json({ error: 'Servidor sobrecarregado. Tente novamente em instantes.' });
+    markFailed(jobId, 'Sistema ocupado. Tente novamente em instantes.');
+    return res.status(503)
+      .set('Retry-After', '30')
+      .json({ error: 'Sistema ocupado. Tente novamente em alguns instantes.', retryAfter: 30 });
   }
 
-  enqueueCapture(async () => {
+  enqueueCapture(jobId, async () => {
     let completedCount = 0;
     let failCount      = 0;
     try {
@@ -888,7 +909,7 @@ app.post('/api/start-capture', rlStartCapture, (req, res) => {
     markFailed(jobId, err.message);
   });
 
-  return res.status(202).json({ jobId, status: 'capturing' });
+  return res.status(202).json({ jobId, status: 'queued' });
 });
 
 // ── GET /api/capture-progress/:jobId ─────────────────────────────────────────
@@ -900,6 +921,8 @@ app.get('/api/capture-progress/:jobId', (req, res) => {
     captureProgress: job.captureProgress,
     gallery:         job.gallery || [],
     applyWatermark:  job.applyWatermark !== undefined ? job.applyWatermark : true,
+    queuePosition:   job.status === 'queued' ? (job.captureProgress && job.captureProgress.queuePosition) : null,
+    queueStats:      _getQueueStats(),
   });
 });
 
@@ -1283,6 +1306,11 @@ function writeJsonFile(filePath, data) {
 
 // ── GET /admin ────────────────────────────────────────────────────────────────
 app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+
+// ── GET /admin/api/queue — stats da fila de captura ──────────────────────────
+app.get('/admin/api/queue', requireAdmin, (_req, res) => {
+  res.json(_getQueueStats());
+});
 
 // ── GET /admin/storage ────────────────────────────────────────────────────────
 app.get('/admin/storage', requireAdmin, (_req, res) => {

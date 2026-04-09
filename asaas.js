@@ -219,7 +219,7 @@ async function activatePayment(paymentId, plan) {
 // ── Simular pagamento (sandbox only) ─────────────────────────────────────
 
 async function simulatePayment(paymentId) {
-  if (process.env.NODE_ENV === 'production') throw new Error('Simulacao indisponivel em producao');
+  if (process.env.ASAAS_ENV === 'production') throw new Error('Simulação indisponível em produção — use ASAAS_ENV=sandbox');
   // Asaas sandbox: marcar como pago via API de simulação
   try {
     await asaasRequest('POST', `/payments/${paymentId}/receiveInCash`, { value: null, notifyCustomer: false });

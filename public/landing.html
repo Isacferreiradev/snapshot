@@ -1253,7 +1253,19 @@
     if (window.Track) Track.trackInitiateCheckout('landing', plan);
     landingLoadPlans().then(() => {
       if (plan) {
-        landingSelectPlan(plan);
+        _selectedPkg = plan;
+        // Selecionar card na grade (visual)
+        document.querySelectorAll('.pkg-card').forEach(c => {
+          c.classList.toggle('sel', c.dataset.pkg === plan);
+        });
+        // Preencher resumo da tela 2 diretamente
+        const pkg = _packages.find(p => p.key === plan) || {};
+        const nameEl  = document.getElementById('co-plan-name');
+        const priceEl = document.getElementById('co-plan-price');
+        const errEl   = document.getElementById('co-err');
+        if (nameEl)  nameEl.textContent  = pkg.name ? `Plano ${pkg.name}` : plan;
+        if (priceEl) priceEl.textContent = pkg.priceLabel || '';
+        if (errEl)   errEl.textContent   = '';
         landingShowScreen(2);
       } else {
         landingShowScreen(1);
@@ -1288,7 +1300,7 @@
 
     <!-- Tela 2: Formulário de checkout -->
     <div class="pm-screen" id="pm-screen-2">
-      <button class="co-back" onclick="landingShowScreen(1)">← Voltar aos planos</button>
+      <button class="co-back" onclick="landingClosePkgModal()">← Voltar aos planos</button>
       <div class="co-summary" id="co-summary">
         <div>
           <div class="co-summary-name" id="co-plan-name">—</div>
@@ -1598,7 +1610,7 @@
     document.getElementById('pix-code-text').textContent = _pixBrCode;
 
     const devBtn = document.getElementById('pix-dev-btn');
-    if (devBtn) devBtn.style.display = '';
+    if (devBtn) devBtn.style.display = data.devMode ? '' : 'none';
 
     _startPixTimer(data.expiresAt);
     _startPixPolling(data.paymentId);

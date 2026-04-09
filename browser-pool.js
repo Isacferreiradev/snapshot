@@ -71,18 +71,23 @@ async function initBrowserPool() {
 }
 
 async function getBrowserFromPool() {
-  for (const entry of pool) {
-    if (!entry.busy) { entry.busy = true; return entry; }
+  const POLL_INTERVAL = 200;   // ms entre verificações
+  const MAX_WAIT      = 60000; // 60s — se não liberou, algo travou
+  const start = Date.now();
+
+  while (true) {
+    for (const entry of pool) {
+      if (!entry.busy) { entry.busy = true; return entry; }
+    }
+    if (Date.now() - start > MAX_WAIT) {
+      throw new Error('[pool] Timeout aguardando browser livre (60s)');
+    }
+    await new Promise(r => setTimeout(r, POLL_INTERVAL));
   }
-  // overflow — temporário
-  console.log('[pool] overflow — abrindo browser temporário');
-  const browser = await launchBrowser();
-  return { browser, busy: true, keepAliveTimer: null, temp: true };
 }
 
 async function releaseBrowserToPool(entry) {
   if (!entry) return;
-  if (entry.temp) { await entry.browser.close().catch(() => {}); return; }
   const idx = pool.indexOf(entry);
   if (idx === -1) { await entry.browser.close().catch(() => {}); return; }
   try {
