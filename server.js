@@ -590,8 +590,6 @@ app.get('/api/pix-status', async (req, res) => {
 
 // ── POST /api/simulate-pix — simula pagamento PIX (dev/admin only) ───────────
 app.post('/api/simulate-pix', express.json(), async (req, res) => {
-  if (process.env.ASAAS_ENV === 'production')
-    return res.status(403).json({ error: 'Indisponível em produção. Use ASAAS_ENV=sandbox para simular.' });
   const { paymentId } = req.body || {};
   if (!paymentId) return res.status(400).json({ error: 'paymentId obrigatório.' });
   try {

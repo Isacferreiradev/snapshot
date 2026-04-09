@@ -442,17 +442,5 @@
     "createdAt": 1775590783455,
     "monthResetAt": 1777604400000,
     "checkoutSessionId": null
-  },
-  "SNAP-1917-FD28-EF23": {
-    "plan": "starter",
-    "stripeSubscriptionId": "pay_wl5vgpqwth42xatl",
-    "stripeCustomerId": null,
-    "validUntil": 1778364573379,
-    "capturesThisMonth": 0,
-    "capturesLimit": 100,
-    "active": true,
-    "createdAt": 1775772573379,
-    "monthResetAt": 1777604400000,
-    "checkoutSessionId": null
   }
 }

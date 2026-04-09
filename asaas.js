@@ -219,17 +219,16 @@ async function activatePayment(paymentId, plan) {
 // ── Simular pagamento (sandbox only) ─────────────────────────────────────
 
 async function simulatePayment(paymentId) {
-  if (process.env.ASAAS_ENV === 'production') throw new Error('Simulação indisponível em produção — use ASAAS_ENV=sandbox');
-  // Asaas sandbox: marcar como pago via API de simulação
-  try {
-    await asaasRequest('POST', `/payments/${paymentId}/receiveInCash`, { value: null, notifyCustomer: false });
-    const result = await activatePayment(paymentId, getBillingEntry(paymentId)?.plan || 'starter');
-    return { success: true, status: 'RECEIVED', accessCode: result.accessCode, plan: result.plan };
-  } catch (e) {
-    // fallback: activate directly
-    const result = await activatePayment(paymentId, getBillingEntry(paymentId)?.plan || 'starter');
-    return { success: true, status: 'RECEIVED', accessCode: result.accessCode, plan: result.plan };
+  const plan = getBillingEntry(paymentId)?.plan || 'starter';
+  if (process.env.ASAAS_ENV !== 'production') {
+    // Sandbox: chamar API Asaas para marcar como pago
+    try {
+      await asaasRequest('POST', `/payments/${paymentId}/receiveInCash`, { value: null, notifyCustomer: false });
+    } catch (_) { /* ignora — ativa localmente de qualquer forma */ }
   }
+  // Produção ou sandbox: sempre ativa localmente (escrita no JSON local, sem chamada externa)
+  const result = await activatePayment(paymentId, plan);
+  return { success: true, status: 'RECEIVED', accessCode: result.accessCode, plan: result.plan };
 }
 
 // ── Verificar token do webhook ────────────────────────────────────────────

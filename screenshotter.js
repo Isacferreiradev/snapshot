@@ -327,6 +327,12 @@ async function captureJobPages(urls, jobId, cfg, onProgress, applyWatermark, pag
   const results = new Array(urls.length).fill(null);
   const sem     = makeSemaphore(MAX_CONCURRENT);
 
+  // Timeout dinâmico: ~40s por página ÷ concorrência + 60s buffer. Mín 120s, máx 600s.
+  const dynamicTimeout = Math.min(
+    Math.max(Math.ceil(urls.length / MAX_CONCURRENT) * 40000 + 60000, GLOBAL_JOB_TIMEOUT),
+    600000
+  );
+
   return Promise.race([
     (async () => {
       await Promise.allSettled(urls.map(async (url, i) => {
@@ -376,7 +382,7 @@ async function captureJobPages(urls, jobId, cfg, onProgress, applyWatermark, pag
       }));
       return results;
     })(),
-    new Promise((_, rej) => setTimeout(() => rej(new Error('Tempo limite total do job atingido.')), GLOBAL_JOB_TIMEOUT)),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('Tempo limite total do job atingido.')), dynamicTimeout)),
   ]);
 }
 

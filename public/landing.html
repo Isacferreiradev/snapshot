@@ -1248,32 +1248,7 @@
     if (isFlow && window.Track) Track.trackStartFlow();
   });
 
-  // ── openCheckout — abre modal de checkout direto na landing ─────────────────
-  function openCheckout(plan) {
-    if (window.Track) Track.trackInitiateCheckout('landing', plan);
-    landingLoadPlans().then(() => {
-      if (plan) {
-        _selectedPkg = plan;
-        // Selecionar card na grade (visual)
-        document.querySelectorAll('.pkg-card').forEach(c => {
-          c.classList.toggle('sel', c.dataset.pkg === plan);
-        });
-        // Preencher resumo da tela 2 diretamente
-        const pkg = _packages.find(p => p.key === plan) || {};
-        const nameEl  = document.getElementById('co-plan-name');
-        const priceEl = document.getElementById('co-plan-price');
-        const errEl   = document.getElementById('co-err');
-        if (nameEl)  nameEl.textContent  = pkg.name ? `Plano ${pkg.name}` : plan;
-        if (priceEl) priceEl.textContent = pkg.priceLabel || '';
-        if (errEl)   errEl.textContent   = '';
-        landingShowScreen(2);
-      } else {
-        landingShowScreen(1);
-      }
-      document.getElementById('pkg-modal').classList.add('on');
-    });
-  }
-  function checkout(plan) { openCheckout(plan); }
+  // openCheckout definida dentro do IIFE abaixo (precisa acessar _packages/_selectedPkg)
 </script>
 
 <!-- ═══ PURCHASE MODAL ═══ -->
@@ -1610,7 +1585,7 @@
     document.getElementById('pix-code-text').textContent = _pixBrCode;
 
     const devBtn = document.getElementById('pix-dev-btn');
-    if (devBtn) devBtn.style.display = data.devMode ? '' : 'none';
+    if (devBtn) devBtn.style.display = '';
 
     _startPixTimer(data.expiresAt);
     _startPixPolling(data.paymentId);
@@ -1622,7 +1597,7 @@
     if (!el) return;
     const update = () => {
       const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
-      if (diff === 0) { el.textContent = 'PIX expirado — gere um novo'; el.classList.add('warn'); clearInterval(_pixTimer); return; }
+      if (diff === 0) { el.innerHTML = 'PIX expirado. <button onclick="landingShowScreen(2)" style="background:none;border:none;color:#f87171;text-decoration:underline;cursor:pointer;font-size:inherit;padding:0;font-family:inherit;">Gerar novo PIX →</button>'; el.classList.add('warn'); clearInterval(_pixTimer); return; }
       const m = Math.floor(diff / 60), s = diff % 60;
       el.textContent = `Expira em: ${m}:${String(s).padStart(2,'0')}`;
       diff <= 300 ? el.classList.add('warn') : el.classList.remove('warn');
@@ -1732,6 +1707,31 @@
     // Pré-carregar planos em background
     landingLoadPlans();
   });
+
+  // ── openCheckout — precisa acessar _packages e _selectedPkg (IIFE scope) ─────
+  window.openCheckout = function(plan) {
+    if (window.Track) Track.trackInitiateCheckout('landing', plan);
+    landingLoadPlans().then(() => {
+      if (plan) {
+        _selectedPkg = plan;
+        document.querySelectorAll('.pkg-card').forEach(c =>
+          c.classList.toggle('sel', c.dataset.pkg === plan)
+        );
+        const pkg     = _packages.find(p => p.key === plan) || {};
+        const nameEl  = document.getElementById('co-plan-name');
+        const priceEl = document.getElementById('co-plan-price');
+        const errEl   = document.getElementById('co-err');
+        if (nameEl)  nameEl.textContent  = pkg.name ? `Plano ${pkg.name}` : plan;
+        if (priceEl) priceEl.textContent = pkg.priceLabel || '';
+        if (errEl)   errEl.textContent   = '';
+        landingShowScreen(2);
+      } else {
+        landingShowScreen(1);
+      }
+      document.getElementById('pkg-modal').classList.add('on');
+    });
+  };
+  window.checkout = window.openCheckout;
 
 })();
 </script>

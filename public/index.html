@@ -1068,19 +1068,24 @@
       h2 { font-size: 16px; }
 
       /* Header — compact */
-      .hdr       { padding: 0 12px; height: 46px; }
+      .hdr       { padding: 0 20px; height: 46px; }
       .logo      { font-size: 15px; }
       .btn-assinar { padding: 5px 10px 5px 8px; font-size: 11px; gap: 4px; border-radius: 7px; }
       .btn-assinar .btn-icon { width: 14px; height: 14px; }
       #history-btn { width: 30px; height: 30px; }
 
-      /* Explore button — proper rounded mobile style */
-      #explore-btn { height: 48px !important; font-size: 14px !important; padding: 0 0 !important; border-radius: 12px !important; width: 100%; }
-      .hero-actions { flex-direction: column; }
-      .hero-actions .btn { width: 100%; }
+      /* Explore button — auto width, centered, not full-screen */
+      #explore-btn { height: 48px !important; font-size: 14px !important; padding: 0 28px !important; border-radius: 12px !important; width: auto; min-width: 180px; }
+      .hero-actions { justify-content: center; }
 
       /* Est banner */
       .est-banner { font-size: 12px; flex-wrap: wrap; padding: 8px 12px; }
+
+      /* PIX pending banner */
+      #pix-pending-banner { font-size: 11px; padding: 8px 12px; }
+
+      /* Per-page rows */
+      .pp-row { flex-wrap: wrap; gap: 6px; }
 
       /* S3 page selection */
       .pages-grid     { grid-template-columns: repeat(2, 1fr); gap: 8px; }
@@ -1147,7 +1152,8 @@
 
     /* ═══ ≤ 360px ═══════════════════════════════════════════════════════ */
     @media (max-width: 360px) {
-      .btn-assinar { display: none; }
+      .btn-assinar { padding: 4px 8px 4px 6px; font-size: 10px; gap: 3px; }
+      .btn-assinar .btn-icon { display: none; }
       .tmpl-pane   { grid-template-columns: repeat(2, 1fr); gap: 6px; }
       #tmpl-sheet  { width: 100vw; }
       .sheet-header { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -1289,6 +1295,7 @@
         <div class="stat-item">
           <span class="stat-num" id="quota-num">3</span>
           <span class="stat-lbl" id="quota-lbl">capturas restantes hoje</span>
+          <a id="quota-cta" href="#" onclick="event.preventDefault();openUpgradeModal('starter','Aumente seu limite de capturas')" style="display:none;font-size:11px;font-weight:600;color:#f87171;text-decoration:none;margin-top:2px;letter-spacing:0.01em;">Assinar agora →</a>
         </div>
       </div>
     </div>
@@ -1574,7 +1581,7 @@
 <div class="wrap">
   <footer>
     <div class="ftr">
-      <a href="/app" class="ftr-logo" onclick="resetAll(event)">snapshot.pro</a>
+      <a href="/app" class="ftr-logo" onclick="resetAll(event)">snapdeck.pro</a>
       <span class="ftr-copy">&copy; 2026 SnapDeck.pro</span>
     </div>
   </footer>
@@ -2007,11 +2014,12 @@
   function atualizarMetricaCapturas(d) {
     const numEl = document.getElementById('quota-num');
     const lblEl = document.getElementById('quota-lbl');
+    const ctaEl = document.getElementById('quota-cta');
     if (!numEl) return;
 
     const { plan, capturesRemaining, capturesPerMonth, capturesPerDay, capturesUsedToday } = d;
 
-    let valor = '', label = '', cor = '';
+    let valor = '', label = '', cor = '', showCta = false;
     if (plan === 'pro' || plan === 'agency') {
       valor = '∞'; label = 'capturas ilimitadas'; cor = '#22c55e';
     } else if (plan === 'starter') {
@@ -2019,12 +2027,14 @@
       valor = String(rem);
       label = 'capturas restantes este mês';
       if (capturesPerMonth > 0 && rem <= capturesPerMonth * 0.2) cor = '#f59e0b';
+      if (rem === 0) { cor = '#ef4444'; showCta = true; }
     } else {
       const limit = capturesPerDay || 3;
       const rem   = capturesRemaining !== undefined ? Math.max(0, capturesRemaining) : Math.max(0, limit - (capturesUsedToday || 0));
       valor = String(rem);
       label = 'capturas restantes hoje';
       cor   = rem === 0 ? '#ef4444' : rem === 1 ? '#fbbf24' : '';
+      if (rem === 0) showCta = true;
     }
 
     numEl.style.transition = 'opacity 150ms, transform 150ms';
@@ -2037,6 +2047,7 @@
       numEl.style.transform = 'translateY(0)';
     }, 150);
     if (lblEl) lblEl.textContent = label;
+    if (ctaEl) ctaEl.style.display = showCta ? '' : 'none';
   }
 
   // ── Plans ─────────────────────────────────────────────────────────────────
@@ -3894,10 +3905,12 @@
       });
 
       if (currentTemplate === 'void' && firstTpl) {
-        currentTemplate = firstTpl;
-        selectedTemplate = firstTpl;
-        const firstCard = document.querySelector('.tmpl-card');
-        if (firstCard) firstCard.classList.add('sel');
+        // Pré-selecionar browser-clean se disponível, senão o primeiro
+        const defaultTpl = sorted.find(t => t.id === 'browser-clean') ? 'browser-clean' : firstTpl;
+        currentTemplate = defaultTpl;
+        selectedTemplate = defaultTpl;
+        const defaultCard = document.querySelector(`.tmpl-card[data-t="${defaultTpl}"]`) || document.querySelector('.tmpl-card');
+        if (defaultCard) defaultCard.classList.add('sel');
       }
 
       allTemplates = sorted;
