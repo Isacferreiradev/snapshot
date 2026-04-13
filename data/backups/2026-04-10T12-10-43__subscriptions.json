@@ -448,7 +448,7 @@
     "stripeSubscriptionId": "pay_wl5vgpqwth42xatl",
     "stripeCustomerId": null,
     "validUntil": 1778364573379,
-    "capturesThisMonth": 7,
+    "capturesThisMonth": 1,
     "capturesLimit": 100,
     "active": true,
     "createdAt": 1775772573379,

@@ -1226,7 +1226,7 @@
   const templatesEl = document.getElementById('metric-templates');
   const tObserver = new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting) {
-      animateCount(templatesEl, 12, 800);
+      animateCount(templatesEl, 32, 800);
       tObserver.disconnect();
     }
   }, { threshold: 0.3 });

@@ -121,7 +121,7 @@
 
     /* ═══════════ S1: HERO ═══════════ */
     #s1 { padding:0; }
-    .s-inner--hero { padding:clamp(28px,8vw,96px) 0 clamp(32px,8vw,120px); }
+    .s-inner--hero { padding:clamp(48px,8vw,96px) 0 clamp(32px,8vw,120px); }
     .s-inner--mid  { padding:clamp(24px,6vw,80px) 0; }
     .s-inner--tall { padding:clamp(20px,5vw,48px) 0 clamp(60px,8vw,100px); }
     .hero-badge {
@@ -550,13 +550,12 @@
     @media(max-width:600px) { .lb-inner { max-width:96vw; max-height:88vh; } .lb-img { max-width:96vw; max-height:72vh; } .lb-close { top:-36px; font-size:20px; } }
 
     /* ═══════════ PURCHASE MODAL ═══════════ */
-    #pkg-modal { display:none; position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.82); backdrop-filter:blur(8px); align-items:center; justify-content:center; }
+    #pkg-modal { display:none; position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.82); backdrop-filter:blur(8px); align-items:flex-start; justify-content:center; overflow-y:auto; padding:16px 12px; }
     #pkg-modal.on { display:flex; }
     .pm-inner {
       background:#141414; border:1px solid rgba(255,255,255,0.12);
       border-radius:20px; padding:32px; max-width:860px; width:100%;
-      margin:16px; box-shadow:0 24px 72px rgba(0,0,0,0.7); position:relative;
-      max-height:92vh; overflow-y:auto;
+      box-shadow:0 24px 72px rgba(0,0,0,0.7); position:relative;
     }
     .pm-screen { display:none; }
     .pm-screen.active { display:block; }
@@ -1070,9 +1069,7 @@
       /* Header — compact */
       .hdr       { padding: 0 20px; height: 46px; }
       .logo      { font-size: 15px; }
-      .btn-assinar { padding: 5px 10px 5px 8px; font-size: 11px; gap: 4px; border-radius: 7px; }
-      .btn-assinar .btn-icon { width: 14px; height: 14px; }
-      #history-btn { width: 30px; height: 30px; }
+      #history-btn { width: 34px; height: 34px; }
 
       /* Explore button — auto width, centered, not full-screen */
       #explore-btn { height: 48px !important; font-size: 14px !important; padding: 0 28px !important; border-radius: 12px !important; width: auto; min-width: 180px; }
@@ -1116,7 +1113,7 @@
       #s6-free-notice span:last-child { margin-left: 0 !important; white-space: normal; }
 
       /* Purchase modal */
-      .pm-inner   { padding: 14px 12px; margin: 0 8px; border-radius: 14px; }
+      .pm-inner   { padding: 14px 12px; border-radius: 14px; }
       .pm-head h2 { font-size: 17px; }
       .pm-sub     { font-size: 12px; margin-bottom: 14px; }
       .pkg-card   { padding: 12px 10px; border-radius: 10px; }
@@ -1723,6 +1720,8 @@
   let applyWatermark  = true;
   let groupedPages    = null;
   const THUMB_PLACEHOLDER_HTML = `<div class="pc-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>`;
+  // [FIX-ONERROR] Expor como global para onerror inline poder acessar (const não é acessível em handlers inline)
+  window.THUMB_PLACEHOLDER_HTML = THUMB_PLACEHOLDER_HTML;
   let currentJobId    = null;
   let currentDomain   = '';
   let selectedUrls    = [];
@@ -2060,7 +2059,7 @@
   const PLAN_BENEFITS = {
     starter: [
       'Sem marca d\'água',
-      '12 templates profissionais',
+      '32 templates profissionais',
       '60 capturas por mês',
       'Até 10 páginas por crawl',
       'Desktop + Mobile · Alta resolução',
@@ -2070,7 +2069,7 @@
     ],
     pro: [
       'Sem marca d\'água',
-      '12 templates profissionais',
+      '32 templates profissionais',
       'Capturas ilimitadas',
       'Até 20 páginas por crawl',
       'Desktop + Mobile · Alta resolução',
@@ -2083,7 +2082,7 @@
     ],
     agency: [
       'Sem marca d\'água',
-      '12 templates profissionais',
+      '32 templates profissionais',
       'Capturas ilimitadas',
       'Crawl ilimitado (até 999 páginas)',
       'Desktop + Mobile · Alta resolução',
@@ -2907,7 +2906,7 @@
       const lbl = BADGE_LABEL[pg.pageType] || 'Outro';
       card.innerHTML = `
         <div class="pc-thumb">
-          ${pg.thumbnailUrl ? `<img src="${pg.thumbnailUrl}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=THUMB_PLACEHOLDER_HTML">` : THUMB_PLACEHOLDER_HTML}
+          ${pg.thumbnailUrl ? `<img src="${pg.thumbnailUrl}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=window.THUMB_PLACEHOLDER_HTML||''">` : THUMB_PLACEHOLDER_HTML}
         </div>
         <div class="pc-body">
           <div class="pc-title">${esc(pg.title||pg.url)}</div>
@@ -3298,6 +3297,8 @@
     document.getElementById('prog-curr').textContent  = 'Inicializando…';
     document.getElementById('cap-gallery').innerHTML   = '';
     captureGallery = [];
+    const _capH2 = document.querySelector('#s5 h2');
+    if (_capH2) _capH2.textContent = 'Capturando…';
     if (window.Track) Track.trackSelectPages();
     show('s5');
     startCapturePoll();
@@ -3341,7 +3342,8 @@
       try { r = await api(`/api/capture-progress/${jobId}`, {}, 8000); }
       finally { _capPollBusy = false; }
       if (!r || !r.ok) return;
-      const { status, captureProgress:cp, gallery:gal, applyWatermark:wm, queuePosition } = r.data;
+      const { status, captureProgress:cp, gallery:gal, applyWatermark:wm, queuePosition,
+              currentPage, totalPages, currentUrl } = r.data;
       if (wm !== undefined) applyWatermark = wm;
 
       // ── Status: na fila ────────────────────────────────────────────────────
@@ -3350,21 +3352,27 @@
         document.getElementById('prog-curr').textContent  = `Na fila — posição ${pos}. Aguardando…`;
         document.getElementById('prog-fill').style.width  = '0%';
         document.getElementById('prog-done').textContent  = '0';
-        document.getElementById('prog-total').textContent = cp && cp.total ? cp.total : '…';
+        document.getElementById('prog-total').textContent = totalPages || (cp && cp.total) || '…';
         return; // não processar galeria nem transições ainda
       }
 
       if (cp) {
-        // [COR-8] Atualizar progresso IMEDIATAMENTE
-        document.getElementById('prog-done').textContent  = cp.completed != null ? cp.completed : 0;
-        document.getElementById('prog-total').textContent = cp.total || 0;
+        // Usar aliases semânticos quando disponíveis, fallback para cp
+        const _done  = currentPage  != null ? currentPage  : (cp.completed != null ? cp.completed : 0);
+        const _total = totalPages   || cp.total || 0;
+        const _curr  = currentUrl   || cp.current || '';
+        document.getElementById('prog-done').textContent  = _done;
+        document.getElementById('prog-total').textContent = _total;
         document.getElementById('prog-fill').style.width  = (cp.percent || 0) + '%';
-        if (cp.current) {
+        // Atualizar h2 dinamicamente com "Capturando N de M…"
+        const _h2 = document.querySelector('#s5 h2');
+        if (_h2 && _total > 0) _h2.textContent = `Capturando ${_done} de ${_total}…`;
+        if (_curr) {
           try {
-            const _path = new URL(cp.current).pathname;
-            document.getElementById('prog-curr').textContent = _path || cp.current;
+            const _path = new URL(_curr).pathname;
+            document.getElementById('prog-curr').textContent = _path || _curr;
           } catch {
-            document.getElementById('prog-curr').textContent = cp.current;
+            document.getElementById('prog-curr').textContent = _curr;
           }
         } else {
           document.getElementById('prog-curr').textContent = 'Inicializando…';
@@ -3417,6 +3425,8 @@
         document.getElementById('prog-total').textContent = tot;
         document.getElementById('prog-fill').style.width  = '100%';
         document.getElementById('prog-curr').textContent  = 'Concluído!';
+        const _h2ready = document.querySelector('#s5 h2');
+        if (_h2ready) _h2ready.textContent = 'Capturando…'; // resetar para próximo uso
         setTimeout(() => {
           renderPreviewGrid();
           updateDownloadPanel();
@@ -4261,7 +4271,7 @@
     const lbl = BADGE_LABEL[pg.pageType] || 'Outro';
     card.innerHTML = `
       <div class="pc-thumb">
-        ${pg.thumbnailUrl ? `<img src="${pg.thumbnailUrl}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'pc-placeholder\\'><div class=\\'sp sp-w\\' style=\\'width:16px;height:16px;border-width:2px;\\'></div></div>'">` : '<div class="pc-placeholder"><div class="sp sp-w" style="width:16px;height:16px;border-width:2px;"></div></div>'}
+        ${pg.thumbnailUrl ? `<img src="${pg.thumbnailUrl}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=window.THUMB_PLACEHOLDER_HTML||''">` : THUMB_PLACEHOLDER_HTML}
         ${pg.recommended ? '<div class="pg-recommended" title="Recomendada">★</div>' : ''}
       </div>
       <div class="pc-body">

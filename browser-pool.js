@@ -2,7 +2,8 @@
 
 const puppeteer = require('puppeteer');
 
-const POOL_SIZE = 3;
+// [FIX-2] Pool size from env (default 3). Was hardcoded.
+const POOL_SIZE = Math.max(1, parseInt(process.env.MAX_BROWSERS || '3', 10));
 
 const pool = [];
 let poolReady = false;
@@ -34,6 +35,17 @@ async function _spawnEntry() {
   const browser = await launchBrowser();
   const entry = { browser, busy: false, temp: false };
   pool.push(entry);
+
+  // [FIX-4] Detectar crash imediatamente via evento — não esperar o health check de 60s
+  browser.on('disconnected', () => {
+    const idx = pool.indexOf(entry);
+    if (idx !== -1) {
+      console.log('[pool] browser desconectou inesperadamente — removendo e substituindo…');
+      pool.splice(idx, 1);
+      _spawnEntry().catch(e => console.error('[pool] falha ao substituir browser crashado:', e.message));
+    }
+  });
+
   return entry;
 }
 
@@ -77,7 +89,19 @@ async function getBrowserFromPool() {
 
   while (true) {
     for (const entry of pool) {
-      if (!entry.busy) { entry.busy = true; return entry; }
+      if (entry.busy) continue;
+      // [FIX-3] Verificar saúde antes de entregar — browser.connected não existe no Puppeteer,
+      // a API correta é isConnected(). Sem essa verificação, browsers crashados eram entregues.
+      if (!entry.browser.isConnected()) {
+        console.log('[pool] browser morto detectado no getBrowserFromPool — descartando…');
+        const idx = pool.indexOf(entry);
+        if (idx !== -1) pool.splice(idx, 1);
+        try { await entry.browser.close().catch(() => {}); } catch {}
+        _spawnEntry().catch(e => console.error('[pool] falha ao repor browser:', e.message));
+        break; // re-iterar o array (tamanho mudou)
+      }
+      entry.busy = true;
+      return entry;
     }
     if (Date.now() - start > MAX_WAIT) {
       throw new Error('[pool] Timeout aguardando browser livre (60s)');
@@ -90,14 +114,15 @@ async function releaseBrowserToPool(entry) {
   if (!entry) return;
   const idx = pool.indexOf(entry);
   if (idx === -1) { await entry.browser.close().catch(() => {}); return; }
-  try {
-    if (entry.browser.connected === false) throw new Error('disconnected');
-    entry.busy = false;
-  } catch {
-    console.log('[pool] browser crashou, substituindo…');
+  // [FIX-1] browser.connected não existe no Puppeteer — era sempre undefined, nunca detectava crash.
+  // A API correta é isConnected() (método). Sem isso, browsers mortos voltavam ao pool.
+  if (!entry.browser.isConnected()) {
+    console.log('[pool] browser crashou no release — substituindo…');
     pool.splice(idx, 1);
     try { await _spawnEntry(); } catch {}
+    return;
   }
+  entry.busy = false;
 }
 
 module.exports = { initBrowserPool, getBrowserFromPool, releaseBrowserToPool, launchBrowser };

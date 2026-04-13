@@ -153,7 +153,12 @@ function _drainCaptureQueue() {
       markQueued(item.jobId, _captureRunning + i + 1);
     }
   });
-  if (jobId) appendCrawlLog(jobId, `[Worker] Iniciando captura`);
+  if (jobId) {
+    appendCrawlLog(jobId, `[Worker] Iniciando captura`);
+    // Restaurar status 'capturing' — markQueued() sobrescreveu o status que updateRenderConfig() setou
+    const _j = getJob(jobId);
+    if (_j && _j.status === 'queued') _j.status = 'capturing';
+  }
   Promise.resolve().then(fn).then(resolve, reject).finally(() => {
     _captureRunning--;
     _drainCaptureQueue();
@@ -914,13 +919,18 @@ app.post('/api/start-capture', rlStartCapture, (req, res) => {
 app.get('/api/capture-progress/:jobId', (req, res) => {
   const job = getJob(req.params.jobId);
   if (!job) return res.status(404).json({ error: 'Job não encontrado.' });
+  const cp = job.captureProgress || {};
   return res.json({
     status:          job.status,
-    captureProgress: job.captureProgress,
+    captureProgress: cp,
     gallery:         job.gallery || [],
     applyWatermark:  job.applyWatermark !== undefined ? job.applyWatermark : true,
-    queuePosition:   job.status === 'queued' ? (job.captureProgress && job.captureProgress.queuePosition) : null,
+    queuePosition:   job.status === 'queued' ? cp.queuePosition : null,
     queueStats:      _getQueueStats(),
+    // Aliases semânticos para o frontend (mais legíveis que cp.completed/total/current)
+    currentPage: cp.completed || 0,
+    totalPages:  cp.total     || 0,
+    currentUrl:  cp.current   || '',
   });
 });
 

@@ -6,11 +6,17 @@ const { appendCrawlLog }                    = require('./jobs');
 const { getBrowserFromPool, releaseBrowserToPool } = require('./screenshotter');
 const { validateUrl, installSsrfInterceptor } = require('./security');
 
-const MAX_PAGES    = 12;
-const THUMB_TIMEOUT = 5000;
-const CRAWL_TIMEOUT = 90000; // 1.5 min (reduzido com pool)
+const MAX_PAGES         = 12;
+const THUMB_TIMEOUT     = 6000;  // [FIX-THUMB] 8s — 5s era muito curto para GitHub/SPAs
+const CRAWL_TIMEOUT     = 90000; // 1.5 min (reduzido com pool)
+const NEW_PAGE_TIMEOUT  = 5000;  // [FIX-A] timeout em browser.newPage() — sem isso, browser lento trava o slot
+const PAGE_CLOSE_TIMEOUT = 2000; // [FIX-B] timeout em pg.close() — pode pendurar se requests interceptadas
+const THUMB_CONCURRENCY = 4;     // [FIX-C] reduzido de 4 para 3 — menos pressão no browser por job de crawl
 
 const FILE_EXT_RE = /\.(pdf|zip|jpg|jpeg|png|gif|webp|svg|css|js|ico|woff|woff2|ttf|eot|mp4|mp3|xml|json)(\?|$)/i;
+
+// [FIX-12] Scripts de tracking bloqueados durante crawl — acelera descoberta de links
+const CRAWL_BLOCK_RE = /google-analytics|googletagmanager|facebook\.net|fbevents|hotjar|intercom|hubspot|drift\.com|crisp\.chat|tawk\.to|amplitude\.com|segment\.io|mixpanel|fullstory|clarity\.microsoft|adsbygoogle|doubleclick|googleadservices|newrelic|sentry\.io\/api/;
 
 // SVG placeholder quando thumbnail falha
 const THUMB_PLACEHOLDER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500"><rect width="800" height="500" fill="#141414"/><text x="400" y="260" font-family="monospace" font-size="16" fill="rgba(255,255,255,0.2)" text-anchor="middle">página não carregou</text></svg>`;
@@ -101,11 +107,15 @@ function deduplicatePages(pages) {
   return unique;
 }
 
-/** Captura thumbnail leve: 800x500, jpeg q50, sem fullPage, timeout 5s */
+/** Captura thumbnail leve: 800x500, jpeg q50, sem fullPage, timeout 8s */
 async function captureThumbnail(browser, url, outputPath) {
   let pg;
   try {
-    pg = await browser.newPage();
+    // [FIX-A] browser.newPage() com timeout — sem isso, browser sob carga bloqueia indefinidamente
+    pg = await Promise.race([
+      browser.newPage(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('newPage timeout')), NEW_PAGE_TIMEOUT)),
+    ]);
     pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
     await pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 });
     await installSsrfInterceptor(pg, req => {
@@ -116,20 +126,35 @@ async function captureThumbnail(browser, url, outputPath) {
     try {
       await Promise.race([
         pg.goto(url, { waitUntil: 'domcontentloaded', timeout: THUMB_TIMEOUT }),
-        new Promise(r => setTimeout(r, THUMB_TIMEOUT - 500)),
+        new Promise(r => setTimeout(r, THUMB_TIMEOUT - 1000)), // 7s cap
       ]);
     } catch {}
-    await pg.screenshot({ path: outputPath, type: 'jpeg', quality: 50,
-      clip: { x: 0, y: 0, width: 800, height: 500 }, timeout: 4000 });
-    await pg.close().catch(() => {});
-  } catch {
-    if (pg) await pg.close().catch(() => {});
-    // Escreve SVG placeholder
+    // [FIX-VISUAL] Aguardar renderização visual: sites com JS pesado (GitHub, SPAs)
+    // capturam spinners de loading se tiramos screenshot imediatamente após DCL.
+    // Checar se há conteúdo visível; se não, esperar até 1s adicional.
     try {
-      const svgPath = outputPath.replace('.jpg', '.svg');
-      fs.writeFileSync(svgPath, THUMB_PLACEHOLDER_SVG);
+      const hasContent = await pg.evaluate(() =>
+        !!(document.body && document.body.innerText && document.body.innerText.trim().length > 50)
+      ).catch(() => false);
+      await new Promise(r => setTimeout(r, hasContent ? 200 : 500));
     } catch {}
-    try { fs.writeFileSync(outputPath, Buffer.alloc(0)); } catch {}
+    // [FIX-B] screenshot via Promise.race — garante que não pende mesmo se timeout ignorado
+    let screenshotOk = false;
+    await Promise.race([
+      pg.screenshot({ path: outputPath, type: 'jpeg', quality: 50,
+        clip: { x: 0, y: 0, width: 800, height: 500 } }).then(() => { screenshotOk = true; }),
+      new Promise(r => setTimeout(r, 3000)),
+    ]).catch(() => {});
+    // Se screenshot não foi escrito, remover arquivo parcial (não queremos 0-byte JPEG)
+    if (!screenshotOk) {
+      try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch {}
+    }
+  } catch {
+    // Erro fatal (newPage timeout etc.) — remover qualquer arquivo parcial
+    try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch {}
+  } finally {
+    // [FIX-B] pg.close() com timeout — pode pendurar se page tem requests interceptadas pendentes
+    if (pg) await Promise.race([pg.close(), new Promise(r => setTimeout(r, PAGE_CLOSE_TIMEOUT))]).catch(() => {});
   }
 }
 
@@ -157,30 +182,52 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
 
     // ── Seed page ─────────────────────────────────────────────────────────
     log(`Acessando ${rawUrl}…`);
-    const seedPage = await browser.newPage();
+    // [FIX-D] seedPage newPage() sem timeout — browser sob carga pode pender indefinidamente
+    const seedPage = await Promise.race([
+      browser.newPage(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('seedPage newPage timeout')), NEW_PAGE_TIMEOUT)),
+    ]);
     seedPage.setDefaultNavigationTimeout(THUMB_TIMEOUT * 2);
     await seedPage.setViewport({ width: 1280, height: 800 });
+    // [FIX-12] Bloquear tracking scripts e media durante o crawl (discovery de links não precisa deles)
+    await installSsrfInterceptor(seedPage, req => {
+      const rt  = req.resourceType();
+      const url = req.url();
+      if (rt === 'media' || rt === 'font') { req.abort(); return; }
+      if (rt === 'script' && CRAWL_BLOCK_RE.test(url)) { req.abort(); return; }
+      req.continue();
+    });
+
+    let seedUrl, seedTitle, allHrefs, navHrefs;
+    // [FIX-11] try/finally garante que seedPage é sempre fechada, mesmo se evaluate() jogar
     try {
-      await Promise.race([
-        seedPage.goto(rawUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }),
-        new Promise(r => setTimeout(r, 8000)),
-      ]);
-    } catch {}
+      try {
+        await Promise.race([
+          seedPage.goto(rawUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }),
+          new Promise(r => setTimeout(r, 8000)),
+        ]);
+      } catch {}
 
-    const seedUrl   = seedPage.url();
-    const seedTitle = await seedPage.title().catch(() => origin);
-    log(`Página raiz carregada: "${seedTitle}"`);
+      seedUrl   = seedPage.url();
+      seedTitle = await seedPage.title().catch(() => origin);
+      log(`Página raiz carregada: "${seedTitle}"`);
 
-    const allHrefs = await seedPage.evaluate(() =>
-      Array.from(document.querySelectorAll('a[href]')).map(a => a.getAttribute('href')).filter(Boolean)
-    ).catch(() => []);
-    const navHrefs = await seedPage.evaluate(() => {
-      const containers = document.querySelectorAll('nav, header, [class*="menu"], [class*="nav"], [class*="navigation"]');
-      const out = [];
-      containers.forEach(c => c.querySelectorAll('a[href]').forEach(a => out.push(a.getAttribute('href'))));
-      return out.filter(Boolean);
-    }).catch(() => []);
-    await seedPage.close().catch(() => {});
+      allHrefs = await seedPage.evaluate(() =>
+        Array.from(document.querySelectorAll('a[href]')).map(a => a.getAttribute('href')).filter(Boolean)
+      ).catch(() => []);
+      navHrefs = await seedPage.evaluate(() => {
+        const containers = document.querySelectorAll('nav, header, [class*="menu"], [class*="nav"], [class*="navigation"]');
+        const out = [];
+        containers.forEach(c => c.querySelectorAll('a[href]').forEach(a => out.push(a.getAttribute('href'))));
+        return out.filter(Boolean);
+      }).catch(() => []);
+    } finally {
+      // [FIX-D] close() com timeout — pode pendurar se requests interceptadas pendentes
+      await Promise.race([seedPage.close(), new Promise(r => setTimeout(r, PAGE_CLOSE_TIMEOUT))]).catch(() => {});
+    }
+    seedUrl   = seedUrl   || rawUrl;
+    allHrefs  = allHrefs  || [];
+    navHrefs  = navHrefs  || [];
 
     // ── Dedup e priorização ────────────────────────────────────────────────
     const seen  = new Set();
@@ -202,15 +249,15 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
     // ── Seed thumbnail ─────────────────────────────────────────────────────
     const seedThumbPath = path.join(thumbDir, 'page-000.jpg');
     await captureThumbnail(browser, normalSeed, seedThumbPath);
+    const seedThumbExists = fs.existsSync(seedThumbPath);
     const results = [{
       url: normalSeed, title: seedTitle || origin,
-      thumbnailPath: seedThumbPath,
-      thumbnailUrl:  `/screenshots/${jobId}/thumbs/page-000.jpg`,
+      thumbnailPath: seedThumbExists ? seedThumbPath : null,
+      thumbnailUrl:  seedThumbExists ? `/screenshots/${jobId}/thumbs/page-000.jpg` : null,
       pageType: inferPageType(normalSeed),
     }];
 
-    // ── Remaining pages (paralelo, até 4 thumbnails simultâneas) ─────────────
-    const THUMB_CONCURRENCY = 4;
+    // ── Remaining pages (paralelo, até THUMB_CONCURRENCY thumbnails simultâneas) ──
     let thumbActive = 0;
     const thumbQueue = [];
     const thumbAcquire = () => {
@@ -232,7 +279,12 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
         let pageTitle = url;
         let finalUrl  = url;
         try {
-          pg = await browser.newPage();
+          // [FIX-A] browser.newPage() com timeout explícito.
+          // Sem isso: browser sob carga nunca responde → slot jamais liberado → páginas 5+ bloqueadas.
+          pg = await Promise.race([
+            browser.newPage(),
+            new Promise((_, rej) => setTimeout(() => rej(new Error(`[thumb] newPage timeout: ${url}`)), NEW_PAGE_TIMEOUT)),
+          ]);
           pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
           await pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 });
           await installSsrfInterceptor(pg, req => {
@@ -243,28 +295,47 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
           try {
             await Promise.race([
               pg.goto(url, { waitUntil: 'domcontentloaded', timeout: THUMB_TIMEOUT }),
-              new Promise(r => setTimeout(r, THUMB_TIMEOUT - 500)),
+              new Promise(r => setTimeout(r, THUMB_TIMEOUT - 1000)), // 7s cap
             ]);
           } catch {}
           pageTitle = await pg.title().catch(() => url);
           finalUrl  = pg.url();
-          await pg.screenshot({ path: thumbPath, type: 'jpeg', quality: 50,
-            clip: { x: 0, y: 0, width: 800, height: 500 }, timeout: 4000 }).catch(() => {});
-          await pg.close().catch(() => {}); pg = null;
-        } catch { /* falha na navegação — ainda adiciona a página com placeholder */ }
-        finally {
-          if (pg) await pg.close().catch(() => {});
+          // [FIX-VISUAL] Aguardar renderização visual antes do screenshot
+          try {
+            const hasContent = await pg.evaluate(() =>
+              !!(document.body && document.body.innerText && document.body.innerText.trim().length > 50)
+            ).catch(() => false);
+            await new Promise(r => setTimeout(r, hasContent ? 200 : 500));
+          } catch {}
+          // [FIX-B] screenshot via Promise.race — garante que não pende mesmo se opção timeout ignorada
+          let _shotOk = false;
+          await Promise.race([
+            pg.screenshot({ path: thumbPath, type: 'jpeg', quality: 50,
+              clip: { x: 0, y: 0, width: 800, height: 500 } }).then(() => { _shotOk = true; }),
+            new Promise(r => setTimeout(r, 4000)),
+          ]).catch(() => {});
+          // Se screenshot falhou silenciosamente, remover arquivo parcial → frontend usa placeholder
+          if (!_shotOk) {
+            try { if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath); } catch {}
+          }
+        } catch (e) {
+          // newPage timeout, erro de navegação, etc. — logar e continuar com placeholder
+          if (e && e.message) log(`[thumb] erro p.${i}: ${e.message.slice(0, 100)}`);
+        } finally {
+          // [FIX-B] pg.close() com timeout — .catch() sozinho não protege contra hang
+          if (pg) await Promise.race([pg.close(), new Promise(r => setTimeout(r, PAGE_CLOSE_TIMEOUT))]).catch(() => {});
         }
-        // Sempre adiciona a página ao resultado, mesmo sem thumbnail
+        // Adiciona a página ao resultado — só inclui thumbnail se arquivo existe
+        const thumbExists = fs.existsSync(thumbPath);
         results.push({
           url: finalUrl,
           title: pageTitle || finalUrl,
-          thumbnailPath: thumbPath,
-          thumbnailUrl: thumbUrl,
+          thumbnailPath: thumbExists ? thumbPath : null,
+          thumbnailUrl:  thumbExists ? thumbUrl  : null,
           pageType: inferPageType(finalUrl),
         });
       } catch { /* erro fatal inesperado — página ignorada */ }
-      finally { thumbRelease(); }
+      finally { thumbRelease(); }  // slot liberado — sempre executa
     }));
 
     log(`Exploração finalizada — ${results.length} página(s) dentro do limite, ${totalFound} descobertas no total.`);

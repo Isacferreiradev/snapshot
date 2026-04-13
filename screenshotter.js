@@ -11,17 +11,18 @@ const { appendCrawlLog } = require('./jobs');
 // ── Viewport / UA ─────────────────────────────────────────────────────────────
 const DESKTOP_VP = { width: 1440, height: 900, deviceScaleFactor: 2 };
 const MOBILE_VP  = { width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true, isLandscape: false };
-const DESKTOP_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+// [FIX] UA realista Mac (mais aceito por anti-bot que Windows headless)
+const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const MOBILE_UA  = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1';
 
 // ── Timeouts ──────────────────────────────────────────────────────────────────
 const NAV_DCL_TIMEOUT  = 10000;
 const SELECTOR_TIMEOUT = 6000;
 const RACE_SLEEP       = 2000;
-const POST_LOAD_WAIT   = 300;
+const POST_LOAD_WAIT   = 500;  // [FIX-SPEED] 500ms base; resto coberto pelo content-check dinâmico
 const OVERLAY_TIMEOUT  = 800;
 const SHOT_TIMEOUT     = 10000;
-const GLOBAL_PAGE_TIMEOUT = 45000;
+const GLOBAL_PAGE_TIMEOUT = 90000;  // [FIX-5] 90s por página (era 45s — insuficiente com cascade)
 const GLOBAL_JOB_TIMEOUT  = 120000; // 2 min por job (reduzido de 5min)
 
 // ── Retry ─────────────────────────────────────────────────────────────────────
@@ -111,28 +112,67 @@ async function triggerLazyLoad(page) {
   } catch {}
 }
 
-/** Navegação rápida com suporte a captureStrategy por plataforma */
+/** Navegação com cascade domcontentloaded → networkidle2 → load.
+ *  [FIX-SPEED] Antes iniciava com networkidle0 (25s timeout) que nunca resolvia em sites como
+ *  GitHub (conexões persistentes/WebSocket). Resultado: todo site "pesado" esperava 25s antes
+ *  de tentar a próxima estratégia. Novo cascade começa por domcontentloaded (rápido e confiável)
+ *  e usa content-check dinâmico em vez de setTimeout fixo.
+ */
 async function navigateFast(page, url, captureStrategy) {
   const strat = captureStrategy || {};
-  let navErr = null;
 
-  if (strat.waitUntil === 'networkidle2') {
+  // Se o caller especificou uma estratégia explícita (ex: per-page override), usá-la diretamente
+  if (strat.waitUntil) {
     const timeout = strat.timeout || NAV_DCL_TIMEOUT;
+    let navErr = null;
     await Promise.race([
-      page.goto(url, { waitUntil: 'networkidle2', timeout }).catch(e => { navErr = e; }),
-      new Promise(r => setTimeout(r, timeout)),
+      page.goto(url, { waitUntil: strat.waitUntil, timeout }).catch(e => { navErr = e; }),
+      new Promise(r => setTimeout(r, timeout + 1000)),
     ]);
-  } else {
-    await Promise.race([
-      page.goto(url, { waitUntil: 'domcontentloaded', timeout: NAV_DCL_TIMEOUT }).catch(e => { navErr = e; }),
-      page.waitForSelector('body, main, article', { timeout: SELECTOR_TIMEOUT }).catch(() => {}),
-      new Promise(r => setTimeout(r, RACE_SLEEP)),
-    ]);
+    if (navErr && !/timeout|TimeoutError/i.test(navErr.message)) throw navErr;
+    await new Promise(r => setTimeout(r, strat.delay || POST_LOAD_WAIT));
+    return;
   }
-  if (navErr && !/timeout|TimeoutError/i.test(navErr.message)) throw navErr;
 
-  const delay = strat.delay || POST_LOAD_WAIT;
-  await new Promise(r => setTimeout(r, delay));
+  // Cascade: domcontentloaded primeiro (rápido), depois load como fallback
+  // NÃO usamos networkidle0 — sites como GitHub, Vercel e outros com
+  // WebSocket/polling NUNCA atingem networkidle0 → travava 25s por página.
+  const CASCADE = [
+    { waitUntil: 'domcontentloaded', timeout: 12000 },
+    { waitUntil: 'load',             timeout: 10000 },
+  ];
+
+  let lastErr = null;
+  for (const s of CASCADE) {
+    try {
+      await page.goto(url, { waitUntil: s.waitUntil, timeout: s.timeout });
+      lastErr = null;
+      break;
+    } catch (err) {
+      lastErr = err;
+      // Erro real de rede (não timeout) → interromper cascade e relançar
+      if (!/timeout|TimeoutError/i.test(err.message || '')) throw err;
+    }
+  }
+  if (lastErr) {
+    console.warn(`[navigateFast] todas as estratégias falharam para ${url} — continuando com estado atual`);
+  }
+
+  // Delay base pós-navegação (reduzido de 1000ms → 500ms)
+  await new Promise(r => setTimeout(r, POST_LOAD_WAIT));
+
+  // Content-check dinâmico: verifica se há conteúdo visível a cada 200ms (máx 1500ms total)
+  // Substitui o setTimeout fixo de 2000ms — sites com conteúdo imediato terminam em ~200ms
+  try {
+    const contentDeadline = Date.now() + 1500;
+    while (Date.now() < contentDeadline) {
+      const hasContent = await page.evaluate(() =>
+        !!(document.body && document.body.innerText && document.body.innerText.trim().length > 100)
+      ).catch(() => false);
+      if (hasContent) break;
+      await new Promise(r => setTimeout(r, 200));
+    }
+  } catch {}
 }
 
 async function screenshotLimited(page, filePath) {
@@ -174,7 +214,11 @@ async function assertScreenshotSize(filePath, page, clip) {
 }
 
 async function setupPage(browser, vp, ua, hostname) {
-  const page = await browser.newPage();
+  // [FIX-B] newPage() sem timeout → hang silencioso de até 90s; 10s é suficiente
+  const page = await Promise.race([
+    browser.newPage(),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('setupPage: newPage timeout')), 10000)),
+  ]);
   page.setDefaultNavigationTimeout(NAV_DCL_TIMEOUT);
   await applyStealthPatch(page);
   await page.setUserAgent(ua);
@@ -194,9 +238,7 @@ function assertHttpUrl(url) {
 
 // Templates que capturam apenas o viewport inicial (acima da dobra)
 const DEVICE_FRAME_TEMPLATES = new Set([
-  'void','chrome','paper','float','annotation','story',
-  'macbook','iphone-pro','tablet','duo-split','device-glow','browser-dark',
-  'ipad','slate','duo','arcade','watch',
+  'macbook-realistic', 'macbook-clean', 'iphone-pro', 'iphone-dark', 'multi-device',
 ]);
 
 // ── Render com fallback — retorna true se renderizou com template, false se usou raw ──
@@ -256,7 +298,8 @@ async function _capturePageWithBrowser(browser, validated, dir, cfg, applyWaterm
   const mobileVp     = { ...MOBILE_VP,  deviceScaleFactor: Math.max(planDSF, 2) };
 
   // Device-frame templates benefit from viewport-only capture (show top of page in frame)
-  const pageTemplate    = (cfg.pageTemplates && cfg.pageTemplates[validated]) || cfg.template || 'void';
+  // [FIX-7] Fallback de 'void' para 'browser-clean' — 'void' era passado ao renderer sem tratamento
+  const pageTemplate    = (cfg.pageTemplates && cfg.pageTemplates[validated]) || cfg.template || 'browser-clean';
   const pageCfg         = { ...cfg, template: pageTemplate };
   const viewportOnly    = aboveFoldOnly || DEVICE_FRAME_TEMPLATES.has(pageTemplate);
 
@@ -289,33 +332,25 @@ async function _capturePageWithBrowser(browser, validated, dir, cfg, applyWaterm
             : screenshotMobileLimited(mp, mobileRaw))
         : Promise.resolve(),
     ]);
-    await Promise.all([dp.close().catch(() => {}), mp ? mp.close().catch(() => {}) : Promise.resolve()]);
+    // [FIX-C] close() sem timeout pode pendurar com requests interceptadas pendentes
+    const closeWithTimeout = p => Promise.race([p.close(), new Promise(r => setTimeout(r, 2000))]).catch(() => {});
+    await Promise.all([closeWithTimeout(dp), mp ? closeWithTimeout(mp) : Promise.resolve()]);
     dp = null; mp = null;
 
-    // Renders em paralelo (desktop, mobile, preview)
-    const [deskOk, mobOk] = await Promise.all([
-      safeRender({ screenshotPath: desktopRaw, deviceType: 'desktop', renderConfig: pageCfg, outputPath: desktopOut, pageUrl: validated, pageTitle, applyWatermark: !!applyWatermark }, desktopRaw),
-      includeMobile
-        ? safeRender({ screenshotPath: mobileRaw, deviceType: 'mobile', renderConfig: pageCfg, outputPath: mobileOut, pageUrl: validated, pageTitle, applyWatermark: !!applyWatermark }, mobileRaw)
-        : Promise.resolve(false),
-      safeRender({ screenshotPath: desktopRaw, deviceType: 'desktop', renderConfig: pageCfg, outputPath: previewOut, pageUrl: validated, pageTitle, applyWatermark: !!applyWatermark }, desktopRaw),
-    ]);
-
-    if (cfg && cfg.socialExport) {
-      const socialDir = path.join(dir, 'social');
-      fs.mkdirSync(socialDir, { recursive: true });
-      for (const fmt of ['twitter','linkedin','instagram-square','instagram-story','og']) {
-        await renderSocialExport({ screenshotPath: desktopRaw, format: fmt, outputPath: path.join(socialDir, `${fmt}.png`), pageUrl: validated, pageTitle }).catch(() => {});
-      }
-    }
-
-    // Raw files are kept on disk for possible re-render (e.g., user removes watermark after purchase)
-    // They are deleted when the job folder is cleaned up after download.
-
-    return { desktopPath: desktopOut, mobilePath: mobileOut, previewPath: previewOut, pageTitle, url: validated };
+    // Retornar metadados — render será feito FORA desta função, após liberar o browser do pool.
+    // Isso evita deadlock: com 3 browsers no pool e 3 capturas simultâneas, se render
+    // precisar de browser (renderTemplate usa getBrowserFromPool), não há browser disponível.
+    return {
+      desktopRaw, mobileRaw, desktopOut, mobileOut, previewOut,
+      pageCfg, validated, pageTitle, includeMobile,
+      applyWatermark: !!applyWatermark,
+      socialExport: !!(cfg && cfg.socialExport),
+      dir,
+    };
   } finally {
-    if (dp) await dp.close().catch(() => {});
-    if (mp) await mp.close().catch(() => {});
+    // [FIX-C] timeout no finally também — .catch() sozinho não protege contra hang
+    if (dp) await Promise.race([dp.close(), new Promise(r => setTimeout(r, 2000))]).catch(() => {});
+    if (mp) await Promise.race([mp.close(), new Promise(r => setTimeout(r, 2000))]).catch(() => {});
   }
 }
 
@@ -349,36 +384,59 @@ async function captureJobPages(urls, jobId, cfg, onProgress, applyWatermark, pag
         const aboveFoldOnly   = !!opts.aboveFoldOnly;
 
         await sem.acquire();
-        let poolEntry;
-        let lastErr;
-        let captured = false;
-        for (let attempt = 1; attempt <= RETRY_MAX + 1; attempt++) {
-          try {
-            if (attempt > 1) appendCrawlLog(jobId, `[Worker] Retry ${attempt - 1}/${RETRY_MAX}: ${url}`);
-            poolEntry = await getBrowserFromPool();
-            const result = await Promise.race([
-              _capturePageWithBrowser(poolEntry.browser, validated, dir, cfg || {}, applyWatermark, captureStrategy, aboveFoldOnly),
-              new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout por página')), GLOBAL_PAGE_TIMEOUT)),
-            ]);
-            await releaseBrowserToPool(poolEntry); poolEntry = null;
-            results[i] = result;
-            if (onProgress) onProgress(i, result, null);
-            captured = true;
-            break;
-          } catch (err) {
-            lastErr = err;
-            if (poolEntry) { await releaseBrowserToPool(poolEntry); poolEntry = null; }
-            const isRetriable = RETRY_RE.test(err.message || '');
-            appendCrawlLog(jobId, `[Worker] Falha tentativa ${attempt}: ${err.message ? err.message.slice(0,80) : 'erro desconhecido'}`);
-            if (!isRetriable || attempt > RETRY_MAX) break;
-            await new Promise(r => setTimeout(r, RETRY_DELAY));
+        try {
+          let poolEntry;
+          let lastErr;
+          let captured = false;
+          for (let attempt = 1; attempt <= RETRY_MAX + 1; attempt++) {
+            try {
+              if (attempt > 1) appendCrawlLog(jobId, `[Worker] Retry ${attempt - 1}/${RETRY_MAX}: ${url}`);
+              poolEntry = await getBrowserFromPool();
+              const captureResult = await Promise.race([
+                _capturePageWithBrowser(poolEntry.browser, validated, dir, cfg || {}, applyWatermark, captureStrategy, aboveFoldOnly),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout por página')), GLOBAL_PAGE_TIMEOUT)),
+              ]);
+              // Liberar browser ANTES do render — evita deadlock quando renderer também precisa de browser
+              await releaseBrowserToPool(poolEntry); poolEntry = null;
+
+              // Render: aplicar template nos screenshots capturados (usa browser do pool internamente)
+              const cr = captureResult;
+              const [deskOk, mobOk] = await Promise.all([
+                safeRender({ screenshotPath: cr.desktopRaw, deviceType: 'desktop', renderConfig: cr.pageCfg, outputPath: cr.desktopOut, pageUrl: cr.validated, pageTitle: cr.pageTitle, applyWatermark: cr.applyWatermark }, cr.desktopRaw),
+                cr.includeMobile
+                  ? safeRender({ screenshotPath: cr.mobileRaw, deviceType: 'mobile', renderConfig: cr.pageCfg, outputPath: cr.mobileOut, pageUrl: cr.validated, pageTitle: cr.pageTitle, applyWatermark: cr.applyWatermark }, cr.mobileRaw)
+                  : Promise.resolve(false),
+                safeRender({ screenshotPath: cr.desktopRaw, deviceType: 'desktop', renderConfig: cr.pageCfg, outputPath: cr.previewOut, pageUrl: cr.validated, pageTitle: cr.pageTitle, applyWatermark: cr.applyWatermark }, cr.desktopRaw),
+              ]);
+              if (cr.socialExport) {
+                const socialDir = path.join(cr.dir, 'social');
+                fs.mkdirSync(socialDir, { recursive: true });
+                for (const fmt of ['twitter','linkedin','instagram-square','instagram-story','og']) {
+                  await renderSocialExport({ screenshotPath: cr.desktopRaw, format: fmt, outputPath: path.join(socialDir, `${fmt}.png`), pageUrl: cr.validated, pageTitle: cr.pageTitle }).catch(() => {});
+                }
+              }
+
+              const result = { desktopPath: cr.desktopOut, mobilePath: cr.mobileOut, previewPath: cr.previewOut, pageTitle: cr.pageTitle, url: cr.validated };
+              results[i] = result;
+              if (onProgress) onProgress(i, result, null);
+              captured = true;
+              break;
+            } catch (err) {
+              lastErr = err;
+              if (poolEntry) { await releaseBrowserToPool(poolEntry); poolEntry = null; }
+              const isRetriable = RETRY_RE.test(err.message || '');
+              appendCrawlLog(jobId, `[Worker] Falha tentativa ${attempt}: ${err.message ? err.message.slice(0,80) : 'erro desconhecido'}`);
+              if (!isRetriable || attempt > RETRY_MAX) break;
+              await new Promise(r => setTimeout(r, RETRY_DELAY));
+            }
           }
+          if (!captured) {
+            results[i] = null;
+            if (onProgress) onProgress(i, null, lastErr);
+          }
+        } finally {
+          sem.release(); // [FIX-A] garante liberação mesmo se exceção inesperada escapar do for-loop
         }
-        if (!captured) {
-          results[i] = null;
-          if (onProgress) onProgress(i, null, lastErr);
-        }
-        sem.release();
       }));
       return results;
     })(),
@@ -430,28 +488,37 @@ async function captureComparison(url1, url2, jobId, renderConfig) {
       (async () => {
         [entry1, entry2] = await Promise.all([getBrowserFromPool(), getBrowserFromPool()]);
 
+        // [FIX-E] p1/p2 em try/finally — screenshotLimited() pode jogar, orphaning a page
         const [r1, r2] = await Promise.all([
           (async () => {
             const h1 = (() => { try { return new URL(v1).hostname; } catch { return ''; } })();
-            const p1 = await setupPage(entry1.browser, DESKTOP_VP, DESKTOP_UA, h1);
-            await navigateFast(p1, v1);
-            await Promise.race([dismissOverlays(p1), new Promise(r => setTimeout(r, OVERLAY_TIMEOUT))]);
-            await triggerLazyLoad(p1);
-            const t1 = await p1.title().catch(() => v1);
-            await screenshotLimited(p1, raw1);
-            await p1.close().catch(() => {});
-            return t1;
+            let p1;
+            try {
+              p1 = await setupPage(entry1.browser, DESKTOP_VP, DESKTOP_UA, h1);
+              await navigateFast(p1, v1);
+              await Promise.race([dismissOverlays(p1), new Promise(r => setTimeout(r, OVERLAY_TIMEOUT))]);
+              await triggerLazyLoad(p1);
+              const t1 = await p1.title().catch(() => v1);
+              await screenshotLimited(p1, raw1);
+              return t1;
+            } finally {
+              if (p1) await Promise.race([p1.close(), new Promise(r => setTimeout(r, 2000))]).catch(() => {});
+            }
           })(),
           (async () => {
             const h2 = (() => { try { return new URL(v2).hostname; } catch { return ''; } })();
-            const p2 = await setupPage(entry2.browser, DESKTOP_VP, DESKTOP_UA, h2);
-            await navigateFast(p2, v2);
-            await Promise.race([dismissOverlays(p2), new Promise(r => setTimeout(r, OVERLAY_TIMEOUT))]);
-            await triggerLazyLoad(p2);
-            const t2 = await p2.title().catch(() => v2);
-            await screenshotLimited(p2, raw2);
-            await p2.close().catch(() => {});
-            return t2;
+            let p2;
+            try {
+              p2 = await setupPage(entry2.browser, DESKTOP_VP, DESKTOP_UA, h2);
+              await navigateFast(p2, v2);
+              await Promise.race([dismissOverlays(p2), new Promise(r => setTimeout(r, OVERLAY_TIMEOUT))]);
+              await triggerLazyLoad(p2);
+              const t2 = await p2.title().catch(() => v2);
+              await screenshotLimited(p2, raw2);
+              return t2;
+            } finally {
+              if (p2) await Promise.race([p2.close(), new Promise(r => setTimeout(r, 2000))]).catch(() => {});
+            }
           })(),
         ]);
 
