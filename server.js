@@ -1794,39 +1794,57 @@ function syncTemplates() {
   try { templates = JSON.parse(fs.readFileSync(TEMPLATES_FILE, 'utf8')); }
   catch { templates = []; }
 
-  // Lista autoritativa dos 32 IDs permitidos
   const TEMPLATE_IDS_AUTORIZADOS = [
-    // BÁSICO — free
-    'browser-clean', 'minimal-clean', 'social-basic', 'mobile-simple', 'gradient-basic', 'default-dark',
-    // SOCIAL — starter
-    'instagram-post', 'instagram-story', 'twitter-post', 'linkedin-post', 'whatsapp-share', 'carousel-post', 'ad-style', 'viral-frame',
-    // PROFISSIONAL — starter
-    'presentation-slide', 'pitch-deck', 'proposal-clean', 'case-study', 'portfolio-showcase', 'corporate-clean',
-    // DISPOSITIVOS — starter
-    'macbook-realistic', 'macbook-clean', 'iphone-pro', 'iphone-dark', 'multi-device', 'browser-premium',
-    // MARKETING — starter
-    'hero-section', 'landing-highlight', 'feature-showcase', 'comparison-before-after', 'gradient-premium', 'spotlight-product',
+    'browser-clean', 'minimal-clean', 'default-dark', 'gradient-basic', 'paper-note', 'neon-glow',
+    'instagram-post', 'instagram-story', 'twitter-post', 'linkedin-post', 'whatsapp-share',
+    'instagram-carousel', 'tiktok-mockup', 'youtube-thumbnail',
+    'shadow-soft', 'dark-frame', 'browser-premium',
+    'presentation-slide', 'document-report', 'annotated-capture',
+    'macbook-realistic', 'macbook-clean', 'iphone-pro', 'iphone-dark', 'multi-device',
+    'ipad-landscape', 'android-phone',
+    'gradient-premium', 'hero-section', 'landing-highlight', 'product-hunt', 'ad-banner',
   ];
 
-  const whitelist = new Set(TEMPLATE_IDS_AUTORIZADOS);
+  const FREE_IDS = new Set(['browser-clean', 'minimal-clean', 'default-dark', 'gradient-basic', 'paper-note', 'neon-glow']);
 
-  // Remover templates que não estão na whitelist
+  const CATEGORY_MAP = {
+    'browser-clean': 'basico', 'minimal-clean': 'basico',
+    'default-dark': 'basico', 'gradient-basic': 'basico',
+    'paper-note': 'basico', 'neon-glow': 'basico',
+    'instagram-post': 'social', 'instagram-story': 'social', 'twitter-post': 'social',
+    'linkedin-post': 'social', 'whatsapp-share': 'social',
+    'instagram-carousel': 'social', 'tiktok-mockup': 'social', 'youtube-thumbnail': 'social',
+    'shadow-soft': 'profissional', 'dark-frame': 'profissional', 'browser-premium': 'profissional',
+    'presentation-slide': 'profissional', 'document-report': 'profissional', 'annotated-capture': 'profissional',
+    'macbook-realistic': 'dispositivos', 'macbook-clean': 'dispositivos',
+    'iphone-pro': 'dispositivos', 'iphone-dark': 'dispositivos', 'multi-device': 'dispositivos',
+    'ipad-landscape': 'dispositivos', 'android-phone': 'dispositivos',
+    'gradient-premium': 'marketing', 'hero-section': 'marketing', 'landing-highlight': 'marketing',
+    'product-hunt': 'marketing', 'ad-banner': 'marketing',
+  };
+
+  const whitelist = new Set(TEMPLATE_IDS_AUTORIZADOS);
   const before = templates.length;
   templates = templates.filter(t => whitelist.has(t.id));
   if (templates.length !== before) {
     console.log(`[syncTemplates] removidos ${before - templates.length} templates não autorizados`);
   }
 
-  const existingIds = new Set(templates.map(t => t.id));
   let changed = (templates.length !== before);
 
-  const FREE_IDS = new Set(['browser-clean', 'minimal-clean', 'social-basic', 'mobile-simple', 'gradient-basic', 'default-dark']);
+  templates.forEach(t => {
+    const expectedCat = CATEGORY_MAP[t.id];
+    const expectedPlan = FREE_IDS.has(t.id) ? 'free' : 'starter';
+    if (expectedCat && t.category !== expectedCat) { t.category = expectedCat; changed = true; }
+    if (t.plan !== expectedPlan) { t.plan = expectedPlan; changed = true; }
+  });
 
+  const existingIds = new Set(templates.map(t => t.id));
   TEMPLATE_IDS_AUTORIZADOS.forEach((id, idx) => {
     if (!existingIds.has(id)) {
       templates.push({
         id, name: id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' '),
-        key: id, category: FREE_IDS.has(id) ? 'basico' : 'starter',
+        key: id, category: CATEGORY_MAP[id],
         plan: FREE_IDS.has(id) ? 'free' : 'starter',
         description: `Template ${id}`,
         active: true, order: idx,
@@ -1836,10 +1854,12 @@ function syncTemplates() {
     }
   });
 
-  // Garantir campo order em todos
-  templates.forEach((t, i) => {
-    if (t.order === undefined) { t.order = i; changed = true; }
+  const orderIndex = Object.fromEntries(TEMPLATE_IDS_AUTORIZADOS.map((id, i) => [id, i]));
+  templates.forEach(t => {
+    const expectedOrder = orderIndex[t.id];
+    if (t.order !== expectedOrder) { t.order = expectedOrder; changed = true; }
   });
+  templates.sort((a, b) => a.order - b.order);
 
   if (changed) fs.writeFileSync(TEMPLATES_FILE, JSON.stringify(templates, null, 2));
 }

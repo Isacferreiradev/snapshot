@@ -51,7 +51,7 @@ function getFormattedDate() {
   return new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-// ── Section 2: 20 Template Renderers ─────────────────────────────────────────
+// ── Section 2: 32 Template Renderers ─────────────────────────────────────────
 // Each template handles deviceType ('desktop'|'mobile') internally.
 
 const templateRenderers = {
@@ -665,6 +665,283 @@ ${wm}</body></html>`;
     return { html, renderConfig: { width: 2400, height: 1600, deviceScaleFactor: 2 } };
   },
 
+  // ── 12 NEW TEMPLATES (v2 expansion) ──────────────────────────────────────
+
+  // 21. paper-note — Screenshot como nota de papel com textura e sombra natural
+  'paper-note': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const W = deviceType === 'mobile' ? 900 : 2400;
+    const H = deviceType === 'mobile' ? 1600 : 1600;
+    const imgW = deviceType === 'mobile' ? 780 : 2100;
+    const imgH = deviceType === 'mobile' ? 1400 : 1340;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:${W}px;height:${H}px;overflow:hidden;background:#f0ebe0;background-image:radial-gradient(ellipse at 50% 50%,#f7f2e6 0%,#e8dfc8 100%);display:flex;align-items:center;justify-content:center;position:relative;}</style></head><body>
+<div style="width:${imgW}px;height:${imgH}px;background:#fffdf7;padding:24px;border-radius:2px;box-shadow:0 30px 60px rgba(80,60,30,0.18),0 10px 20px rgba(80,60,30,0.10),inset 0 0 60px rgba(180,150,90,0.04);transform:rotate(-0.4deg);">
+  <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+</div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: W, height: H, deviceScaleFactor: 2 } };
+  },
+
+  // 22. neon-glow — Glow neon vibrante ao redor do screenshot, fundo preto
+  'neon-glow': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const W = deviceType === 'mobile' ? 900 : 2400;
+    const H = deviceType === 'mobile' ? 1600 : 1600;
+    const imgW = deviceType === 'mobile' ? 780 : 2100;
+    const imgH = deviceType === 'mobile' ? 1380 : 1340;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:${W}px;height:${H}px;overflow:hidden;background:#050014;display:flex;align-items:center;justify-content:center;position:relative;}</style></head><body>
+<div style="width:${imgW}px;height:${imgH}px;border-radius:12px;box-shadow:0 0 60px #b026ff,0 0 120px rgba(176,38,255,0.6),0 0 180px rgba(0,200,255,0.4),inset 0 0 2px rgba(255,255,255,0.3);border:2px solid rgba(176,38,255,0.8);overflow:hidden;">
+  <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+</div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: W, height: H, deviceScaleFactor: 2 } };
+  },
+
+  // 23. instagram-carousel — 3 cards empilhados simulando swipe de carousel
+  'instagram-carousel': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:1080px;height:1350px;overflow:hidden;background:#fafafa;display:flex;align-items:center;justify-content:center;position:relative;font-family:-apple-system,BlinkMacSystemFont,sans-serif;}.card{position:absolute;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.15);}</style></head><body>
+<div style="position:absolute;top:40px;right:40px;background:rgba(0,0,0,0.6);color:#fff;padding:6px 12px;border-radius:14px;font-size:14px;font-weight:600;">1/3</div>
+<div class="card" style="width:880px;height:1100px;top:125px;left:100px;transform:rotate(-4deg) translateX(-40px);opacity:0.35;"><div style="width:100%;height:100%;background:linear-gradient(135deg,#667eea,#764ba2);"></div></div>
+<div class="card" style="width:880px;height:1100px;top:125px;left:100px;transform:rotate(-2deg) translateX(-20px);opacity:0.6;"><div style="width:100%;height:100%;background:linear-gradient(135deg,#f093fb,#f5576c);"></div></div>
+<div class="card" style="width:880px;height:1100px;top:125px;left:100px;">
+  <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+</div>
+<div style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);display:flex;gap:8px;">
+  <div style="width:10px;height:10px;border-radius:50%;background:#0095f6;"></div>
+  <div style="width:10px;height:10px;border-radius:50%;background:rgba(0,0,0,0.2);"></div>
+  <div style="width:10px;height:10px;border-radius:50%;background:rgba(0,0,0,0.2);"></div>
+</div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: 1080, height: 1350, deviceScaleFactor: 2 } };
+  },
+
+  // 24. tiktok-mockup — Interface TikTok vertical com action bar lateral
+  'tiktok-mockup': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:1080px;height:1920px;overflow:hidden;background:#000;position:relative;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#fff;}</style></head><body>
+<img src="${img}" style="position:absolute;top:0;left:0;width:1080px;height:1920px;object-fit:cover;object-position:top center;display:block;filter:brightness(0.88);">
+<div style="position:absolute;top:0;left:0;right:0;height:320px;background:linear-gradient(180deg,rgba(0,0,0,0.6),transparent);"></div>
+<div style="position:absolute;bottom:0;left:0;right:0;height:480px;background:linear-gradient(0deg,rgba(0,0,0,0.7),transparent);"></div>
+<div style="position:absolute;top:80px;left:50%;transform:translateX(-50%);display:flex;gap:60px;font-size:30px;font-weight:600;">
+  <span style="opacity:0.55;">Seguindo</span>
+  <span style="border-bottom:3px solid #fff;padding-bottom:4px;">Para Você</span>
+</div>
+<div style="position:absolute;right:32px;bottom:260px;display:flex;flex-direction:column;gap:34px;align-items:center;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:90px;height:90px;border-radius:50%;border:3px solid #fff;background:linear-gradient(135deg,#25f4ee,#fe2c55);"></div></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><svg width="68" height="68" viewBox="0 0 24 24" fill="#fff"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg><span style="font-size:22px;font-weight:600;">128.4K</span></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><svg width="64" height="64" viewBox="0 0 24 24" fill="#fff"><path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18z"/></svg><span style="font-size:22px;font-weight:600;">2,847</span></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><svg width="64" height="64" viewBox="0 0 24 24" fill="#fff"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg><span style="font-size:22px;font-weight:600;">Share</span></div>
+</div>
+<div style="position:absolute;left:40px;bottom:120px;right:200px;">
+  <div style="font-size:34px;font-weight:700;margin-bottom:10px;">@your_brand</div>
+  <div style="font-size:26px;font-weight:400;line-height:1.35;">Check this out 🔥 #viral #tech</div>
+  <div style="display:flex;align-items:center;gap:10px;margin-top:16px;font-size:22px;opacity:0.9;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg> som original · your_brand</div>
+</div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: 1080, height: 1920, deviceScaleFactor: 2 } };
+  },
+
+  // 25. youtube-thumbnail — Thumbnail de vídeo YouTube 16:9 com CTA
+  'youtube-thumbnail': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:1280px;height:720px;overflow:hidden;background:#0d0d0d;position:relative;font-family:'Impact','Arial Black',sans-serif;}</style></head><body>
+<img src="${img}" style="position:absolute;right:0;top:0;width:720px;height:720px;object-fit:cover;object-position:top center;display:block;">
+<div style="position:absolute;left:0;top:0;bottom:0;width:600px;background:linear-gradient(135deg,#ff0000,#cc0000);padding:70px 50px;display:flex;flex-direction:column;justify-content:center;color:#fff;">
+  <div style="font-size:28px;font-weight:700;letter-spacing:6px;color:#ffeb3b;margin-bottom:18px;">ASSISTA AGORA</div>
+  <div style="font-size:96px;font-weight:900;line-height:0.95;text-shadow:6px 6px 0 #000;text-transform:uppercase;">A VERDADE que ninguém te contou</div>
+</div>
+<div style="position:absolute;bottom:32px;right:40px;background:#000;color:#fff;padding:8px 16px;border-radius:4px;font-size:22px;font-weight:700;">10:42</div>
+<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:130px;height:130px;background:rgba(0,0,0,0.75);border:5px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;"><div style="width:0;height:0;border-left:38px solid #fff;border-top:24px solid transparent;border-bottom:24px solid transparent;margin-left:10px;"></div></div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: 1280, height: 720, deviceScaleFactor: 2 } };
+  },
+
+  // 26. presentation-slide — Slide 16:9 estilo keynote: título + screenshot
+  'presentation-slide': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const domain = getDomain((options && options.url) || '');
+    if (deviceType === 'mobile') {
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:900px;height:1600px;overflow:hidden;background:linear-gradient(180deg,#0f172a,#1e293b);position:relative;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#fff;}</style></head><body>
+<div style="padding:80px 70px 40px;">
+  <div style="font-size:22px;letter-spacing:4px;color:#60a5fa;margin-bottom:16px;">APRESENTAÇÃO</div>
+  <div style="font-size:72px;font-weight:700;line-height:1.1;margin-bottom:18px;">O produto, de um<br/>olhar rápido.</div>
+  <div style="font-size:24px;color:rgba(255,255,255,0.6);">${domain || 'snapdeck.pro'}</div>
+</div>
+<div style="position:absolute;bottom:60px;left:70px;right:70px;height:1000px;border-radius:10px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.7);">
+  <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+</div>
+${wm}</body></html>`;
+      return { html, renderConfig: { width: 900, height: 1600, deviceScaleFactor: 2 } };
+    }
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:2400px;height:1350px;overflow:hidden;background:linear-gradient(135deg,#0f172a,#1e293b);position:relative;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#fff;}</style></head><body>
+<div style="position:absolute;left:0;top:0;bottom:0;width:900px;padding:160px 100px 100px;display:flex;flex-direction:column;justify-content:center;">
+  <div style="font-size:28px;letter-spacing:6px;color:#60a5fa;margin-bottom:28px;font-weight:600;">APRESENTAÇÃO</div>
+  <div style="font-size:96px;font-weight:700;line-height:1.05;margin-bottom:32px;">O produto,<br/>de um olhar<br/>rápido.</div>
+  <div style="font-size:32px;color:rgba(255,255,255,0.55);font-weight:400;">${domain || 'snapdeck.pro'}</div>
+</div>
+<div style="position:absolute;right:100px;top:100px;bottom:100px;width:1360px;border-radius:14px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,0.7),0 12px 32px rgba(0,0,0,0.4);">
+  <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+</div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: 2400, height: 1350, deviceScaleFactor: 2 } };
+  },
+
+  // 27. document-report — Página A4 portrait com cabeçalho e rodapé corporativo
+  'document-report': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const domain = getDomain((options && options.url) || '');
+    const date = getFormattedDate();
+    const W = deviceType === 'mobile' ? 900 : 1700;
+    const H = deviceType === 'mobile' ? 1600 : 2200;
+    const bodyPad = deviceType === 'mobile' ? 50 : 120;
+    const imgH = deviceType === 'mobile' ? 900 : 1450;
+    const titleSize = deviceType === 'mobile' ? 36 : 54;
+    const smallSize = deviceType === 'mobile' ? 16 : 20;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:${W}px;height:${H}px;overflow:hidden;background:#fbfbf9;position:relative;font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;}</style></head><body>
+<div style="padding:${bodyPad}px ${bodyPad}px 30px;border-bottom:2px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center;">
+  <div>
+    <div style="font-size:${smallSize}px;letter-spacing:4px;color:#666;font-family:Arial,sans-serif;">RELATÓRIO</div>
+    <div style="font-size:${titleSize}px;font-weight:700;margin-top:8px;">${domain || 'snapdeck.pro'}</div>
+  </div>
+  <div style="text-align:right;font-size:${smallSize}px;color:#666;font-family:Arial,sans-serif;">${date}</div>
+</div>
+<div style="padding:${bodyPad/2}px ${bodyPad}px;">
+  <div style="width:100%;height:${imgH}px;border:1px solid #e5e5e0;border-radius:3px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.06);">
+    <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+  </div>
+  <div style="margin-top:24px;font-size:${smallSize}px;color:#555;font-style:italic;">Figura 1 — Captura de tela de ${domain || 'snapdeck.pro'}</div>
+</div>
+<div style="position:absolute;bottom:${bodyPad/2}px;left:${bodyPad}px;right:${bodyPad}px;padding-top:20px;border-top:1px solid #c4c4be;display:flex;justify-content:space-between;font-size:${smallSize-2}px;color:#888;font-family:Arial,sans-serif;">
+  <span>Gerado por snapdeck.pro</span>
+  <span>Página 1</span>
+</div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: W, height: H, deviceScaleFactor: 2 } };
+  },
+
+  // 28. annotated-capture — Screenshot com 3 callouts numerados
+  'annotated-capture': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const W = deviceType === 'mobile' ? 900 : 2400;
+    const H = deviceType === 'mobile' ? 1600 : 1600;
+    const imgW = deviceType === 'mobile' ? 780 : 2000;
+    const imgH = deviceType === 'mobile' ? 1380 : 1340;
+    const badgeSize = deviceType === 'mobile' ? 52 : 78;
+    const badgeFont = deviceType === 'mobile' ? 26 : 38;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:${W}px;height:${H}px;overflow:hidden;background:#fafaf7;display:flex;align-items:center;justify-content:center;position:relative;font-family:-apple-system,BlinkMacSystemFont,sans-serif;}.badge{position:absolute;width:${badgeSize}px;height:${badgeSize}px;border-radius:50%;background:#ef4444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:${badgeFont}px;font-weight:700;box-shadow:0 4px 12px rgba(239,68,68,0.4),0 0 0 4px #fff;z-index:2;}</style></head><body>
+<div style="position:relative;width:${imgW}px;height:${imgH}px;border-radius:8px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+  <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+</div>
+<div class="badge" style="top:${H*0.15}px;left:${(W-imgW)/2 + imgW*0.12}px;">1</div>
+<div class="badge" style="top:${H*0.35}px;right:${(W-imgW)/2 + imgW*0.10}px;">2</div>
+<div class="badge" style="bottom:${H*0.20}px;left:${(W-imgW)/2 + imgW*0.40}px;">3</div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: W, height: H, deviceScaleFactor: 2 } };
+  },
+
+  // 29. ipad-landscape — iPad Pro horizontal com borda fina
+  'ipad-landscape': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    if (deviceType === 'mobile') {
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:900px;height:1600px;overflow:hidden;background:radial-gradient(ellipse at center,#2a2a2a,#0a0a0a);display:flex;align-items:center;justify-content:center;position:relative;}</style></head><body>
+<div style="width:820px;height:600px;background:#1a1a1a;border-radius:24px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,0.6);">
+  <div style="width:100%;height:100%;background:#000;border-radius:6px;overflow:hidden;">
+    <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+  </div>
+</div>
+${wm}</body></html>`;
+      return { html, renderConfig: { width: 900, height: 1600, deviceScaleFactor: 2 } };
+    }
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:2400px;height:1700px;overflow:hidden;background:radial-gradient(ellipse at center,#2a2a2a,#0a0a0a);display:flex;align-items:center;justify-content:center;position:relative;}</style></head><body>
+<div style="width:2100px;height:1480px;background:linear-gradient(180deg,#2a2a2a,#1a1a1a);border-radius:34px;padding:34px;box-shadow:0 40px 120px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.05);">
+  <div style="width:100%;height:100%;background:#000;border-radius:12px;overflow:hidden;position:relative;">
+    <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+  </div>
+</div>
+<div style="position:absolute;right:60px;top:50%;transform:translateY(-50%) rotate(8deg);width:14px;height:380px;background:linear-gradient(180deg,#d4d4d4,#9a9a9a);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.4);opacity:0.85;"></div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: 2400, height: 1700, deviceScaleFactor: 2 } };
+  },
+
+  // 30. android-phone — Pixel 8 Pro portrait
+  'android-phone': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:900px;height:1900px;overflow:hidden;background:radial-gradient(ellipse at center,#1e293b,#0a0f1c);display:flex;align-items:center;justify-content:center;position:relative;}</style></head><body>
+<div style="width:740px;height:1620px;background:linear-gradient(135deg,#2c2c2c,#1a1a1a);border-radius:56px;padding:16px;box-shadow:0 40px 120px rgba(0,0,0,0.7);position:relative;">
+  <div style="width:100%;height:100%;background:#000;border-radius:42px;overflow:hidden;position:relative;">
+    <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+    <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:28px;height:28px;border-radius:50%;background:#000;border:2px solid rgba(255,255,255,0.08);"></div>
+  </div>
+</div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: 900, height: 1900, deviceScaleFactor: 2 } };
+  },
+
+  // 31. product-hunt — Card estilo Product Hunt com badge #1
+  'product-hunt': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const domain = getDomain((options && options.url) || '');
+    const W = deviceType === 'mobile' ? 900 : 2400;
+    const H = deviceType === 'mobile' ? 1600 : 1600;
+    const pad = deviceType === 'mobile' ? 40 : 120;
+    const imgW = deviceType === 'mobile' ? 820 : 1560;
+    const imgH = deviceType === 'mobile' ? 1000 : 1160;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:${W}px;height:${H}px;overflow:hidden;background:#fff6f2;position:relative;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#1a1a1a;}</style></head><body>
+<div style="padding:${pad}px;height:100%;display:flex;${deviceType==='mobile'?'flex-direction:column;':'align-items:center;'}gap:${deviceType==='mobile'?30:80}px;">
+  <div style="${deviceType==='mobile'?'width:100%;':'flex:1;'}display:flex;flex-direction:column;${deviceType==='mobile'?'align-items:center;text-align:center;':'justify-content:center;'}">
+    <div style="display:inline-flex;align-items:center;gap:10px;background:#da552f;color:#fff;padding:${deviceType==='mobile'?'8px 16px':'12px 24px'};border-radius:8px;font-weight:700;font-size:${deviceType==='mobile'?18:26}px;margin-bottom:28px;align-self:flex-start;${deviceType==='mobile'?'align-self:center;':''}">
+      <span>▲</span> #1 Product of the Day
+    </div>
+    <div style="font-size:${deviceType==='mobile'?54:96}px;font-weight:800;line-height:1.02;margin-bottom:24px;">${domain || 'snapdeck.pro'}</div>
+    <div style="font-size:${deviceType==='mobile'?22:32}px;color:#555;line-height:1.35;margin-bottom:36px;max-width:${deviceType==='mobile'?700:700}px;">A ferramenta que a comunidade adorou — capturas profissionais em segundos.</div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div style="width:${deviceType==='mobile'?70:96}px;height:${deviceType==='mobile'?70:96}px;background:#da552f;border-radius:12px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;">
+        <div style="font-size:${deviceType==='mobile'?18:24}px;line-height:1;">▲</div>
+        <div style="font-size:${deviceType==='mobile'?18:26}px;line-height:1.1;margin-top:2px;">2.4K</div>
+      </div>
+      <div style="color:#555;font-size:${deviceType==='mobile'?18:24}px;">upvotes hoje</div>
+    </div>
+  </div>
+  <div style="${deviceType==='mobile'?'width:100%;':'flex:1.1;'}display:flex;align-items:center;justify-content:center;">
+    <div style="width:${imgW}px;height:${imgH}px;border-radius:10px;overflow:hidden;box-shadow:0 30px 80px rgba(218,85,47,0.18),0 10px 30px rgba(0,0,0,0.10);border:1px solid #f3e3dc;">
+      <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+    </div>
+  </div>
+</div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: W, height: H, deviceScaleFactor: 2 } };
+  },
+
+  // 32. ad-banner — Banner Google Ads 1200×628 com CTA
+  'ad-banner': async (screenshotPath, deviceType, options) => {
+    const img = screenshotToBase64(screenshotPath);
+    const wm  = getWatermarkHtml(options);
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}html,body{width:1200px;height:628px;overflow:hidden;background:linear-gradient(135deg,#6366f1,#8b5cf6 50%,#ec4899);position:relative;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#fff;}</style></head><body>
+<div style="position:absolute;left:50px;top:0;bottom:0;width:520px;display:flex;flex-direction:column;justify-content:center;padding:50px 0;">
+  <div style="font-size:18px;letter-spacing:3px;font-weight:600;color:rgba(255,255,255,0.85);margin-bottom:14px;text-transform:uppercase;">Lançamento</div>
+  <div style="font-size:52px;font-weight:800;line-height:1.05;margin-bottom:18px;">Capturas que convertem.</div>
+  <div style="font-size:20px;line-height:1.4;color:rgba(255,255,255,0.85);margin-bottom:30px;">Tire screenshots profissionais em segundos — sem Figma, sem Photoshop.</div>
+  <div style="display:inline-flex;background:#fff;color:#6366f1;padding:16px 30px;border-radius:10px;font-weight:700;font-size:20px;align-self:flex-start;box-shadow:0 8px 24px rgba(0,0,0,0.25);">Experimente grátis →</div>
+</div>
+<div style="position:absolute;right:50px;top:50%;transform:translateY(-50%) rotate(-3deg);width:560px;height:480px;border-radius:10px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,0.4);border:3px solid rgba(255,255,255,0.3);">
+  <img src="${img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">
+</div>
+${wm}</body></html>`;
+    return { html, renderConfig: { width: 1200, height: 628, deviceScaleFactor: 2 } };
+  },
+
 };
 
 // ── Section 3: Main render function (returns Buffer) ─────────────────────────
@@ -678,10 +955,9 @@ const LEGACY_MAP = {
   'iphone-15':         'iphone-pro',
   'macbook-pro':       'macbook-realistic',
   // Eliminated templates → best equivalent
-  'presentation':      'browser-premium',
-  'presentation-slide':'browser-premium',
-  'slide':             'browser-premium',
-  'pitch-deck':        'browser-premium',
+  'presentation':      'presentation-slide',
+  'slide':             'presentation-slide',
+  'pitch-deck':        'presentation-slide',
   'proposal-clean':    'minimal-clean',
   'case-study':        'minimal-clean',
   'portfolio-showcase':'default-dark',
