@@ -7,10 +7,10 @@
       "templatesUnlocked": [
         "browser-clean",
         "minimal-clean",
-        "social-basic",
-        "mobile-simple",
+        "default-dark",
         "gradient-basic",
-        "default-dark"
+        "paper-note",
+        "neon-glow"
       ],
       "crawlLimit": 4,
       "capturesPerDay": 3,

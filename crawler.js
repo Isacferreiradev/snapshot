@@ -7,14 +7,15 @@ const { getBrowserFromPool, releaseBrowserToPool } = require('./screenshotter');
 const { validateUrl, installSsrfInterceptor } = require('./security');
 
 const MAX_PAGES          = 12;
-const THUMB_TIMEOUT      = 8000;  // goto cap
-const PER_PAGE_HARDCAP   = 12000; // hard ceiling per page (entire capture) — prevents wedged SPAs from stalling crawl
+const THUMB_TIMEOUT      = 10000; // goto cap — aumentado de 8s para 10s
+const PER_PAGE_HARDCAP   = 15000; // hard ceiling per page — aumentado de 12s para 15s
 const CRAWL_TIMEOUT      = 90000;
 const NEW_PAGE_TIMEOUT   = 5000;
 const PAGE_CLOSE_TIMEOUT = 1500;
-const OP_TIMEOUT         = 2000;  // cap for evaluate/title/stopLoading — these CAN hang on SPA contexts
-const SCREENSHOT_TIMEOUT = 5000;
+const OP_TIMEOUT         = 2000;  // cap for evaluate/title/stopLoading
+const SCREENSHOT_TIMEOUT = 6000;  // aumentado de 5s para 6s
 const THUMB_CONCURRENCY  = 3;     // raised back: with hardcap, slow pages can't poison sibling tabs
+const THUMB_MIN_BYTES    = 2048;  // thumbnail mínimo aceitável em bytes
 
 // Race a promise against a timeout. On timeout, resolves with `fallback` (never throws).
 function withTimeout(promise, ms, fallback) {
@@ -130,17 +131,19 @@ async function captureThumbnail(browser, url, outputPath) {
     if (!pg) return;
     pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
     await withTimeout(pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 }), OP_TIMEOUT, null);
+    // [FIX-STABLE] installSsrfInterceptor pode falhar; não deve travar o crawl
     await withTimeout(installSsrfInterceptor(pg, req => {
       const rt = req.resourceType();
       if (rt === 'media' || rt === 'font') { try { req.abort(); } catch {} return; }
       try { req.continue(); } catch {}
-    }), OP_TIMEOUT, null);
+    }), OP_TIMEOUT, null).catch(() => {});
 
     await withTimeout(
       pg.goto(url, { waitUntil: 'domcontentloaded', timeout: THUMB_TIMEOUT }),
       THUMB_TIMEOUT, null
     );
-    await withTimeout(pg._client().send('Page.stopLoading'), 1000, null);
+    // [FIX-STABLE] stopLoading pode falhar em alguns contextos de SPA
+    await withTimeout(pg._client().send('Page.stopLoading'), 1000, null).catch(() => {});
     await new Promise(r => setTimeout(r, 400));
 
     const shot = pg.screenshot({
@@ -149,6 +152,13 @@ async function captureThumbnail(browser, url, outputPath) {
     }).then(() => true, () => false);
     const ok = await withTimeout(shot, SCREENSHOT_TIMEOUT, false);
     if (!ok) { try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch {} }
+    else {
+      // [FIX-STABLE] Verificar tamanho mínimo da thumbnail
+      try {
+        const sz = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0;
+        if (sz < THUMB_MIN_BYTES) { try { fs.unlinkSync(outputPath); } catch {} }
+      } catch {}
+    }
   })();
 
   await withTimeout(inner, PER_PAGE_HARDCAP, null);
@@ -272,11 +282,12 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
         if (!pg) { reason = 'newPage timeout'; return; }
         pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
         await withTimeout(pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 }), OP_TIMEOUT, null);
+        // [FIX-STABLE] interceptor pode falhar — não travar o slot
         await withTimeout(installSsrfInterceptor(pg, req => {
           const rt = req.resourceType();
           if (rt === 'media' || rt === 'font') { try { req.abort(); } catch {} return; }
           try { req.continue(); } catch {}
-        }), OP_TIMEOUT, null);
+        }), OP_TIMEOUT, null).catch(() => {});
 
         await withTimeout(
           pg.goto(url, { waitUntil: 'domcontentloaded', timeout: THUMB_TIMEOUT }),
@@ -284,7 +295,7 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
           null
         );
 
-        await withTimeout(pg._client().send('Page.stopLoading'), 1000, null);
+        await withTimeout(pg._client().send('Page.stopLoading'), 1000, null).catch(() => {});
         pageTitle = await withTimeout(pg.title(), OP_TIMEOUT, url);
         try { finalUrl = pg.url(); } catch {}
 
@@ -300,7 +311,7 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
         if (ok) {
           try {
             const size = fs.existsSync(thumbPath) ? fs.statSync(thumbPath).size : 0;
-            if (size < 2048) { ok = false; reason = `jpeg muito pequeno (${size}b)`; }
+            if (size < THUMB_MIN_BYTES) { ok = false; reason = `jpeg muito pequeno (${size}b)`; }
           } catch { ok = false; }
         }
         if (!ok) {

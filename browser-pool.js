@@ -45,6 +45,14 @@ async function _spawnEntry() {
       _spawnEntry().catch(e => console.error('[pool] falha ao substituir browser crashado:', e.message));
     }
   });
+  // [FIX] Warmup: create a blank page to ensure browser is fully functional before returning
+  try {
+    const pg = await browser.newPage();
+    await pg.goto('about:blank');
+    await pg.close();
+  } catch (err) {
+    console.warn('[pool] falha no warmup do browser, ele pode estar instável:', err.message);
+  }
 
   return entry;
 }
@@ -83,8 +91,9 @@ async function initBrowserPool() {
 }
 
 async function getBrowserFromPool() {
-  const POLL_INTERVAL = 200;   // ms entre verificações
-  const MAX_WAIT      = 60000; // 60s — se não liberou, algo travou
+  let pollInterval = 200;      // ms inicial
+  const MAX_POLL_INTERVAL = 2000; // ms máximo entre verificações
+  const MAX_WAIT      = 90000; // [FIX] aumentado de 60s para 90s — se não liberou, algo travou
   const start = Date.now();
 
   while (true) {
@@ -104,9 +113,11 @@ async function getBrowserFromPool() {
       return entry;
     }
     if (Date.now() - start > MAX_WAIT) {
-      throw new Error('[pool] Timeout aguardando browser livre (60s)');
+      throw new Error(`[pool] Timeout aguardando browser livre (${MAX_WAIT/1000}s)`);
     }
-    await new Promise(r => setTimeout(r, POLL_INTERVAL));
+    await new Promise(r => setTimeout(r, pollInterval));
+    // [FIX] Backoff exponencial na verificação para não estressar a CPU
+    pollInterval = Math.min(pollInterval * 1.5, MAX_POLL_INTERVAL);
   }
 }
 

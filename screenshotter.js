@@ -16,14 +16,14 @@ const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
 const MOBILE_UA  = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1';
 
 // ── Timeouts ──────────────────────────────────────────────────────────────────
-const NAV_DCL_TIMEOUT  = 10000;
+const NAV_DCL_TIMEOUT  = 12000;
 const SELECTOR_TIMEOUT = 6000;
 const RACE_SLEEP       = 2000;
-const POST_LOAD_WAIT   = 500;  // [FIX-SPEED] 500ms base; resto coberto pelo content-check dinâmico
-const OVERLAY_TIMEOUT  = 800;
-const SHOT_TIMEOUT     = 10000;
-const GLOBAL_PAGE_TIMEOUT = 90000;  // [FIX-5] 90s por página (era 45s — insuficiente com cascade)
-const GLOBAL_JOB_TIMEOUT  = 120000; // 2 min por job (reduzido de 5min)
+const POST_LOAD_WAIT   = 800;  // [FIX-SPEED] 800ms base — sites lentos precisam de mais tempo
+const OVERLAY_TIMEOUT  = 1000;
+const SHOT_TIMEOUT     = 12000;
+const GLOBAL_PAGE_TIMEOUT = 90000;  // [FIX-5] 90s por página
+const GLOBAL_JOB_TIMEOUT  = 120000; // 2 min por job
 
 // ── Retry ─────────────────────────────────────────────────────────────────────
 const RETRY_MAX   = 2;    // tentativas extras após 1ª falha (total = 3)
@@ -201,15 +201,22 @@ async function screenshotMobileLimited(page, filePath) {
 
 /** Verifica se o screenshot tem tamanho mínimo razoável. Se for muito pequeno, aguarda e tenta uma vez mais. */
 async function assertScreenshotSize(filePath, page, clip) {
-  const MIN_BYTES = 15000;
-  const stat = fs.statSync(filePath);
-  if (stat.size >= MIN_BYTES) return;
-  console.warn(`[screenshotter] Screenshot suspeito (${stat.size} bytes) — aguardando 2s e retentando: ${filePath}`);
-  await new Promise(r => setTimeout(r, 2000));
-  await page.screenshot({ path: filePath, type: 'png', clip, timeout: SHOT_TIMEOUT });
-  const stat2 = fs.statSync(filePath);
-  if (stat2.size < MIN_BYTES) {
-    console.warn(`[screenshotter] Screenshot ainda pequeno após retry (${stat2.size} bytes) — continuando mesmo assim`);
+  const MIN_BYTES = 8000;  // [FIX] baixado de 15000 para pegar arquivos vazios mas aceitar compactos
+  let stat;
+  try { stat = fs.statSync(filePath); } catch { return; }  // arquivo não existe, já irá falhar acima
+  if (stat.size === 0) {
+    // Arquivo vazio é sempre problema — aguardar 2s e re-tentar
+    console.warn(`[screenshotter] Screenshot VAZIO — aguardando 2s e retentando: ${filePath}`);
+    await new Promise(r => setTimeout(r, 2000));
+    await page.screenshot({ path: filePath, type: 'png', clip, timeout: SHOT_TIMEOUT });
+  } else if (stat.size < MIN_BYTES) {
+    console.warn(`[screenshotter] Screenshot suspeito (${stat.size} bytes) — aguardando 2s e retentando: ${filePath}`);
+    await new Promise(r => setTimeout(r, 2000));
+    await page.screenshot({ path: filePath, type: 'png', clip, timeout: SHOT_TIMEOUT });
+    const stat2 = fs.statSync(filePath);
+    if (stat2.size < MIN_BYTES) {
+      console.warn(`[screenshotter] Screenshot ainda pequeno após retry (${stat2.size} bytes) — continuando mesmo assim`);
+    }
   }
 }
 
@@ -224,7 +231,10 @@ async function setupPage(browser, vp, ua, hostname) {
   await page.setUserAgent(ua);
   await page.setViewport(vp);
   await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8' });
-  await enableResourceBlocking(page, hostname);
+  // [FIX-STABLE] enableResourceBlocking pode falhar em alguns contextos; não deve matar a página
+  try { await enableResourceBlocking(page, hostname); } catch (err) {
+    console.warn(`[screenshotter] enableResourceBlocking falhou (${hostname}): ${err.message} — continuando sem bloqueio`);
+  }
   return page;
 }
 
