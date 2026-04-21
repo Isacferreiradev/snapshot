@@ -570,9 +570,16 @@
     .pm-sub { font-size:14px; color:var(--text-secondary); margin-bottom:24px; }
     .pm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
     @media(max-width:900px) { .pm-grid { grid-template-columns:repeat(2,1fr); } }
-    @media(max-width:600px) { .pm-grid { grid-template-columns:1fr; } }
+    @media(max-width:640px) {
+      .pm-grid { 
+        display:flex; flex-wrap:nowrap; overflow-x:auto; scroll-snap-type:x mandatory;
+        gap:12px; margin:0 -12px; padding:0 12px 16px; 
+        -webkit-overflow-scrolling:touch; scrollbar-width:none;
+      }
+      .pm-grid::-webkit-scrollbar { display:none; }
+      .pkg-card { flex:0 0 85%; scroll-snap-align:center; padding:18px 14px; border-radius:14px; }
+    }
     .pkg-card { background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle); border-radius:16px; padding:22px 18px; cursor:pointer; transition:all var(--transition); text-align:left; position:relative; }
-    @media(max-width:600px) { .pkg-card { padding:18px 14px; border-radius:14px; } }
     .pkg-card:hover { border-color:var(--border-mid); background:rgba(255,255,255,0.06); }
     .pkg-card.sel { border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.07); box-shadow:0 0 0 1px rgba(255,255,255,0.15); }
     .pkg-badge { font-size:10px; font-weight:700; letter-spacing:0.06em; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,0.1); color:var(--text-secondary); margin-bottom:14px; display:inline-block; text-transform:uppercase; }
@@ -1077,9 +1084,7 @@
       .modal-plano-body { padding: 14px 16px; }
       .modal-uso-card { padding: 12px; }
 
-      /* Preview grid */
-      .preview-grid { grid-template-columns: 1fr; }
-    }
+      /* Modal plano body tweaks */
 
     /* ═══ ≤ 500px ═══════════════════════════════════════════════════════ */
     @media (max-width: 500px) {
@@ -1147,9 +1152,9 @@
       .pkg-cap    { font-size: 20px; }
       .pkg-price  { font-size: 14px; }
       .pkg-badge  { font-size: 9px; }
-      .pm-code-row { flex-direction: column; }
-      .pm-code-row input { width: 100%; }
-      .pm-code-row .btn  { width: 100%; height: 44px; }
+      .pm-code-row { flex-direction: row; gap: 8px; }
+      .pm-code-row input { flex: 1; height: 46px; }
+      .pm-code-row .btn  { width: 90px; height: 46px; font-size: 13px; }
       .co-summary { flex-direction: column; gap: 4px; }
       .co-summary-price { font-size: 18px; }
 
@@ -1636,8 +1641,8 @@
       <div class="pm-divider">Já assinou?</div>
       <div class="pm-code-label">Insira seu código de acesso</div>
       <div class="pm-code-row">
-        <input id="pm-code-input" type="text" placeholder="SNAP-XXXX-XXXX-XXXX" style="text-transform:uppercase;letter-spacing:0.06em;" autocomplete="off">
-        <button class="btn btn-g" style="height:48px;width:90px;flex-shrink:0;" onclick="applyModalCode()">Aplicar</button>
+        <input id="pm-code-input" type="text" placeholder="SNAP-XXXX-XXXX-XXXX" style="text-transform:uppercase;letter-spacing:0.04em;" autocomplete="off">
+        <button class="btn btn-g" style="flex-shrink:0;" onclick="applyModalCode()">Aplicar</button>
       </div>
       <div class="code-status" id="pm-code-status"></div>
     </div>
