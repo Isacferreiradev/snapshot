@@ -6,12 +6,27 @@ const { appendCrawlLog }                    = require('./jobs');
 const { getBrowserFromPool, releaseBrowserToPool } = require('./screenshotter');
 const { validateUrl, installSsrfInterceptor } = require('./security');
 
-const MAX_PAGES         = 12;
-const THUMB_TIMEOUT     = 12000; // [FIX-THUMB] 12s — sites pesados (amazon, gh) estavam perdendo thumbnail
-const CRAWL_TIMEOUT     = 90000; // 1.5 min (reduzido com pool)
-const NEW_PAGE_TIMEOUT  = 8000;  // [FIX-A] timeout em browser.newPage() — sem isso, browser lento trava o slot
-const PAGE_CLOSE_TIMEOUT = 2000; // [FIX-B] timeout em pg.close() — pode pendurar se requests interceptadas
-const THUMB_CONCURRENCY = 2;     // [FIX-C] 4→2: muita concorrência no mesmo browser travava screenshots em sites pesados
+const MAX_PAGES          = 12;
+const THUMB_TIMEOUT      = 8000;  // goto cap
+const PER_PAGE_HARDCAP   = 12000; // hard ceiling per page (entire capture) — prevents wedged SPAs from stalling crawl
+const CRAWL_TIMEOUT      = 90000;
+const NEW_PAGE_TIMEOUT   = 5000;
+const PAGE_CLOSE_TIMEOUT = 1500;
+const OP_TIMEOUT         = 2000;  // cap for evaluate/title/stopLoading — these CAN hang on SPA contexts
+const SCREENSHOT_TIMEOUT = 5000;
+const THUMB_CONCURRENCY  = 3;     // raised back: with hardcap, slow pages can't poison sibling tabs
+
+// Race a promise against a timeout. On timeout, resolves with `fallback` (never throws).
+function withTimeout(promise, ms, fallback) {
+  return new Promise(resolve => {
+    let done = false;
+    const t = setTimeout(() => { if (!done) { done = true; resolve(fallback); } }, ms);
+    Promise.resolve(promise).then(
+      v => { if (!done) { done = true; clearTimeout(t); resolve(v); } },
+      _ => { if (!done) { done = true; clearTimeout(t); resolve(fallback); } }
+    );
+  });
+}
 
 const FILE_EXT_RE = /\.(pdf|zip|jpg|jpeg|png|gif|webp|svg|css|js|ico|woff|woff2|ttf|eot|mp4|mp3|xml|json)(\?|$)/i;
 
@@ -107,70 +122,37 @@ function deduplicatePages(pages) {
   return unique;
 }
 
-/** Captura thumbnail leve: 800x500, jpeg q50, sem fullPage, timeout 8s */
+/** Captura thumbnail leve com hardcap global — nunca bloqueia mais que PER_PAGE_HARDCAP. */
 async function captureThumbnail(browser, url, outputPath) {
   let pg;
-  try {
-    // [FIX-A] browser.newPage() com timeout — sem isso, browser sob carga bloqueia indefinidamente
-    pg = await Promise.race([
-      browser.newPage(),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('newPage timeout')), NEW_PAGE_TIMEOUT)),
-    ]);
+  const inner = (async () => {
+    pg = await withTimeout(browser.newPage(), NEW_PAGE_TIMEOUT, null);
+    if (!pg) return;
     pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
-    await pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 });
-    await installSsrfInterceptor(pg, req => {
+    await withTimeout(pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 }), OP_TIMEOUT, null);
+    await withTimeout(installSsrfInterceptor(pg, req => {
       const rt = req.resourceType();
-      if (rt === 'media' || rt === 'font') { req.abort(); return; }
-      req.continue();
-    });
-    try {
-      await Promise.race([
-        pg.goto(url, { waitUntil: 'domcontentloaded', timeout: THUMB_TIMEOUT }),
-        new Promise(r => setTimeout(r, THUMB_TIMEOUT - 1000)), // cap pouco antes do timeout
-      ]);
-    } catch {}
-    // Aborta navegação pendente: evita screenshot travar se goto ainda está rolando.
-    await pg._client().send('Page.stopLoading').catch(() => {});
-    // [FIX-VISUAL] Aguardar renderização visual: sites com JS pesado (GitHub, SPAs)
-    // capturam spinners de loading se tiramos screenshot imediatamente após DCL.
-    // Checar se há conteúdo visível; se não, esperar até 1s adicional.
-    try {
-      const hasContent = await pg.evaluate(() =>
-        !!(document.body && document.body.innerText && document.body.innerText.trim().length > 50)
-      ).catch(() => false);
-      await new Promise(r => setTimeout(r, hasContent ? 200 : 500));
-    } catch {}
-    // [FIX-B] screenshot via Promise.race com fallback — clip, depois viewport puro se falhar.
-    let screenshotOk = false;
-    await Promise.race([
-      pg.screenshot({ path: outputPath, type: 'jpeg', quality: 50,
-        clip: { x: 0, y: 0, width: 800, height: 500 } }).then(() => { screenshotOk = true; }),
-      new Promise(r => setTimeout(r, 6000)),
-    ]).catch(() => {});
-    if (!screenshotOk) {
-      await Promise.race([
-        pg.screenshot({ path: outputPath, type: 'jpeg', quality: 50 })
-          .then(() => { screenshotOk = true; }),
-        new Promise(r => setTimeout(r, 4000)),
-      ]).catch(() => {});
-    }
-    // Se ainda falhou, manter JPEG parcial se >5KB (render parcial é melhor que placeholder).
-    if (!screenshotOk) {
-      try {
-        if (fs.existsSync(outputPath)) {
-          const size = fs.statSync(outputPath).size;
-          if (size < 5120) fs.unlinkSync(outputPath);
-          else screenshotOk = true;
-        }
-      } catch {}
-    }
-  } catch {
-    // Erro fatal (newPage timeout etc.) — remover qualquer arquivo parcial
-    try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch {}
-  } finally {
-    // [FIX-B] pg.close() com timeout — pode pendurar se page tem requests interceptadas pendentes
-    if (pg) await Promise.race([pg.close(), new Promise(r => setTimeout(r, PAGE_CLOSE_TIMEOUT))]).catch(() => {});
-  }
+      if (rt === 'media' || rt === 'font') { try { req.abort(); } catch {} return; }
+      try { req.continue(); } catch {}
+    }), OP_TIMEOUT, null);
+
+    await withTimeout(
+      pg.goto(url, { waitUntil: 'domcontentloaded', timeout: THUMB_TIMEOUT }),
+      THUMB_TIMEOUT, null
+    );
+    await withTimeout(pg._client().send('Page.stopLoading'), 1000, null);
+    await new Promise(r => setTimeout(r, 400));
+
+    const shot = pg.screenshot({
+      path: outputPath, type: 'jpeg', quality: 50,
+      clip: { x: 0, y: 0, width: 800, height: 500 },
+    }).then(() => true, () => false);
+    const ok = await withTimeout(shot, SCREENSHOT_TIMEOUT, false);
+    if (!ok) { try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch {} }
+  })();
+
+  await withTimeout(inner, PER_PAGE_HARDCAP, null);
+  if (pg) withTimeout(pg.close(), PAGE_CLOSE_TIMEOUT, null).catch(() => {});
 }
 
 async function _doCrawl(rawUrl, jobId, maxPages) {
@@ -281,74 +263,61 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
     };
     const thumbRelease = () => { thumbActive--; if (thumbQueue.length > 0) thumbQueue.shift()(); };
 
-    // Captura uma thumb + metadata. Retorna {url, title, ok, reason}. `ok=true` quando JPEG válido foi gravado.
-    const captureOne = async (url, thumbPath, i, total, attempt) => {
+    // Captura uma thumb + metadata, com hardcap global para evitar que SPAs pesadas travem o crawl.
+    const captureOne = async (url, thumbPath, i, total) => {
+      const startedAt = Date.now();
       let pg, pageTitle = url, finalUrl = url, ok = false, reason = '';
-      try {
-        pg = await Promise.race([
-          browser.newPage(),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('newPage timeout')), NEW_PAGE_TIMEOUT)),
-        ]);
+      const inner = (async () => {
+        pg = await withTimeout(browser.newPage(), NEW_PAGE_TIMEOUT, null);
+        if (!pg) { reason = 'newPage timeout'; return; }
         pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
-        await pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 });
-        await installSsrfInterceptor(pg, req => {
+        await withTimeout(pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 }), OP_TIMEOUT, null);
+        await withTimeout(installSsrfInterceptor(pg, req => {
           const rt = req.resourceType();
-          if (rt === 'media' || rt === 'font') { req.abort(); return; }
-          req.continue();
-        });
-        try {
-          await Promise.race([
-            pg.goto(url, { waitUntil: 'domcontentloaded', timeout: THUMB_TIMEOUT }),
-            new Promise(r => setTimeout(r, THUMB_TIMEOUT - 1000)),
-          ]);
-        } catch (e) { reason = 'goto: ' + (e.message || '').slice(0, 60); }
-        await pg._client().send('Page.stopLoading').catch(() => {});
-        pageTitle = await pg.title().catch(() => url);
-        finalUrl  = pg.url();
-        try {
-          const hasContent = await pg.evaluate(() =>
-            !!(document.body && document.body.innerText && document.body.innerText.trim().length > 50)
-          ).catch(() => false);
-          await new Promise(r => setTimeout(r, hasContent ? 300 : 700));
-        } catch {}
-        // 1ª tentativa: com clip
-        await Promise.race([
-          pg.screenshot({ path: thumbPath, type: 'jpeg', quality: 50,
-            clip: { x: 0, y: 0, width: 800, height: 500 } }).then(() => { ok = true; }),
-          new Promise(r => setTimeout(r, 7000)),
-        ]).catch(() => {});
-        // Fallback: viewport puro
-        if (!ok) {
-          await Promise.race([
-            pg.screenshot({ path: thumbPath, type: 'jpeg', quality: 50 })
-              .then(() => { ok = true; }),
-            new Promise(r => setTimeout(r, 4000)),
-          ]).catch(() => {});
-        }
-        // Validar tamanho (screenshot pode ter escrito arquivo 0-byte)
+          if (rt === 'media' || rt === 'font') { try { req.abort(); } catch {} return; }
+          try { req.continue(); } catch {}
+        }), OP_TIMEOUT, null);
+
+        await withTimeout(
+          pg.goto(url, { waitUntil: 'domcontentloaded', timeout: THUMB_TIMEOUT }),
+          THUMB_TIMEOUT,
+          null
+        );
+
+        await withTimeout(pg._client().send('Page.stopLoading'), 1000, null);
+        pageTitle = await withTimeout(pg.title(), OP_TIMEOUT, url);
+        try { finalUrl = pg.url(); } catch {}
+
+        // Pequeno delay para SPA renderizar após DCL — sem evaluate() que pode travar.
+        await new Promise(r => setTimeout(r, 400));
+
+        const screenshotPromise = pg.screenshot({
+          path: thumbPath, type: 'jpeg', quality: 50,
+          clip: { x: 0, y: 0, width: 800, height: 500 },
+        }).then(() => true, () => false);
+        ok = await withTimeout(screenshotPromise, SCREENSHOT_TIMEOUT, false);
+
         if (ok) {
           try {
             const size = fs.existsSync(thumbPath) ? fs.statSync(thumbPath).size : 0;
-            if (size < 2048) { ok = false; reason = reason || `jpeg muito pequeno (${size}b)`; }
+            if (size < 2048) { ok = false; reason = `jpeg muito pequeno (${size}b)`; }
           } catch { ok = false; }
         }
-        // Remover arquivo pequeno/0-byte (senão img no front tenta carregar um arquivo corrompido)
         if (!ok) {
-          try {
-            if (fs.existsSync(thumbPath)) {
-              const size = fs.statSync(thumbPath).size;
-              if (size < 5120) fs.unlinkSync(thumbPath);
-              else ok = true; // render parcial ≥5KB é aceitável
-            }
-          } catch {}
-          if (!ok && !reason) reason = 'screenshot timeout';
+          try { if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath); } catch {}
+          if (!reason) reason = 'screenshot timeout';
         }
-      } catch (e) {
-        reason = e.message ? e.message.slice(0, 80) : 'erro desconhecido';
-      } finally {
-        if (pg) await Promise.race([pg.close(), new Promise(r => setTimeout(r, PAGE_CLOSE_TIMEOUT))]).catch(() => {});
-      }
-      log(`Miniatura ${i}/${total}${attempt > 1 ? ` (retry ${attempt})` : ''}: ${ok ? 'ok' : 'falhou — ' + reason} — ${url}`);
+      })();
+
+      // Hardcap global: não importa onde esteja pendurado, liberamos o slot.
+      await withTimeout(inner, PER_PAGE_HARDCAP, null);
+      if (!ok && !reason) reason = `hardcap ${PER_PAGE_HARDCAP}ms`;
+
+      // Fecha a página em background (não bloqueia o próximo slot).
+      if (pg) withTimeout(pg.close(), PAGE_CLOSE_TIMEOUT, null).catch(() => {});
+
+      const elapsed = Date.now() - startedAt;
+      log(`Miniatura ${i}/${total}: ${ok ? 'ok' : 'falhou — ' + reason} (${elapsed}ms) — ${url}`);
       return { url: finalUrl, title: pageTitle || finalUrl, ok };
     };
 
@@ -365,21 +334,11 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
       if (slot.url === normalSeed) return;
       await thumbAcquire();
       try {
-        const r = await captureOne(slot.url, slot.thumbPath, slot.idx + 1, pageSlots.length, 1);
+        const r = await captureOne(slot.url, slot.thumbPath, slot.idx + 1, pageSlots.length);
         captured[slot.idx] = { ...slot, ...r };
       } catch { captured[slot.idx] = { ...slot, url: slot.url, title: slot.url, ok: false }; }
       finally { thumbRelease(); }
     }));
-
-    // 2ª passada serial: retry apenas páginas que falharam (thumb ausente)
-    const failed = captured.filter(c => c && !c.ok);
-    if (failed.length > 0) {
-      log(`Retry de ${failed.length} página(s) sem thumbnail…`);
-      for (const slot of failed) {
-        const r = await captureOne(slot.url, slot.thumbPath, slot.idx + 1, pageSlots.length, 2);
-        captured[slot.idx] = { ...slot, ...r };
-      }
-    }
 
     for (const c of captured) {
       if (!c) continue;

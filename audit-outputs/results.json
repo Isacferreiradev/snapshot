@@ -1,0 +1,1538 @@
+[
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "browser-clean",
+    "ok": true,
+    "size": 1846890,
+    "ms": 3616
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "minimal-clean",
+    "ok": true,
+    "size": 2076297,
+    "ms": 3499
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "default-dark",
+    "ok": true,
+    "size": 1882539,
+    "ms": 3514
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "gradient-basic",
+    "ok": true,
+    "size": 3104548,
+    "ms": 3897
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "shadow-soft",
+    "ok": true,
+    "size": 1805762,
+    "ms": 3469
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "dark-frame",
+    "ok": true,
+    "size": 1882035,
+    "ms": 3590
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "instagram-post",
+    "ok": true,
+    "size": 1185945,
+    "ms": 3028
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "instagram-story",
+    "ok": true,
+    "size": 1545427,
+    "ms": 3177
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "twitter-post",
+    "ok": true,
+    "size": 542190,
+    "ms": 2870
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "linkedin-post",
+    "ok": true,
+    "size": 709872,
+    "ms": 2954
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "whatsapp-share",
+    "ok": true,
+    "size": 625589,
+    "ms": 2995
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "macbook-realistic",
+    "ok": true,
+    "size": 1967940,
+    "ms": 3642
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "macbook-clean",
+    "ok": true,
+    "size": 1525629,
+    "ms": 3488
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "iphone-pro",
+    "ok": true,
+    "size": 1248676,
+    "ms": 3163
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "iphone-dark",
+    "ok": true,
+    "size": 1755765,
+    "ms": 3398
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "multi-device",
+    "ok": true,
+    "size": 2112587,
+    "ms": 3518
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "browser-premium",
+    "ok": true,
+    "size": 2029131,
+    "ms": 3687
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "hero-section",
+    "ok": true,
+    "size": 4019145,
+    "ms": 4520
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "landing-highlight",
+    "ok": true,
+    "size": 2031451,
+    "ms": 3653
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "gradient-premium",
+    "ok": true,
+    "size": 3557125,
+    "ms": 4164
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "paper-note",
+    "ok": true,
+    "size": 4872837,
+    "ms": 4623
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "neon-glow",
+    "ok": true,
+    "size": 1909758,
+    "ms": 3645
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "instagram-carousel",
+    "ok": true,
+    "size": 1137807,
+    "ms": 3085
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "tiktok-mockup",
+    "ok": true,
+    "size": 1758817,
+    "ms": 3263
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "youtube-thumbnail",
+    "ok": true,
+    "size": 1432937,
+    "ms": 3183
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "presentation-slide",
+    "ok": true,
+    "size": 2735636,
+    "ms": 3737
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "document-report",
+    "ok": true,
+    "size": 1618672,
+    "ms": 3473
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "annotated-capture",
+    "ok": true,
+    "size": 1797273,
+    "ms": 3477
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "ipad-landscape",
+    "ok": true,
+    "size": 2226603,
+    "ms": 3710
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "android-phone",
+    "ok": true,
+    "size": 1813417,
+    "ms": 3354
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "product-hunt",
+    "ok": true,
+    "size": 1528877,
+    "ms": 3435
+  },
+  {
+    "site": "github",
+    "device": "desktop",
+    "tid": "ad-banner",
+    "ok": true,
+    "size": 1573192,
+    "ms": 3187
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "browser-clean",
+    "ok": true,
+    "size": 919781,
+    "ms": 3033
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "minimal-clean",
+    "ok": true,
+    "size": 990573,
+    "ms": 2973
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "default-dark",
+    "ok": true,
+    "size": 934123,
+    "ms": 2530
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "gradient-basic",
+    "ok": true,
+    "size": 1436724,
+    "ms": 3147
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "shadow-soft",
+    "ok": true,
+    "size": 906576,
+    "ms": 2981
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "dark-frame",
+    "ok": true,
+    "size": 891054,
+    "ms": 2965
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "instagram-post",
+    "ok": true,
+    "size": 970884,
+    "ms": 2972
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "instagram-story",
+    "ok": true,
+    "size": 1441370,
+    "ms": 3141
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "twitter-post",
+    "ok": true,
+    "size": 306235,
+    "ms": 2841
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "linkedin-post",
+    "ok": true,
+    "size": 384147,
+    "ms": 2834
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "whatsapp-share",
+    "ok": true,
+    "size": 318803,
+    "ms": 2886
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "macbook-realistic",
+    "ok": true,
+    "size": 547703,
+    "ms": 2944
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "macbook-clean",
+    "ok": true,
+    "size": 201286,
+    "ms": 2883
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "iphone-pro",
+    "ok": true,
+    "size": 1308916,
+    "ms": 3130
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "iphone-dark",
+    "ok": true,
+    "size": 1813792,
+    "ms": 3383
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "multi-device",
+    "ok": true,
+    "size": 489886,
+    "ms": 2927
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "browser-premium",
+    "ok": true,
+    "size": 938297,
+    "ms": 3000
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "hero-section",
+    "ok": true,
+    "size": 1892552,
+    "ms": 3352
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "landing-highlight",
+    "ok": true,
+    "size": 1094184,
+    "ms": 3046
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "gradient-premium",
+    "ok": true,
+    "size": 1741589,
+    "ms": 3271
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "paper-note",
+    "ok": true,
+    "size": 2194150,
+    "ms": 3459
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "neon-glow",
+    "ok": true,
+    "size": 952141,
+    "ms": 3028
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "instagram-carousel",
+    "ok": true,
+    "size": 899856,
+    "ms": 3054
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "tiktok-mockup",
+    "ok": true,
+    "size": 1591148,
+    "ms": 3200
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "youtube-thumbnail",
+    "ok": true,
+    "size": 1021746,
+    "ms": 3031
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "presentation-slide",
+    "ok": true,
+    "size": 1080187,
+    "ms": 3027
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "document-report",
+    "ok": true,
+    "size": 669400,
+    "ms": 2921
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "annotated-capture",
+    "ok": true,
+    "size": 796928,
+    "ms": 2934
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "ipad-landscape",
+    "ok": true,
+    "size": 961918,
+    "ms": 3037
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "android-phone",
+    "ok": true,
+    "size": 1916583,
+    "ms": 3373
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "product-hunt",
+    "ok": true,
+    "size": 794837,
+    "ms": 2987
+  },
+  {
+    "site": "github",
+    "device": "mobile",
+    "tid": "ad-banner",
+    "ok": true,
+    "size": 1337776,
+    "ms": 3128
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "browser-clean",
+    "ok": true,
+    "size": 2409418,
+    "ms": 3718
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "minimal-clean",
+    "ok": true,
+    "size": 2705591,
+    "ms": 3618
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "default-dark",
+    "ok": true,
+    "size": 2452973,
+    "ms": 3570
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "gradient-basic",
+    "ok": true,
+    "size": 3579918,
+    "ms": 3977
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "shadow-soft",
+    "ok": true,
+    "size": 2350111,
+    "ms": 3540
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "dark-frame",
+    "ok": true,
+    "size": 2413501,
+    "ms": 3650
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "instagram-post",
+    "ok": true,
+    "size": 1179050,
+    "ms": 3008
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "instagram-story",
+    "ok": true,
+    "size": 1467283,
+    "ms": 3201
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "twitter-post",
+    "ok": true,
+    "size": 777482,
+    "ms": 2899
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "linkedin-post",
+    "ok": true,
+    "size": 878202,
+    "ms": 2971
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "whatsapp-share",
+    "ok": true,
+    "size": 690682,
+    "ms": 2993
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "macbook-realistic",
+    "ok": true,
+    "size": 2416577,
+    "ms": 3637
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "macbook-clean",
+    "ok": true,
+    "size": 1897324,
+    "ms": 3477
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "iphone-pro",
+    "ok": true,
+    "size": 1128189,
+    "ms": 3115
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "iphone-dark",
+    "ok": true,
+    "size": 1613799,
+    "ms": 3329
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "multi-device",
+    "ok": true,
+    "size": 2225795,
+    "ms": 3505
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "browser-premium",
+    "ok": true,
+    "size": 2601739,
+    "ms": 3740
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "hero-section",
+    "ok": true,
+    "size": 2862275,
+    "ms": 4105
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "landing-highlight",
+    "ok": true,
+    "size": 2549067,
+    "ms": 3686
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "gradient-premium",
+    "ok": true,
+    "size": 4129121,
+    "ms": 4269
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "paper-note",
+    "ok": true,
+    "size": 3644141,
+    "ms": 4073
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "neon-glow",
+    "ok": true,
+    "size": 2434612,
+    "ms": 3685
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "instagram-carousel",
+    "ok": true,
+    "size": 1078199,
+    "ms": 3081
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "tiktok-mockup",
+    "ok": true,
+    "size": 1523656,
+    "ms": 3180
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "youtube-thumbnail",
+    "ok": true,
+    "size": 1318355,
+    "ms": 3036
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "presentation-slide",
+    "ok": true,
+    "size": 3072064,
+    "ms": 3730
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "document-report",
+    "ok": true,
+    "size": 1803669,
+    "ms": 3458
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "annotated-capture",
+    "ok": true,
+    "size": 2305368,
+    "ms": 3528
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "ipad-landscape",
+    "ok": true,
+    "size": 2761517,
+    "ms": 3746
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "android-phone",
+    "ok": true,
+    "size": 1687777,
+    "ms": 3313
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "product-hunt",
+    "ok": true,
+    "size": 1770109,
+    "ms": 3436
+  },
+  {
+    "site": "stripe",
+    "device": "desktop",
+    "tid": "ad-banner",
+    "ok": true,
+    "size": 1255094,
+    "ms": 3027
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "browser-clean",
+    "ok": true,
+    "size": 1032182,
+    "ms": 3053
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "minimal-clean",
+    "ok": true,
+    "size": 1091907,
+    "ms": 3022
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "default-dark",
+    "ok": true,
+    "size": 1038041,
+    "ms": 3013
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "gradient-basic",
+    "ok": true,
+    "size": 1520997,
+    "ms": 3181
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "shadow-soft",
+    "ok": true,
+    "size": 1002297,
+    "ms": 3001
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "dark-frame",
+    "ok": true,
+    "size": 995142,
+    "ms": 3016
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "instagram-post",
+    "ok": true,
+    "size": 1102767,
+    "ms": 3023
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "instagram-story",
+    "ok": true,
+    "size": 1580054,
+    "ms": 3200
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "twitter-post",
+    "ok": true,
+    "size": 690992,
+    "ms": 2908
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "linkedin-post",
+    "ok": true,
+    "size": 742820,
+    "ms": 2952
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "whatsapp-share",
+    "ok": true,
+    "size": 298521,
+    "ms": 2873
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "macbook-realistic",
+    "ok": true,
+    "size": 861054,
+    "ms": 3027
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "macbook-clean",
+    "ok": true,
+    "size": 544479,
+    "ms": 2974
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "iphone-pro",
+    "ok": true,
+    "size": 1333923,
+    "ms": 3161
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "iphone-dark",
+    "ok": true,
+    "size": 1827645,
+    "ms": 3399
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "multi-device",
+    "ok": true,
+    "size": 836641,
+    "ms": 2970
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "browser-premium",
+    "ok": true,
+    "size": 1055691,
+    "ms": 3035
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "hero-section",
+    "ok": true,
+    "size": 1199484,
+    "ms": 3121
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "landing-highlight",
+    "ok": true,
+    "size": 1158573,
+    "ms": 3117
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "gradient-premium",
+    "ok": true,
+    "size": 1822130,
+    "ms": 3318
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "paper-note",
+    "ok": true,
+    "size": 1646748,
+    "ms": 3250
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "neon-glow",
+    "ok": true,
+    "size": 1072137,
+    "ms": 3098
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "instagram-carousel",
+    "ok": true,
+    "size": 1037110,
+    "ms": 3085
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "tiktok-mockup",
+    "ok": true,
+    "size": 1652679,
+    "ms": 3232
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "youtube-thumbnail",
+    "ok": true,
+    "size": 1416000,
+    "ms": 3171
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "presentation-slide",
+    "ok": true,
+    "size": 1151583,
+    "ms": 3078
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "document-report",
+    "ok": true,
+    "size": 812469,
+    "ms": 2989
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "annotated-capture",
+    "ok": true,
+    "size": 968066,
+    "ms": 3037
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "ipad-landscape",
+    "ok": true,
+    "size": 1011064,
+    "ms": 3049
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "android-phone",
+    "ok": true,
+    "size": 1914055,
+    "ms": 3381
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "product-hunt",
+    "ok": true,
+    "size": 901478,
+    "ms": 3016
+  },
+  {
+    "site": "stripe",
+    "device": "mobile",
+    "tid": "ad-banner",
+    "ok": true,
+    "size": 1252384,
+    "ms": 3058
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "browser-clean",
+    "ok": true,
+    "size": 8379654,
+    "ms": 5263
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "minimal-clean",
+    "ok": true,
+    "size": 9446764,
+    "ms": 5393
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "default-dark",
+    "ok": true,
+    "size": 8642249,
+    "ms": 5162
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "gradient-basic",
+    "ok": true,
+    "size": 9197576,
+    "ms": 5315
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "shadow-soft",
+    "ok": true,
+    "size": 8203561,
+    "ms": 5041
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "dark-frame",
+    "ok": true,
+    "size": 8445009,
+    "ms": 5140
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "instagram-post",
+    "ok": true,
+    "size": 4467902,
+    "ms": 3842
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "instagram-story",
+    "ok": true,
+    "size": 5505012,
+    "ms": 4326
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "twitter-post",
+    "ok": true,
+    "size": 2692014,
+    "ms": 3213
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "linkedin-post",
+    "ok": true,
+    "size": 3101472,
+    "ms": 3329
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "whatsapp-share",
+    "ok": true,
+    "size": 2073342,
+    "ms": 3163
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "macbook-realistic",
+    "ok": true,
+    "size": 6874004,
+    "ms": 4584
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "macbook-clean",
+    "ok": true,
+    "size": 6506009,
+    "ms": 4526
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "iphone-pro",
+    "ok": true,
+    "size": 3479167,
+    "ms": 3702
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "iphone-dark",
+    "ok": true,
+    "size": 3959732,
+    "ms": 3962
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "multi-device",
+    "ok": true,
+    "size": 7844492,
+    "ms": 4795
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "browser-premium",
+    "ok": true,
+    "size": 8955890,
+    "ms": 5382
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "hero-section",
+    "ok": true,
+    "size": 8554707,
+    "ms": 5385
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "landing-highlight",
+    "ok": true,
+    "size": 8289678,
+    "ms": 5073
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "gradient-premium",
+    "ok": true,
+    "size": 9962326,
+    "ms": 5726
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "paper-note",
+    "ok": true,
+    "size": 9142828,
+    "ms": 5482
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "neon-glow",
+    "ok": true,
+    "size": 8083069,
+    "ms": 5098
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "instagram-carousel",
+    "ok": true,
+    "size": 3532741,
+    "ms": 3605
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "tiktok-mockup",
+    "ok": true,
+    "size": 5597624,
+    "ms": 4343
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "youtube-thumbnail",
+    "ok": true,
+    "size": 3663240,
+    "ms": 3523
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "presentation-slide",
+    "ok": true,
+    "size": 7272062,
+    "ms": 4649
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "document-report",
+    "ok": true,
+    "size": 6241352,
+    "ms": 4546
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "annotated-capture",
+    "ok": true,
+    "size": 7696027,
+    "ms": 4830
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "ipad-landscape",
+    "ok": true,
+    "size": 8464074,
+    "ms": 5192
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "android-phone",
+    "ok": true,
+    "size": 4200151,
+    "ms": 4043
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "product-hunt",
+    "ok": true,
+    "size": 5760199,
+    "ms": 4279
+  },
+  {
+    "site": "nubank",
+    "device": "desktop",
+    "tid": "ad-banner",
+    "ok": true,
+    "size": 2442414,
+    "ms": 3149
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "browser-clean",
+    "ok": true,
+    "size": 4546573,
+    "ms": 3755
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "minimal-clean",
+    "ok": true,
+    "size": 4859757,
+    "ms": 3811
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "default-dark",
+    "ok": true,
+    "size": 4555453,
+    "ms": 3707
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "gradient-basic",
+    "ok": true,
+    "size": 4937108,
+    "ms": 3857
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "shadow-soft",
+    "ok": true,
+    "size": 4395949,
+    "ms": 3685
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "dark-frame",
+    "ok": true,
+    "size": 4367872,
+    "ms": 3694
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "instagram-post",
+    "ok": true,
+    "size": 5504270,
+    "ms": 4041
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "instagram-story",
+    "ok": true,
+    "size": 6856162,
+    "ms": 4445
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "twitter-post",
+    "ok": true,
+    "size": 2134017,
+    "ms": 3192
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "linkedin-post",
+    "ok": true,
+    "size": 2481708,
+    "ms": 3252
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "whatsapp-share",
+    "ok": true,
+    "size": 835147,
+    "ms": 2905
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "macbook-realistic",
+    "ok": true,
+    "size": 1779817,
+    "ms": 3183
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "macbook-clean",
+    "ok": true,
+    "size": 1448159,
+    "ms": 3156
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "iphone-pro",
+    "ok": true,
+    "size": 4097642,
+    "ms": 3651
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "iphone-dark",
+    "ok": true,
+    "size": 4592348,
+    "ms": 3853
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "multi-device",
+    "ok": true,
+    "size": 2383896,
+    "ms": 3221
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "browser-premium",
+    "ok": true,
+    "size": 4568082,
+    "ms": 3732
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "hero-section",
+    "ok": true,
+    "size": 4534530,
+    "ms": 3776
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "landing-highlight",
+    "ok": true,
+    "size": 4713747,
+    "ms": 3834
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "gradient-premium",
+    "ok": true,
+    "size": 5203692,
+    "ms": 4029
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "paper-note",
+    "ok": true,
+    "size": 4754486,
+    "ms": 3892
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "neon-glow",
+    "ok": true,
+    "size": 4319916,
+    "ms": 3742
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "instagram-carousel",
+    "ok": true,
+    "size": 4303164,
+    "ms": 3730
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "tiktok-mockup",
+    "ok": true,
+    "size": 6919098,
+    "ms": 4481
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "youtube-thumbnail",
+    "ok": true,
+    "size": 2934404,
+    "ms": 3593
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "presentation-slide",
+    "ok": true,
+    "size": 4566873,
+    "ms": 3765
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "document-report",
+    "ok": true,
+    "size": 3247391,
+    "ms": 3412
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "annotated-capture",
+    "ok": true,
+    "size": 4178884,
+    "ms": 3658
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "ipad-landscape",
+    "ok": true,
+    "size": 3456036,
+    "ms": 3430
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "android-phone",
+    "ok": true,
+    "size": 4836077,
+    "ms": 3924
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "product-hunt",
+    "ok": true,
+    "size": 3704433,
+    "ms": 3538
+  },
+  {
+    "site": "nubank",
+    "device": "mobile",
+    "tid": "ad-banner",
+    "ok": true,
+    "size": 2351506,
+    "ms": 3220
+  }
+]
