@@ -74,7 +74,8 @@
       position:sticky; top:0; z-index:200;
     }
     .hdr { display:flex; align-items:center; justify-content:space-between; width:100%; max-width:680px; margin:0 auto; padding:0 clamp(12px, 3vw, 24px); height:56px; }
-    .logo { font-size:17px; font-weight:700; color:rgba(255,255,255,0.9); text-decoration:none; cursor:pointer; letter-spacing:-0.01em; font-family:var(--font); flex-shrink:0; }
+    .logo { font-size:17px; font-weight:700; color:rgba(255,255,255,0.9); text-decoration:none; cursor:pointer; letter-spacing:-0.01em; font-family:var(--font); flex-shrink:0; display:inline-flex; align-items:center; gap:.5em; }
+    .logo-mark { width:1.5em; height:1.5em; flex-shrink:0; }
     .hdr-right { display:flex; align-items:center; gap:12px; min-width:0; }
 
     /* ── Buttons ── */
@@ -1239,7 +1240,7 @@
 <!-- Header -->
 <header>
   <div class="hdr">
-    <a class="logo" href="/">SnapDeck<span style="color:rgba(255,255,255,0.35)">.</span>pro</a>
+    <a class="logo" href="/"><img class="logo-mark" src="/logo.png" alt=""><span>SnapDeck<span style="color:rgba(255,255,255,0.35)">.</span>pro</span></a>
     <div class="hdr-right" style="position:relative;">
       <div id="history-btn" title="Histórico desta sessão" onclick="toggleHistoryDropdown(event)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>

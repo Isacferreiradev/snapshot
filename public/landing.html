@@ -81,8 +81,12 @@
       letter-spacing: -0.02em;
       color: var(--text-primary);
       text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: .5em;
     }
     .logo span { color: var(--text-tertiary); }
+    .logo-mark { width: 1.5em; height: 1.5em; flex-shrink: 0; color: var(--text-primary); }
     .header-nav { display: flex; align-items: center; gap: 12px; }
     .btn-ghost {
       background: none;
@@ -832,7 +836,7 @@
 
 <!-- ── Header ─────────────────────────────────────────────────────────────── -->
 <header class="header">
-  <a class="logo" href="/">SnapDeck<span>.pro</span></a>
+  <a class="logo" href="/"><img class="logo-mark" src="/logo.png" alt="">SnapDeck<span>.pro</span></a>
   <nav class="header-nav">
     <a class="btn-ghost" href="#planos">Planos</a>
     <a class="btn-primary" href="/app">Testar grátis →</a>
@@ -1168,7 +1172,7 @@
   <div class="container">
     <div class="footer-inner">
       <div>
-        <a class="logo" href="/">SnapDeck<span>.pro</span></a>
+        <a class="logo" href="/"><img class="logo-mark" src="/logo.png" alt="">SnapDeck<span>.pro</span></a>
         <div class="footer-copy" style="margin-top:6px;">© 2025 SnapDeck.pro. Todos os direitos reservados.</div>
       </div>
       <div class="footer-links">
