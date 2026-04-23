@@ -158,21 +158,27 @@ async function navigateFast(page, url, captureStrategy) {
     console.warn(`[navigateFast] todas as estratégias falharam para ${url} — continuando com estado atual`);
   }
 
-  // Delay base pós-navegação (reduzido de 1000ms → 500ms)
-  await new Promise(r => setTimeout(r, POST_LOAD_WAIT));
-
-  // Content-check dinâmico: verifica se há conteúdo visível a cada 200ms (máx 1500ms total)
-  // Substitui o setTimeout fixo de 2000ms — sites com conteúdo imediato terminam em ~200ms
+  // [PERF] Content-first: checa imediatamente se a página já tem conteúdo.
+  // Se sim, pula o POST_LOAD_WAIT (800ms × 2 = 1.6s economizados por página em sites rápidos).
+  // Se não, espera com poll de 200ms até 1500ms total. Em último caso, fallback curto de 300ms.
+  let hasContent = false;
   try {
-    const contentDeadline = Date.now() + 1500;
-    while (Date.now() < contentDeadline) {
-      const hasContent = await page.evaluate(() =>
-        !!(document.body && document.body.innerText && document.body.innerText.trim().length > 100)
-      ).catch(() => false);
-      if (hasContent) break;
-      await new Promise(r => setTimeout(r, 200));
+    hasContent = await page.evaluate(() =>
+      !!(document.body && document.body.innerText && document.body.innerText.trim().length > 100)
+    ).catch(() => false);
+    if (!hasContent) {
+      const contentDeadline = Date.now() + 1500;
+      while (Date.now() < contentDeadline) {
+        await new Promise(r => setTimeout(r, 200));
+        hasContent = await page.evaluate(() =>
+          !!(document.body && document.body.innerText && document.body.innerText.trim().length > 100)
+        ).catch(() => false);
+        if (hasContent) break;
+      }
     }
   } catch {}
+  // Fallback mínimo só se nada apareceu (SPA muito lenta)
+  if (!hasContent) await new Promise(r => setTimeout(r, 300));
 }
 
 async function screenshotLimited(page, filePath) {
@@ -201,7 +207,7 @@ async function screenshotMobileLimited(page, filePath) {
 
 /** Verifica se o screenshot tem tamanho mínimo razoável. Se for muito pequeno, aguarda e tenta uma vez mais. */
 async function assertScreenshotSize(filePath, page, clip) {
-  const MIN_BYTES = 8000;  // [FIX] baixado de 15000 para pegar arquivos vazios mas aceitar compactos
+  const MIN_BYTES = 4000;  // [PERF] relaxado de 8000 — falsos positivos custam 2s de retry × 2 raws = 4s/página
   let stat;
   try { stat = fs.statSync(filePath); } catch { return; }  // arquivo não existe, já irá falhar acima
   if (stat.size === 0) {
@@ -227,10 +233,13 @@ async function setupPage(browser, vp, ua, hostname) {
     new Promise((_, rej) => setTimeout(() => rej(new Error('setupPage: newPage timeout')), 10000)),
   ]);
   page.setDefaultNavigationTimeout(NAV_DCL_TIMEOUT);
-  await applyStealthPatch(page);
-  await page.setUserAgent(ua);
-  await page.setViewport(vp);
-  await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8' });
+  // [PERF] Setup paralelo — antes era serial (4 awaits sequenciais × 2 páginas = ~200-400ms desperdício/job)
+  await Promise.all([
+    applyStealthPatch(page),
+    page.setUserAgent(ua),
+    page.setViewport(vp),
+    page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8' }),
+  ]);
   // [FIX-STABLE] enableResourceBlocking pode falhar em alguns contextos; não deve matar a página
   try { await enableResourceBlocking(page, hostname); } catch (err) {
     console.warn(`[screenshotter] enableResourceBlocking falhou (${hostname}): ${err.message} — continuando sem bloqueio`);

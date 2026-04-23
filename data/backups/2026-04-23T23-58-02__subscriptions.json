@@ -442,5 +442,41 @@
     "createdAt": 1775590783455,
     "monthResetAt": 1777604400000,
     "checkoutSessionId": null
+  },
+  "SNAP-1917-FD28-EF23": {
+    "plan": "starter",
+    "stripeSubscriptionId": "pay_wl5vgpqwth42xatl",
+    "stripeCustomerId": null,
+    "validUntil": 1778364573379,
+    "capturesThisMonth": 16,
+    "capturesLimit": 100,
+    "active": true,
+    "createdAt": 1775772573379,
+    "monthResetAt": 1777604400000,
+    "checkoutSessionId": null
+  },
+  "SNAP-B085-A22D-98CC": {
+    "plan": "starter",
+    "stripeSubscriptionId": "pay_xtj9uw5vfceu60wd",
+    "stripeCustomerId": null,
+    "validUntil": 1779295103840,
+    "capturesThisMonth": 0,
+    "capturesLimit": 100,
+    "active": true,
+    "createdAt": 1776703103840,
+    "monthResetAt": 1777604400000,
+    "checkoutSessionId": null
+  },
+  "SNAP-0269-35F5-AE4A": {
+    "plan": "starter",
+    "stripeSubscriptionId": "pay_0pq3hr2a4dtigtvq",
+    "stripeCustomerId": null,
+    "validUntil": 1779302638540,
+    "capturesThisMonth": 0,
+    "capturesLimit": 100,
+    "active": true,
+    "createdAt": 1776710638540,
+    "monthResetAt": 1777604400000,
+    "checkoutSessionId": null
   }
 }

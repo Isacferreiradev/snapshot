@@ -15,7 +15,7 @@ const PAGE_CLOSE_TIMEOUT = 1500;
 const OP_TIMEOUT         = 2000;  // cap for evaluate/title/stopLoading
 const SCREENSHOT_TIMEOUT = 6000;  // aumentado de 5s para 6s
 const THUMB_CONCURRENCY  = 3;     // raised back: with hardcap, slow pages can't poison sibling tabs
-const THUMB_MIN_BYTES    = 2048;  // thumbnail mínimo aceitável em bytes
+const THUMB_MIN_BYTES    = 1024;  // thumbnail mínimo aceitável (relaxado de 2048 — falsos negativos em páginas com fundo sólido)
 
 // Race a promise against a timeout. On timeout, resolves with `fallback` (never throws).
 function withTimeout(promise, ms, fallback) {
@@ -144,21 +144,30 @@ async function captureThumbnail(browser, url, outputPath) {
     );
     // [FIX-STABLE] stopLoading pode falhar em alguns contextos de SPA
     await withTimeout(pg._client().send('Page.stopLoading'), 1000, null).catch(() => {});
-    await new Promise(r => setTimeout(r, 400));
+    // [PERF] mesmo padrão condicional da captureOne — não cobrar 400ms se já há conteúdo
+    const ready = await withTimeout(
+      pg.evaluate(() => !!(document.body && document.body.children.length > 3)),
+      400, false
+    );
+    if (!ready) await new Promise(r => setTimeout(r, 250));
 
-    const shot = pg.screenshot({
-      path: outputPath, type: 'jpeg', quality: 50,
-      clip: { x: 0, y: 0, width: 800, height: 500 },
-    }).then(() => true, () => false);
-    const ok = await withTimeout(shot, SCREENSHOT_TIMEOUT, false);
-    if (!ok) { try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch {} }
-    else {
-      // [FIX-STABLE] Verificar tamanho mínimo da thumbnail
-      try {
-        const sz = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0;
-        if (sz < THUMB_MIN_BYTES) { try { fs.unlinkSync(outputPath); } catch {} }
-      } catch {}
+    const shoot = async () => {
+      const sp = pg.screenshot({
+        path: outputPath, type: 'jpeg', quality: 50,
+        clip: { x: 0, y: 0, width: 800, height: 500 },
+      }).then(() => true, () => false);
+      const taken = await withTimeout(sp, SCREENSHOT_TIMEOUT, false);
+      let size = 0;
+      if (taken) { try { size = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0; } catch {} }
+      return { ok: taken && size >= THUMB_MIN_BYTES, size };
+    };
+    let shot = await shoot();
+    // [PERF] Segunda chance se a primeira saiu pequena
+    if (!shot.ok) {
+      await new Promise(r => setTimeout(r, 1200));
+      shot = await shoot();
     }
+    if (!shot.ok) { try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch {} }
   })();
 
   await withTimeout(inner, PER_PAGE_HARDCAP, null);
@@ -209,9 +218,10 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
     // [FIX-11] try/finally garante que seedPage é sempre fechada, mesmo se evaluate() jogar
     try {
       try {
+        // [PERF] race reduzida de 8s → 5s — DCL típico chega em 1-3s; 5s já cobre p95
         await Promise.race([
-          seedPage.goto(rawUrl, { waitUntil: 'domcontentloaded', timeout: 10000 }),
-          new Promise(r => setTimeout(r, 8000)),
+          seedPage.goto(rawUrl, { waitUntil: 'domcontentloaded', timeout: 8000 }),
+          new Promise(r => setTimeout(r, 5000)),
         ]);
       } catch {}
 
@@ -299,24 +309,42 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
         pageTitle = await withTimeout(pg.title(), OP_TIMEOUT, url);
         try { finalUrl = pg.url(); } catch {}
 
-        // Pequeno delay para SPA renderizar após DCL — sem evaluate() que pode travar.
-        await new Promise(r => setTimeout(r, 400));
+        // [PERF] Delay condicional: se já tem body com conteúdo, segue direto.
+        // Antes: 400ms cego × pageLimit (em lotes de 3) = ~1.6s desperdiçados num crawl de 12 páginas.
+        const ready = await withTimeout(
+          pg.evaluate(() => !!(document.body && document.body.children.length > 3)),
+          400, false
+        );
+        if (!ready) await new Promise(r => setTimeout(r, 250));
 
-        const screenshotPromise = pg.screenshot({
-          path: thumbPath, type: 'jpeg', quality: 50,
-          clip: { x: 0, y: 0, width: 800, height: 500 },
-        }).then(() => true, () => false);
-        ok = await withTimeout(screenshotPromise, SCREENSHOT_TIMEOUT, false);
+        // Helper local: tira screenshot e retorna { ok, size }.
+        const shoot = async () => {
+          const sp = pg.screenshot({
+            path: thumbPath, type: 'jpeg', quality: 50,
+            clip: { x: 0, y: 0, width: 800, height: 500 },
+          }).then(() => true, () => false);
+          const taken = await withTimeout(sp, SCREENSHOT_TIMEOUT, false);
+          let size = 0;
+          if (taken) { try { size = fs.existsSync(thumbPath) ? fs.statSync(thumbPath).size : 0; } catch {} }
+          return { ok: taken && size >= THUMB_MIN_BYTES, size };
+        };
 
-        if (ok) {
-          try {
-            const size = fs.existsSync(thumbPath) ? fs.statSync(thumbPath).size : 0;
-            if (size < THUMB_MIN_BYTES) { ok = false; reason = `jpeg muito pequeno (${size}b)`; }
-          } catch { ok = false; }
+        let shot = await shoot();
+        ok = shot.ok;
+        if (!ok) reason = `jpeg muito pequeno (${shot.size}b)`;
+
+        // [PERF] Segunda chance: se a primeira saiu pequena/falhou, espera 1.2s e tenta de novo.
+        // Páginas SPA-pesadas (formulários Stripe, etc) renderizam após o DCL — a 2ª tentativa pega.
+        if (!ok) {
+          await new Promise(r => setTimeout(r, 1200));
+          shot = await shoot();
+          ok = shot.ok;
+          if (ok) reason = '';
+          else reason = `2 tentativas falharam (último: ${shot.size}b)`;
         }
+
         if (!ok) {
           try { if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath); } catch {}
-          if (!reason) reason = 'screenshot timeout';
         }
       })();
 
