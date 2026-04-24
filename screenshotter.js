@@ -31,7 +31,7 @@ const RETRY_DELAY = 2000; // ms entre tentativas
 const RETRY_RE    = /timeout|ECONNRESET|ECONNREFUSED|net::ERR_TIMED_OUT|net::ERR_CONNECTION/i;
 
 // ── Concorrência ──────────────────────────────────────────────────────────────
-const MAX_CONCURRENT = 3;
+const MAX_CONCURRENT = 2; // [FIX] baixado de 3 para 2 p/ estabilidade total em Render/Railway 1GB RAM
 
 // ── Padrão de bloqueio de recursos ────────────────────────────────────────────
 const BLOCK_SCRIPT_RE = /google-analytics|googletagmanager|facebook\.net|fbevents|hotjar|intercom|hubspot|drift\.com|crisp\.chat|tawk\.to|amplitude\.com|segment\.io|mixpanel|fullstory|clarity\.microsoft|adsbygoogle|doubleclick|googleadservices|newrelic|sentry\.io\/api|bat\.bing|snap\.licdn|twitter\.com\/i\/adsct/;
@@ -112,73 +112,27 @@ async function triggerLazyLoad(page) {
   } catch {}
 }
 
-/** Navegação com cascade domcontentloaded → networkidle2 → load.
- *  [FIX-SPEED] Antes iniciava com networkidle0 (25s timeout) que nunca resolvia em sites como
- *  GitHub (conexões persistentes/WebSocket). Resultado: todo site "pesado" esperava 25s antes
- *  de tentar a próxima estratégia. Novo cascade começa por domcontentloaded (rápido e confiável)
- *  e usa content-check dinâmico em vez de setTimeout fixo.
- */
-async function navigateFast(page, url, captureStrategy) {
-  const strat = captureStrategy || {};
+/** Navegação Baseline: Simples e rápida para 95% dos sites. */
+async function navigateFast(page, url, opts = {}) {
+  const timeout = opts.timeout || 15000;
+  const delay   = opts.delay   || 800;
 
-  // Se o caller especificou uma estratégia explícita (ex: per-page override), usá-la diretamente
-  if (strat.waitUntil) {
-    const timeout = strat.timeout || NAV_DCL_TIMEOUT;
-    let navErr = null;
-    await Promise.race([
-      page.goto(url, { waitUntil: strat.waitUntil, timeout }).catch(e => { navErr = e; }),
-      new Promise(r => setTimeout(r, timeout + 1000)),
-    ]);
-    if (navErr && !/timeout|TimeoutError/i.test(navErr.message)) throw navErr;
-    await new Promise(r => setTimeout(r, strat.delay || POST_LOAD_WAIT));
-    return;
-  }
+  // 1. Tentar domcontentloaded (rápido)
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout }).catch(() => {});
 
-  // Cascade: domcontentloaded primeiro (rápido), depois load como fallback
-  // NÃO usamos networkidle0 — sites como GitHub, Vercel e outros com
-  // WebSocket/polling NUNCA atingem networkidle0 → travava 25s por página.
-  const CASCADE = [
-    { waitUntil: 'domcontentloaded', timeout: 12000 },
-    { waitUntil: 'load',             timeout: 10000 },
-  ];
+  // 2. Garantir que o body existe e foi injetado (vital para evitar 0 bytes)
+  try { await page.waitForSelector('body', { timeout: 5000 }); } catch {}
 
-  let lastErr = null;
-  for (const s of CASCADE) {
-    try {
-      await page.goto(url, { waitUntil: s.waitUntil, timeout: s.timeout });
-      lastErr = null;
-      break;
-    } catch (err) {
-      lastErr = err;
-      // Erro real de rede (não timeout) → interromper cascade e relançar
-      if (!/timeout|TimeoutError/i.test(err.message || '')) throw err;
-    }
-  }
-  if (lastErr) {
-    console.warn(`[navigateFast] todas as estratégias falharam para ${url} — continuando com estado atual`);
-  }
+  // 3. Delay fixo de acomodação
+  await new Promise(r => setTimeout(r, delay));
+}
 
-  // [PERF] Content-first: checa imediatamente se a página já tem conteúdo.
-  // Se sim, pula o POST_LOAD_WAIT (800ms × 2 = 1.6s economizados por página em sites rápidos).
-  // Se não, espera com poll de 200ms até 1500ms total. Em último caso, fallback curto de 300ms.
-  let hasContent = false;
-  try {
-    hasContent = await page.evaluate(() =>
-      !!(document.body && document.body.innerText && document.body.innerText.trim().length > 100)
-    ).catch(() => false);
-    if (!hasContent) {
-      const contentDeadline = Date.now() + 1500;
-      while (Date.now() < contentDeadline) {
-        await new Promise(r => setTimeout(r, 200));
-        hasContent = await page.evaluate(() =>
-          !!(document.body && document.body.innerText && document.body.innerText.trim().length > 100)
-        ).catch(() => false);
-        if (hasContent) break;
-      }
-    }
-  } catch {}
-  // Fallback mínimo só se nada apareceu (SPA muito lenta)
-  if (!hasContent) await new Promise(r => setTimeout(r, 300));
+/** Estratégia de Fallback: Usar networkidle2 para casos onde o site é pesado ou bloqueia DCL. */
+async function navigateFallback(page, url) {
+  await page.goto(url, { waitUntil: 'networkidle2', timeout: 20000 }).catch(err => {
+    console.warn(`[fallback] Networkidle2 falhou em ${url}: ${err.message}`);
+  });
+  await new Promise(r => setTimeout(r, 1500));
 }
 
 async function screenshotLimited(page, filePath) {
@@ -207,7 +161,7 @@ async function screenshotMobileLimited(page, filePath) {
 
 /** Verifica se o screenshot tem tamanho mínimo razoável. Se for muito pequeno, aguarda e tenta uma vez mais. */
 async function assertScreenshotSize(filePath, page, clip) {
-  const MIN_BYTES = 4000;  // [PERF] relaxado de 8000 — falsos positivos custam 2s de retry × 2 raws = 4s/página
+  const MIN_BYTES = 8000;  // [FIX] baixado de 15000 para pegar arquivos vazios mas aceitar compactos
   let stat;
   try { stat = fs.statSync(filePath); } catch { return; }  // arquivo não existe, já irá falhar acima
   if (stat.size === 0) {
@@ -233,13 +187,10 @@ async function setupPage(browser, vp, ua, hostname) {
     new Promise((_, rej) => setTimeout(() => rej(new Error('setupPage: newPage timeout')), 10000)),
   ]);
   page.setDefaultNavigationTimeout(NAV_DCL_TIMEOUT);
-  // [PERF] Setup paralelo — antes era serial (4 awaits sequenciais × 2 páginas = ~200-400ms desperdício/job)
-  await Promise.all([
-    applyStealthPatch(page),
-    page.setUserAgent(ua),
-    page.setViewport(vp),
-    page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8' }),
-  ]);
+  await applyStealthPatch(page);
+  await page.setUserAgent(ua);
+  await page.setViewport(vp);
+  await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8' });
   // [FIX-STABLE] enableResourceBlocking pode falhar em alguns contextos; não deve matar a página
   try { await enableResourceBlocking(page, hostname); } catch (err) {
     console.warn(`[screenshotter] enableResourceBlocking falhou (${hostname}): ${err.message} — continuando sem bloqueio`);
@@ -329,28 +280,64 @@ async function _capturePageWithBrowser(browser, validated, dir, cfg, applyWaterm
       setupPage(browser, desktopVp, DESKTOP_UA, hostname),
       includeMobile ? setupPage(browser, mobileVp, MOBILE_UA, hostname) : Promise.resolve(null),
     ]);
-    await Promise.all([
-      navigateFast(dp, validated, captureStrategy),
-      mp ? navigateFast(mp, validated, captureStrategy) : Promise.resolve(),
-    ]);
+    try {
+      // Usar a mesma estratégia robusta: Baseline + Fallback
+      await Promise.all([
+        navigateFast(dp, validated, { ...captureStrategy, timeout: 25000 }),
+        mp ? navigateFast(mp, validated, { ...captureStrategy, timeout: 25000 }) : Promise.resolve(),
+      ]);
+    } catch (err) {
+       console.warn(`[Professional] Navegação inicial falhou, tentando fallback direto: ${err.message}`);
+    }
+    
+    // 1. DISMISS OVERLAYS
     await Promise.all([
       Promise.race([dismissOverlays(dp), new Promise(r => setTimeout(r, OVERLAY_TIMEOUT))]),
       mp ? Promise.race([dismissOverlays(mp), new Promise(r => setTimeout(r, OVERLAY_TIMEOUT))]) : Promise.resolve(),
     ]);
+
     if (!viewportOnly) await triggerLazyLoad(dp);
     const pageTitle = await dp.title().catch(() => validated);
 
-    // Screenshots em paralelo
-    await Promise.all([
-      viewportOnly
-        ? dp.screenshot({ path: desktopRaw, type: 'png', clip: { x: 0, y: 0, width: desktopVp.width, height: 900 }, timeout: SHOT_TIMEOUT })
-        : screenshotLimited(dp, desktopRaw),
-      mp
-        ? (viewportOnly
-            ? mp.screenshot({ path: mobileRaw, type: 'png', clip: { x: 0, y: 0, width: mobileVp.width, height: 844 }, timeout: SHOT_TIMEOUT })
-            : screenshotMobileLimited(mp, mobileRaw))
-        : Promise.resolve(),
+    // 2. CAPTURE WITH FALLBACK
+    const shoot = async (page, rawPath, vp) => {
+      try {
+        await new Promise(r => setTimeout(r, 2000)); // Delay para hidratação/animações
+        if (viewportOnly) {
+          const h = vp.width === DESKTOP_VP.width ? 900 : 844;
+          await page.screenshot({ path: rawPath, type: 'png', clip: { x: 0, y: 0, width: vp.width, height: h }, timeout: SHOT_TIMEOUT });
+        } else {
+          if (vp.width === MOBILE_VP.width) await screenshotMobileLimited(page, rawPath);
+          else await screenshotLimited(page, rawPath);
+        }
+        return fs.existsSync(rawPath) ? fs.statSync(rawPath).size : 0;
+      } catch (err) {
+        console.error(`[shoot] Erro ao capturar ${rawPath}:`, err.message);
+        return 0;
+      }
+    };
+
+    let [sizeD, sizeM] = await Promise.all([
+      shoot(dp, desktopRaw, desktopVp),
+      mp ? shoot(mp, mobileRaw, mobileVp) : Promise.resolve(99999)
     ]);
+
+    // Fallback se alguma imagem for 'lixo' (< 10KB para PNG Pro é suspeito)
+    if (sizeD < 10000 || (mp && sizeM < 10000)) {
+       const msg = `[Professional Fallback] Render pobre em ${validated}. Tentando modo de alta reputação...`;
+       console.log(msg);
+       try { appendCrawlLog(jobId, msg); } catch {}
+       
+       await Promise.all([
+         sizeD < 10000 ? navigateFallback(dp, validated) : Promise.resolve(),
+         (mp && sizeM < 10000) ? navigateFallback(mp, validated) : Promise.resolve()
+       ]);
+       
+       [sizeD, sizeM] = await Promise.all([
+         sizeD < 10000 ? shoot(dp, desktopRaw, desktopVp) : Promise.resolve(sizeD),
+         (mp && sizeM < 10000) ? shoot(mp, mobileRaw, mobileVp) : Promise.resolve(sizeM)
+       ]);
+    }
     // [FIX-C] close() sem timeout pode pendurar com requests interceptadas pendentes
     const closeWithTimeout = p => Promise.race([p.close(), new Promise(r => setTimeout(r, 2000))]).catch(() => {});
     await Promise.all([closeWithTimeout(dp), mp ? closeWithTimeout(mp) : Promise.resolve()]);
@@ -381,10 +368,10 @@ async function captureJobPages(urls, jobId, cfg, onProgress, applyWatermark, pag
   const results = new Array(urls.length).fill(null);
   const sem     = makeSemaphore(MAX_CONCURRENT);
 
-  // Timeout dinâmico: ~40s por página ÷ concorrência + 60s buffer. Mín 120s, máx 600s.
+  // Timeout dinâmico: ~40s por página ÷ concorrência + 120s buffer. Mín 120s, máx 25min (1.5M ms).
   const dynamicTimeout = Math.min(
-    Math.max(Math.ceil(urls.length / MAX_CONCURRENT) * 40000 + 60000, GLOBAL_JOB_TIMEOUT),
-    600000
+    Math.max(Math.ceil(urls.length / MAX_CONCURRENT) * 45000 + 120000, GLOBAL_JOB_TIMEOUT),
+    1500000
   );
 
   return Promise.race([
@@ -418,15 +405,23 @@ async function captureJobPages(urls, jobId, cfg, onProgress, applyWatermark, pag
               // Liberar browser ANTES do render — evita deadlock quando renderer também precisa de browser
               await releaseBrowserToPool(poolEntry); poolEntry = null;
 
-              // Render: aplicar template nos screenshots capturados (usa browser do pool internamente)
+              // Render: aplicar template nos screenshots capturados (PARALELIZADO interno — pool de 4 suporta)
               const cr = captureResult;
-              const [deskOk, mobOk] = await Promise.all([
+              const [deskOk, mobOk, prevOk] = await Promise.all([
                 safeRender({ screenshotPath: cr.desktopRaw, deviceType: 'desktop', renderConfig: cr.pageCfg, outputPath: cr.desktopOut, pageUrl: cr.validated, pageTitle: cr.pageTitle, applyWatermark: cr.applyWatermark }, cr.desktopRaw),
                 cr.includeMobile
                   ? safeRender({ screenshotPath: cr.mobileRaw, deviceType: 'mobile', renderConfig: cr.pageCfg, outputPath: cr.mobileOut, pageUrl: cr.validated, pageTitle: cr.pageTitle, applyWatermark: cr.applyWatermark }, cr.mobileRaw)
                   : Promise.resolve(false),
                 safeRender({ screenshotPath: cr.desktopRaw, deviceType: 'desktop', renderConfig: cr.pageCfg, outputPath: cr.previewOut, pageUrl: cr.validated, pageTitle: cr.pageTitle, applyWatermark: cr.applyWatermark }, cr.desktopRaw),
               ]);
+
+              // [FIX-SCALABILITY] Deletar raws imediatamente para economizar SSD em lotes grandes (50 páginas)
+              try {
+                if (fs.existsSync(cr.desktopRaw)) fs.unlinkSync(cr.desktopRaw);
+                if (cr.includeMobile && fs.existsSync(cr.mobileRaw)) fs.unlinkSync(cr.mobileRaw);
+              } catch (e) {
+                console.warn(`[Cleanup] Falha ao deletar temporários de ${url}: ${e.message}`);
+              }
               if (cr.socialExport) {
                 const socialDir = path.join(cr.dir, 'social');
                 fs.mkdirSync(socialDir, { recursive: true });
@@ -569,5 +564,10 @@ module.exports = {
   initBrowserPool,
   getBrowserFromPool,
   releaseBrowserToPool,
+  navigateFast,
+  navigateFallback,
+  setupPage,
+  DESKTOP_UA,
+  MOBILE_UA,
 };
 

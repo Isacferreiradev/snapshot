@@ -2,19 +2,28 @@
 
 const fs   = require('fs');
 const path = require('path');
+const axios = require('axios');
+const cheerio = require('cheerio');
 const { appendCrawlLog }                    = require('./jobs');
-const { getBrowserFromPool, releaseBrowserToPool } = require('./screenshotter');
+const { 
+  getBrowserFromPool, 
+  releaseBrowserToPool, 
+  navigateFast, 
+  navigateFallback,
+  setupPage, 
+  DESKTOP_UA 
+} = require('./screenshotter');
 const { validateUrl, installSsrfInterceptor } = require('./security');
 
-const MAX_PAGES          = 12;
-const THUMB_TIMEOUT      = 10000; // goto cap — aumentado de 8s para 10s
-const PER_PAGE_HARDCAP   = 15000; // hard ceiling per page — aumentado de 12s para 15s
-const CRAWL_TIMEOUT      = 90000;
+const MAX_PAGES          = 50; // [FIX] Aumentado para 50 para suportar Agency em batch grande
+const THUMB_TIMEOUT      = 10000; // goto cap
+const PER_PAGE_HARDCAP   = 30000; // [FIX-CRITICAL] 30s para permitir cascade DCL+LOAD+SCREENSHOT
+const CRAWL_TIMEOUT      = 120000; // 2 min total
 const NEW_PAGE_TIMEOUT   = 5000;
 const PAGE_CLOSE_TIMEOUT = 1500;
-const OP_TIMEOUT         = 2000;  // cap for evaluate/title/stopLoading
-const SCREENSHOT_TIMEOUT = 6000;  // aumentado de 5s para 6s
-const THUMB_CONCURRENCY  = 3;     // raised back: with hardcap, slow pages can't poison sibling tabs
+const OP_TIMEOUT         = 2000;  
+const SCREENSHOT_TIMEOUT = 10000; // [FIX] Aumentado para 10s para sites ultra-pesados
+const THUMB_CONCURRENCY  = 2;     // [STABLE] Reduzido para 2 para evitar picos de CPU/RAM
 const THUMB_MIN_BYTES    = 1024;  // thumbnail mínimo aceitável (relaxado de 2048 — falsos negativos em páginas com fundo sólido)
 
 // Race a promise against a timeout. On timeout, resolves with `fallback` (never throws).
@@ -123,62 +132,105 @@ function deduplicatePages(pages) {
   return unique;
 }
 
-/** Captura thumbnail leve com hardcap global — nunca bloqueia mais que PER_PAGE_HARDCAP. */
+/** 
+ * DISCOVERY ENGINE (LIGHT): 
+ * Tenta extrair links via HTTP Request pura (Axios + Cheerio).
+ * Muito mais rápido e consome 0% do Browser Pool.
+ */
+async function discoverLinksLight(url, origin) {
+  try {
+    const { data } = await axios.get(url, {
+      headers: { 'User-Agent': DESKTOP_UA },
+      timeout: 8000,
+      maxContentLength: 5 * 1024 * 1024, // 5MB limit
+    });
+    const $ = cheerio.load(data);
+    const links = [];
+    
+    // Pegar links de navegação com prioridade
+    $('nav a[href], header a[href], [class*="menu"] a[href], [class*="nav"] a[href]').each((_, el) => {
+      const h = $(el).attr('href');
+      if (h) links.push({ href: h, priority: 1 });
+    });
+
+    // Pegar todos os outros
+    $('a[href]').each((_, el) => {
+      const h = $(el).attr('href');
+      if (h) links.push({ href: h, priority: 2 });
+    });
+
+    // Heurística de SPA: Se o body estiver vazio de texto, provavelmente precisa de JS
+    const textLen = $('body').text().trim().length;
+    return { links, isSPA: textLen < 100 };
+  } catch (err) {
+    return { links: [], isSPA: true, error: err.message };
+  }
+}
+
+/** 
+ * DISCOVERY ENGINE (HEAVY): 
+ * Fallback via Puppeteer para extrair links de SPAs (React/Vue/etc).
+ */
+async function discoverLinksHeavy(browser, url, origin) {
+  let pg;
+  try {
+    pg = await setupPage(browser, { width: 1280, height: 800 }, DESKTOP_UA, new URL(url).hostname);
+    await navigateFast(pg, url, { timeout: 10000 });
+    
+    const data = await pg.evaluate(() => {
+      const all = Array.from(document.querySelectorAll('a[href]')).map(a => a.getAttribute('href'));
+      const nav = [];
+      document.querySelectorAll('nav,header,[class*="menu"],[class*="nav"]').forEach(c => {
+        c.querySelectorAll('a[href]').forEach(a => nav.push(a.getAttribute('href')));
+      });
+      return { all, nav };
+    });
+    return { all: data.all, nav: data.nav };
+  } catch {
+    return { all: [], nav: [] };
+  } finally {
+    if (pg) await pg.close().catch(()=>{});
+  }
+}
+
+/** CAPTURE ENGINE: Baseline + Fallback System */
 async function captureThumbnail(browser, url, outputPath) {
   let pg;
-  const inner = (async () => {
-    pg = await withTimeout(browser.newPage(), NEW_PAGE_TIMEOUT, null);
-    if (!pg) return;
-    pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
-    await withTimeout(pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 }), OP_TIMEOUT, null);
-    // [FIX-STABLE] installSsrfInterceptor pode falhar; não deve travar o crawl
-    await withTimeout(installSsrfInterceptor(pg, req => {
-      const rt = req.resourceType();
-      if (rt === 'media' || rt === 'font') { try { req.abort(); } catch {} return; }
-      try { req.continue(); } catch {}
-    }), OP_TIMEOUT, null).catch(() => {});
-
-    await withTimeout(
-      pg.goto(url, { waitUntil: 'domcontentloaded', timeout: THUMB_TIMEOUT }),
-      THUMB_TIMEOUT, null
-    );
-    // [FIX-STABLE] stopLoading pode falhar em alguns contextos de SPA
-    await withTimeout(pg._client().send('Page.stopLoading'), 1000, null).catch(() => {});
-    // [PERF] mesmo padrão condicional da captureOne — não cobrar 400ms se já há conteúdo
-    const ready = await withTimeout(
-      pg.evaluate(() => !!(document.body && document.body.children.length > 3)),
-      400, false
-    );
-    if (!ready) await new Promise(r => setTimeout(r, 250));
-
+  const hostname = (() => { try { return new URL(url).hostname; } catch { return ''; } })();
+  
+  try {
+    pg = await setupPage(browser, { width: 800, height: 500, deviceScaleFactor: 1 }, DESKTOP_UA, hostname);
+    
+    // 1. Tentar Baseline
+    await navigateFast(pg, url, { timeout: 12000, delay: 1000 });
+    
     const shoot = async () => {
-      const sp = pg.screenshot({
-        path: outputPath, type: 'jpeg', quality: 50,
-        clip: { x: 0, y: 0, width: 800, height: 500 },
-      }).then(() => true, () => false);
-      const taken = await withTimeout(sp, SCREENSHOT_TIMEOUT, false);
-      let size = 0;
-      if (taken) { try { size = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0; } catch {} }
-      return { ok: taken && size >= THUMB_MIN_BYTES, size };
+      await pg.screenshot({ path: outputPath, type: 'jpeg', quality: 50, clip: { x: 0, y: 0, width: 800, height: 500 } });
+      return fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0;
     };
-    let shot = await shoot();
-    // [PERF] Segunda chance se a primeira saiu pequena
-    if (!shot.ok) {
-      await new Promise(r => setTimeout(r, 1200));
-      shot = await shoot();
-    }
-    if (!shot.ok) { try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch {} }
-  })();
 
-  await withTimeout(inner, PER_PAGE_HARDCAP, null);
-  if (pg) withTimeout(pg.close(), PAGE_CLOSE_TIMEOUT, null).catch(() => {});
+    let size = await withTimeout(shoot(), 8000, 0);
+
+    // 2. Fallback se imagem for 'lixo' (branca/vazia)
+    if (size < THUMB_MIN_BYTES) {
+      await navigateFallback(pg, url);
+      size = await withTimeout(shoot(), 8000, 0);
+    }
+
+    if (size < THUMB_MIN_BYTES) {
+      try { if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath); } catch {}
+    }
+  } catch (err) {
+    console.error(`[Thumb] Falha em ${url}:`, err.message);
+  } finally {
+    if (pg) await pg.close().catch(()=>{});
+  }
 }
 
 async function _doCrawl(rawUrl, jobId, maxPages) {
-  // Validar URL antes de abrir qualquer browser (SSRF protection)
   const urlCheck = await validateUrl(rawUrl);
   if (!urlCheck.valid) throw new Error(urlCheck.reason || 'URL não permitida.');
-  rawUrl = urlCheck.url; // URL normalizada e segura
+  rawUrl = urlCheck.url;
 
   const pageLimit = (maxPages && maxPages > 0) ? maxPages : MAX_PAGES;
   let origin;
@@ -190,224 +242,103 @@ async function _doCrawl(rawUrl, jobId, maxPages) {
 
   const log = (msg) => { try { appendCrawlLog(jobId, msg); } catch {} };
 
+  // 1. DISCOVERY PHASE (Light first, Heavy as fallback)
+  log('Buscando estrutura do site…');
+  let { links, isSPA } = await discoverLinksLight(rawUrl, origin);
+  let allLinks = links;
+  let seedTitle = '';
+
   let poolEntry;
-  try {
-    log('Conectando ao navegador…');
-    poolEntry = await getBrowserFromPool();
-    const browser = poolEntry.browser;
-
-    // ── Seed page ─────────────────────────────────────────────────────────
-    log(`Acessando ${rawUrl}…`);
-    // [FIX-D] seedPage newPage() sem timeout — browser sob carga pode pender indefinidamente
-    const seedPage = await Promise.race([
-      browser.newPage(),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('seedPage newPage timeout')), NEW_PAGE_TIMEOUT)),
-    ]);
-    seedPage.setDefaultNavigationTimeout(THUMB_TIMEOUT * 2);
-    await seedPage.setViewport({ width: 1280, height: 800 });
-    // [FIX-12] Bloquear tracking scripts e media durante o crawl (discovery de links não precisa deles)
-    await installSsrfInterceptor(seedPage, req => {
-      const rt  = req.resourceType();
-      const url = req.url();
-      if (rt === 'media' || rt === 'font') { req.abort(); return; }
-      if (rt === 'script' && CRAWL_BLOCK_RE.test(url)) { req.abort(); return; }
-      req.continue();
-    });
-
-    let seedUrl, seedTitle, allHrefs, navHrefs;
-    // [FIX-11] try/finally garante que seedPage é sempre fechada, mesmo se evaluate() jogar
+  if (isSPA) {
+    log('SPA detectada ou bloqueio simples. Usando motor de renderização para extração…');
     try {
-      try {
-        // [PERF] race reduzida de 8s → 5s — DCL típico chega em 1-3s; 5s já cobre p95
-        await Promise.race([
-          seedPage.goto(rawUrl, { waitUntil: 'domcontentloaded', timeout: 8000 }),
-          new Promise(r => setTimeout(r, 5000)),
-        ]);
-      } catch {}
-
-      seedUrl   = seedPage.url();
-      seedTitle = await seedPage.title().catch(() => origin);
-      log(`Página raiz carregada: "${seedTitle}"`);
-
-      allHrefs = await seedPage.evaluate(() =>
-        Array.from(document.querySelectorAll('a[href]')).map(a => a.getAttribute('href')).filter(Boolean)
-      ).catch(() => []);
-      navHrefs = await seedPage.evaluate(() => {
-        const containers = document.querySelectorAll('nav, header, [class*="menu"], [class*="nav"], [class*="navigation"]');
-        const out = [];
-        containers.forEach(c => c.querySelectorAll('a[href]').forEach(a => out.push(a.getAttribute('href'))));
-        return out.filter(Boolean);
-      }).catch(() => []);
+      poolEntry = await getBrowserFromPool();
+      const heavy = await discoverLinksHeavy(poolEntry.browser, rawUrl, origin);
+      allLinks = [
+        ...heavy.nav.map(h => ({ href: h, priority: 1 })),
+        ...heavy.all.map(h => ({ href: h, priority: 2 }))
+      ];
     } finally {
-      // [FIX-D] close() com timeout — pode pendurar se requests interceptadas pendentes
-      await Promise.race([seedPage.close(), new Promise(r => setTimeout(r, PAGE_CLOSE_TIMEOUT))]).catch(() => {});
+      if (poolEntry) await releaseBrowserToPool(poolEntry);
+      poolEntry = null;
     }
-    seedUrl   = seedUrl   || rawUrl;
-    allHrefs  = allHrefs  || [];
-    navHrefs  = navHrefs  || [];
-
-    // ── Dedup e priorização ────────────────────────────────────────────────
-    const seen  = new Set();
-    const queue = [];
-    const addUrl = (href, priority) => {
-      const n = normalizeUrl(href, origin);
-      if (n && !seen.has(n) && !FILE_EXT_RE.test(n)) { seen.add(n); queue.push({ url: n, priority }); }
-    };
-    const normalSeed = normalizeUrl(seedUrl, origin) || rawUrl;
-    seen.add(normalSeed);
-    queue.push({ url: normalSeed, priority: 0 });
-    navHrefs.forEach(h => addUrl(h, 1));
-    allHrefs.forEach(h => addUrl(h, 2));
-    queue.sort((a, b) => a.priority - b.priority);
-    const totalFound = queue.length; // total before plan limit
-    const toVisit = queue.slice(0, pageLimit);
-    log(`${toVisit.length} página(s) na fila${totalFound > toVisit.length ? ` (${totalFound} encontradas, limite do plano: ${pageLimit})` : ''}.`);
-
-    // ── Seed thumbnail ─────────────────────────────────────────────────────
-    const seedThumbPath = path.join(thumbDir, 'page-000.jpg');
-    await captureThumbnail(browser, normalSeed, seedThumbPath);
-    const seedThumbExists = fs.existsSync(seedThumbPath);
-    const results = [{
-      url: normalSeed, title: seedTitle || origin,
-      thumbnailPath: seedThumbExists ? seedThumbPath : null,
-      thumbnailUrl:  seedThumbExists ? `/screenshots/${jobId}/thumbs/page-000.jpg` : null,
-      pageType: inferPageType(normalSeed),
-    }];
-
-    // ── Remaining pages (paralelo, até THUMB_CONCURRENCY thumbnails simultâneas) ──
-    let thumbActive = 0;
-    const thumbQueue = [];
-    const thumbAcquire = () => {
-      if (thumbActive < THUMB_CONCURRENCY) { thumbActive++; return Promise.resolve(); }
-      return new Promise(resolve => thumbQueue.push(() => { thumbActive++; resolve(); }));
-    };
-    const thumbRelease = () => { thumbActive--; if (thumbQueue.length > 0) thumbQueue.shift()(); };
-
-    // Captura uma thumb + metadata, com hardcap global para evitar que SPAs pesadas travem o crawl.
-    const captureOne = async (url, thumbPath, i, total) => {
-      const startedAt = Date.now();
-      let pg, pageTitle = url, finalUrl = url, ok = false, reason = '';
-      const inner = (async () => {
-        pg = await withTimeout(browser.newPage(), NEW_PAGE_TIMEOUT, null);
-        if (!pg) { reason = 'newPage timeout'; return; }
-        pg.setDefaultNavigationTimeout(THUMB_TIMEOUT);
-        await withTimeout(pg.setViewport({ width: 800, height: 500, deviceScaleFactor: 1 }), OP_TIMEOUT, null);
-        // [FIX-STABLE] interceptor pode falhar — não travar o slot
-        await withTimeout(installSsrfInterceptor(pg, req => {
-          const rt = req.resourceType();
-          if (rt === 'media' || rt === 'font') { try { req.abort(); } catch {} return; }
-          try { req.continue(); } catch {}
-        }), OP_TIMEOUT, null).catch(() => {});
-
-        await withTimeout(
-          pg.goto(url, { waitUntil: 'domcontentloaded', timeout: THUMB_TIMEOUT }),
-          THUMB_TIMEOUT,
-          null
-        );
-
-        await withTimeout(pg._client().send('Page.stopLoading'), 1000, null).catch(() => {});
-        pageTitle = await withTimeout(pg.title(), OP_TIMEOUT, url);
-        try { finalUrl = pg.url(); } catch {}
-
-        // [PERF] Delay condicional: se já tem body com conteúdo, segue direto.
-        // Antes: 400ms cego × pageLimit (em lotes de 3) = ~1.6s desperdiçados num crawl de 12 páginas.
-        const ready = await withTimeout(
-          pg.evaluate(() => !!(document.body && document.body.children.length > 3)),
-          400, false
-        );
-        if (!ready) await new Promise(r => setTimeout(r, 250));
-
-        // Helper local: tira screenshot e retorna { ok, size }.
-        const shoot = async () => {
-          const sp = pg.screenshot({
-            path: thumbPath, type: 'jpeg', quality: 50,
-            clip: { x: 0, y: 0, width: 800, height: 500 },
-          }).then(() => true, () => false);
-          const taken = await withTimeout(sp, SCREENSHOT_TIMEOUT, false);
-          let size = 0;
-          if (taken) { try { size = fs.existsSync(thumbPath) ? fs.statSync(thumbPath).size : 0; } catch {} }
-          return { ok: taken && size >= THUMB_MIN_BYTES, size };
-        };
-
-        let shot = await shoot();
-        ok = shot.ok;
-        if (!ok) reason = `jpeg muito pequeno (${shot.size}b)`;
-
-        // [PERF] Segunda chance: se a primeira saiu pequena/falhou, espera 1.2s e tenta de novo.
-        // Páginas SPA-pesadas (formulários Stripe, etc) renderizam após o DCL — a 2ª tentativa pega.
-        if (!ok) {
-          await new Promise(r => setTimeout(r, 1200));
-          shot = await shoot();
-          ok = shot.ok;
-          if (ok) reason = '';
-          else reason = `2 tentativas falharam (último: ${shot.size}b)`;
-        }
-
-        if (!ok) {
-          try { if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath); } catch {}
-        }
-      })();
-
-      // Hardcap global: não importa onde esteja pendurado, liberamos o slot.
-      await withTimeout(inner, PER_PAGE_HARDCAP, null);
-      if (!ok && !reason) reason = `hardcap ${PER_PAGE_HARDCAP}ms`;
-
-      // Fecha a página em background (não bloqueia o próximo slot).
-      if (pg) withTimeout(pg.close(), PAGE_CLOSE_TIMEOUT, null).catch(() => {});
-
-      const elapsed = Date.now() - startedAt;
-      log(`Miniatura ${i}/${total}: ${ok ? 'ok' : 'falhou — ' + reason} (${elapsed}ms) — ${url}`);
-      return { url: finalUrl, title: pageTitle || finalUrl, ok };
-    };
-
-    // 1ª passada: em paralelo, até THUMB_CONCURRENCY simultâneas
-    const pageSlots = toVisit.slice(1).map(({ url }, idx) => ({
-      url, idx,
-      fname:     `page-${String(idx + 1).padStart(3, '0')}.jpg`,
-      thumbPath: path.join(thumbDir, `page-${String(idx + 1).padStart(3, '0')}.jpg`),
-      thumbUrl:  `/screenshots/${jobId}/thumbs/page-${String(idx + 1).padStart(3, '0')}.jpg`,
-    }));
-    const captured = new Array(pageSlots.length);
-
-    await Promise.allSettled(pageSlots.map(async (slot) => {
-      if (slot.url === normalSeed) return;
-      await thumbAcquire();
-      try {
-        const r = await captureOne(slot.url, slot.thumbPath, slot.idx + 1, pageSlots.length);
-        captured[slot.idx] = { ...slot, ...r };
-      } catch { captured[slot.idx] = { ...slot, url: slot.url, title: slot.url, ok: false }; }
-      finally { thumbRelease(); }
-    }));
-
-    for (const c of captured) {
-      if (!c) continue;
-      const thumbExists = fs.existsSync(c.thumbPath);
-      results.push({
-        url: c.url,
-        title: c.title || c.url,
-        thumbnailPath: thumbExists ? c.thumbPath : null,
-        thumbnailUrl:  thumbExists ? c.thumbUrl  : null,
-        pageType: inferPageType(c.url),
-      });
-    }
-
-    log(`Exploração finalizada — ${results.length} página(s) dentro do limite, ${totalFound} descobertas no total.`);
-    const rawPages = results.length > 0
-      ? results
-      : [{ url: rawUrl, title: rawUrl, thumbnailPath: '', thumbnailUrl: '', pageType: 'homepage' }];
-    const pages = rankPages(rawPages);
-    return { pages, totalFound: Math.max(totalFound, pages.length) };
-
-  } finally {
-    if (poolEntry) await releaseBrowserToPool(poolEntry);
   }
+
+  // 2. DEDUPLICATE & RANK
+  const seen  = new Set();
+  const queue = [];
+  const addUrl = (href, priority) => {
+    const n = normalizeUrl(href, origin);
+    if (n && !seen.has(n) && !FILE_EXT_RE.test(n)) { seen.add(n); queue.push({ url: n, priority }); }
+  };
+
+  const normalSeed = normalizeUrl(rawUrl, origin) || rawUrl;
+  seen.add(normalSeed);
+  queue.push({ url: normalSeed, priority: 0 });
+
+  allLinks.forEach(l => addUrl(l.href, l.priority));
+  queue.sort((a, b) => a.priority - b.priority);
+
+  const totalFound = queue.length;
+  const toVisit    = queue.slice(0, pageLimit);
+  log(`${toVisit.length} página(s) na fila para captura.`);
+
+  // 3. CAPTURE PHASE (Parallel capture with controlled concurrency)
+  const results = new Array(toVisit.length).fill(null);
+  let activeSlots = 0;
+  const slotQueue = [];
+
+  const acquireSlot = () => {
+    if (activeSlots < THUMB_CONCURRENCY) { activeSlots++; return Promise.resolve(); }
+    return new Promise(r => slotQueue.push(() => { activeSlots++; r(); }));
+  };
+  const releaseSlot = () => { activeSlots--; if (slotQueue.length > 0) slotQueue.shift()(); };
+
+  await Promise.allSettled(toVisit.map(async (item, i) => {
+    await acquireSlot();
+    try {
+      let workerPoolEntry;
+      try {
+        workerPoolEntry = await getBrowserFromPool();
+        const fname = `page-${String(i).padStart(3, '0')}.jpg`;
+        const thumbPath = path.join(thumbDir, fname);
+        const thumbUrl = `/screenshots/${jobId}/thumbs/${fname}`;
+        
+        const startedAt = Date.now();
+        // [CAPTURE] Executa o Baseline + Fallback
+        await captureThumbnail(workerPoolEntry.browser, item.url, thumbPath);
+        
+        const exists = fs.existsSync(thumbPath);
+        const elapsed = Date.now() - startedAt;
+        log(`Miniatura ${i + 1}/${toVisit.length}: ${exists ? 'ok' : 'falhou'} (${elapsed}ms) — ${item.url}`);
+
+        results[i] = {
+          url: item.url,
+          title: item.url, // Título será refinado via inferPageType p/ o crawler ser rápido
+          thumbnailPath: exists ? thumbPath : null,
+          thumbnailUrl:  exists ? thumbUrl  : null,
+          pageType: inferPageType(item.url),
+        };
+      } finally {
+        if (workerPoolEntry) await releaseBrowserToPool(workerPoolEntry);
+      }
+    } catch (err) {
+      console.error(`[CrawlerTask] Erro crítico em ${item.url}:`, err.message);
+    } finally {
+      releaseSlot();
+    }
+  }));
+
+  log(`Processo finalizado — ${results.filter(r => r && r.thumbnailPath).length} capturas realizadas.`);
+  const finalPages = rankPages(results.filter(Boolean));
+  return { pages: finalPages, totalFound };
 }
 
 async function crawlSite(rawUrl, jobId, maxPages) {
   return Promise.race([
     _doCrawl(rawUrl, jobId, maxPages),
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('O site demorou demais. Tente com outro site.')), CRAWL_TIMEOUT)
+      setTimeout(() => reject(new Error('O site demorou demais ou houve erro no processamento.')), CRAWL_TIMEOUT)
     ),
   ]);
 }

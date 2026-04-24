@@ -3,26 +3,23 @@
 const puppeteer = require('puppeteer');
 
 // [FIX-2] Pool size from env (default 3). Was hardcoded.
-const POOL_SIZE = Math.max(1, parseInt(process.env.MAX_BROWSERS || '3', 10));
+const POOL_SIZE = Math.max(1, parseInt(process.env.MAX_BROWSERS || '3', 10)); // [STABLE] Reduzido para 3 para evitar estouro de memória em servidores 512MB-1GB
 
 const pool = [];
 let poolReady = false;
 
 function launchArgs() {
   return {
-    headless: 'new',
+    headless: true, // [STABLE] 'true' é mais leve que 'new' para servidores com pouca RAM
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     args: [
-      '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
-      '--disable-gpu', '--disable-blink-features=AutomationControlled',
-      // REMOVIDO: --disable-web-security e --allow-running-insecure-content
-      // Essas flags desabilitam CORS e permitiam SSRF via XHR dentro das páginas
-      '--disable-extensions',
-      '--disable-background-networking',
-      '--disable-sync',
-      '--no-first-run',
-      '--disable-features=VizDisplayCompositor',
-      '--window-size=1440,900', '--lang=pt-BR,pt,en-US',
+      '--no-sandbox', 
+      '--disable-setuid-sandbox', 
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-blink-features=AutomationControlled',
+      '--window-size=1440,900',
+      '--lang=pt-BR,pt,en-US',
     ],
   };
 }

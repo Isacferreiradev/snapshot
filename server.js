@@ -728,7 +728,10 @@ app.post('/api/select-pages', (req, res) => {
   if (!job) return res.status(404).json({ error: 'Job não encontrado.' });
   if (!Array.isArray(selectedUrls) || selectedUrls.length === 0) return res.status(400).json({ error: 'Selecione ao menos uma página.' });
   const uniqueUrls = [...new Set(selectedUrls)];
-  if (uniqueUrls.length > 12) return res.status(400).json({ error: 'Máximo de 12 páginas.' });
+  const maxAllowed = req.planKey === 'agency' ? 50 : (req.planKey === 'pro' ? 24 : 12);
+  if (uniqueUrls.length > maxAllowed) {
+    return res.status(400).json({ error: `Seu plano permite capturar até ${maxAllowed} páginas por vez.` });
+  }
   const discovered = new Set(job.pages.map(p => p.url));
   for (const u of uniqueUrls) {
     if (!discovered.has(u)) return res.status(400).json({ error: `URL desconhecida: ${u}` });
